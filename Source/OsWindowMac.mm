@@ -7,7 +7,7 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/QuartzCore.h>
 
-#include "Macros.h"
+#include "Core/Macros.h"
 
 @class OsWindowMacView;
 @class OsWindowMacEventTarget;

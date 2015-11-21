@@ -77,7 +77,7 @@
 
 #include <vector>
 #include <limits.h>
-#include "Macros.h"
+#include "Core/Macros.h"
 
 template<class T, class ID, size_t NumIndexBits, size_t NumInnerIDBits>
 class IDLookupTable {

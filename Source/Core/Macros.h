@@ -2,6 +2,7 @@
 #define MACROS_H
 
 #include <assert.h>
+#include <stdio.h>
 
 #define ASSERT(test) assert(test)
 

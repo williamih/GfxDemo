@@ -7,7 +7,7 @@
 #import <Metal/Metal.h>
 
 #include "IDLookupTable.h"
-#include "Macros.h"
+#include "Core/Macros.h"
 
 // -----------------------------------------------------------------------------
 // Lookup tables

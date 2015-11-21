@@ -18,7 +18,7 @@
 #define GPUDEVICE_GPUDEVICE_H
 
 #include <stddef.h>
-#include "Types.h"
+#include "Core/Types.h"
 
 // -----------------------------------------------------------------------------
 // Constants

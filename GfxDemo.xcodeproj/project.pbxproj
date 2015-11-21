@@ -40,15 +40,15 @@
 		7AEAF2021BF81E7E00620EB0 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		7AEAF2041BF81E9300620EB0 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		CA0085161A43A21800E2A102 /* GfxDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GfxDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7AF7AB0E1C00158400B44E92 /* Macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Macros.h; sourceTree = "<group>"; };
+		7AF7AB0F1C00158400B44E92 /* Types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Types.h; sourceTree = "<group>"; };
 		CA00851A1A43A21800E2A102 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CA0085231A43A21800E2A102 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		CA0732C51A43A54B00770DE8 /* OsWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OsWindow.h; sourceTree = "<group>"; };
 		CA0732C71A43A62300770DE8 /* OsWindowMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OsWindowMac.mm; sourceTree = "<group>"; };
 		CA5FF6811A4B8FBB004ADF7F /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = File.cpp; sourceTree = "<group>"; };
 		CA5FF6821A4B8FBB004ADF7F /* File.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = File.h; sourceTree = "<group>"; };
-		CA66B3671A49059E00529B53 /* Macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Macros.h; sourceTree = "<group>"; };
 		CA71F72E1A48E0440000B102 /* IDLookupTable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IDLookupTable.h; sourceTree = "<group>"; };
-		CA71F7321A48E21D0000B102 /* Types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Types.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +93,15 @@
 			path = GpuDevice;
 			sourceTree = "<group>";
 		};
+		7AF7AB0C1C00157000B44E92 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				7AF7AB0E1C00158400B44E92 /* Macros.h */,
+				7AF7AB0F1C00158400B44E92 /* Types.h */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
 		CA00850D1A43A21800E2A102 = {
 			isa = PBXGroup;
 			children = (
@@ -117,10 +126,9 @@
 		CA0085181A43A21800E2A102 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				7AF7AB0C1C00157000B44E92 /* Core */,
 				7AC5DFC91B8AF1C700FC65B1 /* Application.h */,
 				7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */,
-				CA66B3671A49059E00529B53 /* Macros.h */,
-				CA71F7321A48E21D0000B102 /* Types.h */,
 				CA71F72E1A48E0440000B102 /* IDLookupTable.h */,
 				7AEAF1FF1BF814B900620EB0 /* OsEvent.h */,
 				CA0732C51A43A54B00770DE8 /* OsWindow.h */,

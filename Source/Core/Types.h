@@ -11,6 +11,8 @@ typedef signed short i16;
 typedef signed int i32;
 typedef signed long long i64;
 
+typedef float f32;
+
 template<class T, class Name>
 struct PrimitiveWrap {
     typedef T Type;
