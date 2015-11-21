@@ -106,25 +106,6 @@ struct GpuPipelineState {
     GpuInputLayoutID inputLayout;
 };
 
-struct GpuInputAssemblerState {
-    struct VertexBufEntry {
-        GpuBufferID bufferID;
-        unsigned offset;
-    };
-
-    static const unsigned MAX_VERTEX_BUFFERS = 16;
-
-    GpuPrimitiveType primType;
-    GpuBufferID indexBufferID;
-    VertexBufEntry vertexBuffers[MAX_VERTEX_BUFFERS];
-    int nVertexBuffers;
-};
-
-struct GpuResourceList {
-    GpuBufferID cbuffers[GPU_MAX_CBUFFERS];
-    int nCBuffers;
-};
-
 struct GpuRenderPass {
     enum {
         FLAG_PERFORM_CLEAR = 1,
@@ -135,9 +116,22 @@ struct GpuRenderPass {
 };
 
 struct GpuDrawItem {
+    struct VertexBufEntry {
+        GpuBufferID bufferID;
+        unsigned offset;
+    };
+    static const unsigned MAX_VERTEX_BUFFERS = 16;
+
     GpuPipelineStateID pipelineStateID;
-    GpuInputAssemblerState inputAssembler;
-    GpuResourceList resources;
+    // Input assembler state
+    GpuPrimitiveType primType;
+    GpuBufferID indexBufferID;
+    VertexBufEntry vertexBuffers[MAX_VERTEX_BUFFERS];
+    int nVertexBuffers;
+    // Resources
+    GpuBufferID cbuffers[GPU_MAX_CBUFFERS];
+    int nCBuffers;
+    // Draw call parameters
     GpuViewport viewport;
     int first;
     int count;

@@ -129,12 +129,12 @@ void Application::Frame()
     GpuDrawItem drawItem;
     memset(&drawItem, 0, sizeof drawItem);
     drawItem.pipelineStateID = m_pipelineStateObj;
-    drawItem.inputAssembler.primType = GPUPRIMITIVE_TRIANGLES;
-    drawItem.inputAssembler.nVertexBuffers = 1;
-    drawItem.inputAssembler.vertexBuffers[0].bufferID = m_vertexBuffer;
-    drawItem.inputAssembler.vertexBuffers[0].offset = 0;
-    drawItem.resources.cbuffers[0] = m_cbuffer;
-    drawItem.resources.nCBuffers = 1;
+    drawItem.primType = GPUPRIMITIVE_TRIANGLES;
+    drawItem.nVertexBuffers = 1;
+    drawItem.vertexBuffers[0].bufferID = m_vertexBuffer;
+    drawItem.vertexBuffers[0].offset = 0;
+    drawItem.cbuffers[0] = m_cbuffer;
+    drawItem.nCBuffers = 1;
     drawItem.viewport = viewport;
     drawItem.first = 0;
     drawItem.count = 3;

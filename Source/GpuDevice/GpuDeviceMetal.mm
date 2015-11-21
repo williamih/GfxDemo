@@ -464,26 +464,26 @@ void GpuDeviceMetal::Draw(const GpuDrawItem& item)
     [m_commandEncoder setViewport:MTLViewportFromGpuViewport(item.viewport)];
 
     // Set vertex buffers
-    for (int i = 0; i < item.inputAssembler.nVertexBuffers; ++i) {
-        GpuBufferID bufferID = item.inputAssembler.vertexBuffers[i].bufferID;
-        unsigned offset = item.inputAssembler.vertexBuffers[i].offset;
+    for (int i = 0; i < item.nVertexBuffers; ++i) {
+        GpuBufferID bufferID = item.vertexBuffers[i].bufferID;
+        unsigned offset = item.vertexBuffers[i].offset;
         [m_commandEncoder setVertexBuffer:m_bufferTable.Lookup(bufferID).buffer
                                    offset:offset
                                   atIndex:(GPU_MAX_CBUFFERS + i)];
     }
 
     // Set cbuffers
-    for (int i = 0; i < item.resources.nCBuffers; ++i) {
-        GpuBufferID bufferID = item.resources.cbuffers[i];
+    for (int i = 0; i < item.nCBuffers; ++i) {
+        GpuBufferID bufferID = item.cbuffers[i];
         id<MTLBuffer> buf = m_bufferTable.Lookup(bufferID).buffer;
         [m_commandEncoder setVertexBuffer:buf offset:0 atIndex:i];
         [m_commandEncoder setFragmentBuffer:buf offset:0 atIndex:i];
     }
 
     // Submit the draw call
-    MTLPrimitiveType primType = s_metalPrimitiveTypes[item.inputAssembler.primType];
+    MTLPrimitiveType primType = s_metalPrimitiveTypes[item.primType];
     if (item.indexType != GPUINDEXTYPE_NONE) {
-        id<MTLBuffer> indexBuf = m_bufferTable.Lookup(item.inputAssembler.indexBufferID).buffer;
+        id<MTLBuffer> indexBuf = m_bufferTable.Lookup(item.indexBufferID).buffer;
         NSUInteger indexBufOffset = item.indexBufferOffset;
         indexBufOffset += item.first * s_indexTypeByteSizes[item.indexType];
         [m_commandEncoder drawIndexedPrimitives:primType
