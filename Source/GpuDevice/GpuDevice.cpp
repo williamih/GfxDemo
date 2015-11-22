@@ -1,12 +1,12 @@
 #include "GpuDevice/GpuDevice.h"
 
-GpuPipelineState::GpuPipelineState()
+GpuPipelineStateDesc::GpuPipelineStateDesc()
     : vertexShader(0)
     , pixelShader(0)
     , inputLayout(0)
 {}
 
-GpuRenderPass::GpuRenderPass()
+GpuRenderPassDesc::GpuRenderPassDesc()
     : flags(0)
     , clearR(0.0f)
     , clearG(0.0f)

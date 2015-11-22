@@ -88,8 +88,8 @@ public:
     void* GetBufferContents(GpuBufferID bufferID);
     void FlushBufferRange(GpuBufferID bufferID, int start, int length);
 
-    GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineState& state);
-    GpuRenderPassID CreateRenderPassObject(const GpuRenderPass& pass);
+    GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
+    GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
     GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
                                        const GpuVertexAttribute* attribs,
                                        int nVertexBuffers,
@@ -329,7 +329,7 @@ void GpuDeviceMetal::FlushBufferRange(GpuBufferID bufferID, int start, int lengt
     [buffer.buffer didModifyRange:NSMakeRange(start, length)];
 }
 
-GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineState& state)
+GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineStateDesc& state)
 {
     ASSERT(state.vertexShader != 0);
     ASSERT(state.pixelShader != 0);
@@ -361,7 +361,7 @@ GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineSt
     return pipelineStateID;
 }
 
-GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPass& pass)
+GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPassDesc& pass)
 {
     m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
 
@@ -371,7 +371,7 @@ GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPass& pass
     MTLRenderPassColorAttachmentDescriptor* colorDesc;
     colorDesc = [[[MTLRenderPassColorAttachmentDescriptor alloc] init] autorelease];
     colorDesc.clearColor = {pass.clearR, pass.clearG, pass.clearB, pass.clearA};
-    if (pass.flags & GpuRenderPass::FLAG_PERFORM_CLEAR)
+    if (pass.flags & GpuRenderPassDesc::FLAG_PERFORM_CLEAR)
         colorDesc.loadAction = MTLLoadActionClear;
     colorDesc.storeAction = MTLStoreActionStore;
 
@@ -381,7 +381,7 @@ GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPass& pass
     if (m_depthBuf != nil) {
         depthDesc = [[[MTLRenderPassDepthAttachmentDescriptor alloc] init] autorelease];
         depthDesc.clearDepth = pass.clearDepth;
-        if (pass.flags & GpuRenderPass::FLAG_PERFORM_CLEAR)
+        if (pass.flags & GpuRenderPassDesc::FLAG_PERFORM_CLEAR)
             depthDesc.loadAction = MTLLoadActionClear;
         depthDesc.storeAction = MTLStoreActionStore;
     }
@@ -581,10 +581,10 @@ void* GpuDevice::GetBufferContents(GpuBufferID bufferID)
 void GpuDevice::FlushBufferRange(GpuBufferID bufferID, int start, int length)
 { Cast(this)->FlushBufferRange(bufferID, start, length); }
 
-GpuPipelineStateID GpuDevice::CreatePipelineStateObject(const GpuPipelineState& state)
+GpuPipelineStateID GpuDevice::CreatePipelineStateObject(const GpuPipelineStateDesc& state)
 { return Cast(this)->CreatePipelineStateObject(state); }
 
-GpuRenderPassID GpuDevice::CreateRenderPassObject(const GpuRenderPass& pass)
+GpuRenderPassID GpuDevice::CreateRenderPassObject(const GpuRenderPassDesc& pass)
 { return Cast(this)->CreateRenderPassObject(pass); }
 
 GpuInputLayoutID GpuDevice::CreateInputLayout(int nVertexAttribs,

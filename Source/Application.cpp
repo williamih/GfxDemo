@@ -91,14 +91,14 @@ Application::Application()
                                                    1,
                                                    strides);
 
-    GpuPipelineState pipelineState;
+    GpuPipelineStateDesc pipelineState;
     pipelineState.vertexShader = m_vertexShader;
     pipelineState.pixelShader = m_pixelShader;
     pipelineState.inputLayout = m_inputLayout;
     m_pipelineStateObj = m_gpuDevice->CreatePipelineStateObject(pipelineState);
 
-    GpuRenderPass renderPass;
-    renderPass.flags |= GpuRenderPass::FLAG_PERFORM_CLEAR;
+    GpuRenderPassDesc renderPass;
+    renderPass.flags |= GpuRenderPassDesc::FLAG_PERFORM_CLEAR;
     renderPass.clearR = 0.0f;
     renderPass.clearB = 0.0f;
     renderPass.clearG = 0.0f;

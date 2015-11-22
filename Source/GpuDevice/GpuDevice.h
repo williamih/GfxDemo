@@ -101,16 +101,16 @@ struct GpuViewport {
 // Draw items
 // -----------------------------------------------------------------------------
 
-struct GpuPipelineState {
-    GpuPipelineState();
+struct GpuPipelineStateDesc {
+    GpuPipelineStateDesc();
 
     GpuShaderID vertexShader;
     GpuShaderID pixelShader;
     GpuInputLayoutID inputLayout;
 };
 
-struct GpuRenderPass {
-    GpuRenderPass();
+struct GpuRenderPassDesc {
+    GpuRenderPassDesc();
 
     enum {
         FLAG_PERFORM_CLEAR = 1,
@@ -172,8 +172,8 @@ public:
     void* GetBufferContents(GpuBufferID bufferID);
     void FlushBufferRange(GpuBufferID bufferID, int start, int length);
 
-    GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineState& state);
-    GpuRenderPassID CreateRenderPassObject(const GpuRenderPass& pass);
+    GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
+    GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
     GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
                                        const GpuVertexAttribute* attribs,
                                        int nVertexBuffers,
