@@ -4,6 +4,8 @@ GpuPipelineStateDesc::GpuPipelineStateDesc()
     : vertexShader(0)
     , pixelShader(0)
     , inputLayout(0)
+    , depthCompare(GPU_COMPARE_ALWAYS)
+    , depthWritesEnabled(false)
 {}
 
 GpuRenderPassDesc::GpuRenderPassDesc()

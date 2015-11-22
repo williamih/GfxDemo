@@ -97,6 +97,17 @@ struct GpuViewport {
     float zFar;
 };
 
+enum GpuCompareFunction {
+    GPU_COMPARE_NEVER,
+    GPU_COMPARE_LESS,
+    GPU_COMPARE_EQUAL,
+    GPU_COMPARE_LESS_EQUAL,
+    GPU_COMPARE_GREATER,
+    GPU_COMPARE_NOT_EQUAL,
+    GPU_COMPARE_GREATER_EQUAL,
+    GPU_COMPARE_ALWAYS,
+};
+
 // -----------------------------------------------------------------------------
 // Draw items
 // -----------------------------------------------------------------------------
@@ -107,6 +118,8 @@ struct GpuPipelineStateDesc {
     GpuShaderID vertexShader;
     GpuShaderID pixelShader;
     GpuInputLayoutID inputLayout;
+    GpuCompareFunction depthCompare;
+    bool depthWritesEnabled;
 };
 
 struct GpuRenderPassDesc {

@@ -64,6 +64,17 @@ static const MTLVertexFormat s_metalVertexAttribFormats[] = {
     MTLVertexFormatUChar4Normalized, // GPUVERTEXATTRIB_UBYTE4_NORMALIZED
 };
 
+static const MTLCompareFunction s_metalCompareFunctions[] = {
+    MTLCompareFunctionNever, // GPU_COMPARE_NEVER
+    MTLCompareFunctionLess, // GPU_COMPARE_LESS
+    MTLCompareFunctionEqual, // GPU_COMPARE_EQUAL
+    MTLCompareFunctionLessEqual, // GPU_COMPARE_LESS_EQUAL
+    MTLCompareFunctionGreater, // GPU_COMPARE_GREATER
+    MTLCompareFunctionNotEqual, // GPU_COMPARE_NOT_EQUAL
+    MTLCompareFunctionGreaterEqual, // GPU_COMPARE_GREATER_EQUAL
+    MTLCompareFunctionAlways, // GPU_COMPARE_ALWAYS
+};
+
 // -----------------------------------------------------------------------------
 // GpuDeviceMetal class declaration
 // -----------------------------------------------------------------------------
@@ -89,6 +100,11 @@ public:
     void FlushBufferRange(GpuBufferID bufferID, int start, int length);
 
     GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
+private:
+    id<MTLRenderPipelineState> CreateMTLRenderPipelineState(const GpuPipelineStateDesc& state);
+    id<MTLDepthStencilState> CreateMTLDepthStencilState(const GpuPipelineStateDesc& state);
+
+public:
     GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
     GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
                                        const GpuVertexAttribute* attribs,
@@ -119,6 +135,7 @@ private:
 
     struct PipelineStateObj {
         id<MTLRenderPipelineState> state;
+        id<MTLDepthStencilState> depthStencilState;
     };
 
     struct RenderPassObj {
@@ -338,6 +355,14 @@ GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineSt
     GpuPipelineStateID pipelineStateID(m_pipelineStateTable.Add());
     PipelineStateObj& obj = m_pipelineStateTable.Lookup(pipelineStateID);
 
+    obj.state = CreateMTLRenderPipelineState(state);
+    obj.depthStencilState = CreateMTLDepthStencilState(state);
+
+    return pipelineStateID;
+}
+
+id<MTLRenderPipelineState> GpuDeviceMetal::CreateMTLRenderPipelineState(const GpuPipelineStateDesc& state)
+{
     MTLRenderPipelineDescriptor* desc = [[[MTLRenderPipelineDescriptor alloc] init] autorelease];
     desc.vertexFunction = m_shaderTable.Lookup(state.vertexShader).function;
     desc.fragmentFunction = m_shaderTable.Lookup(state.pixelShader).function;
@@ -351,14 +376,22 @@ GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineSt
     desc.depthAttachmentPixelFormat = s_metalDepthPixelFormats[m_deviceFormat.pixelDepthFormat];
 
     NSError* error;
-    obj.state = [m_device newRenderPipelineStateWithDescriptor:desc
-                                                         error:&error];
+    id<MTLRenderPipelineState> result;
+    result = [m_device newRenderPipelineStateWithDescriptor:desc error:&error];
     if (error) {
         FATAL("GpuDeviceMetal: Failed to create pipeline object: %s",
               error.localizedDescription.UTF8String);
     }
+    return result;
+}
 
-    return pipelineStateID;
+id<MTLDepthStencilState> GpuDeviceMetal::CreateMTLDepthStencilState(const GpuPipelineStateDesc& state)
+{
+    MTLDepthStencilDescriptor* desc = [[[MTLDepthStencilDescriptor alloc] init] autorelease];
+    desc.depthCompareFunction = s_metalCompareFunctions[state.depthCompare];
+    desc.depthWriteEnabled = state.depthWritesEnabled ? YES : NO;
+
+    return [m_device newDepthStencilStateWithDescriptor:desc];
 }
 
 GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPassDesc& pass)
@@ -471,9 +504,11 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* item)
 
     const GpuDrawItemHeader* header = (const GpuDrawItemHeader*)item;
 
+    // Set the pipeline state
     ASSERT(m_pipelineStateTable.Has(header->pipelineStateID));
     PipelineStateObj& pipelineState = m_pipelineStateTable.Lookup(header->pipelineStateID);
     [m_commandEncoder setRenderPipelineState:pipelineState.state];
+    [m_commandEncoder setDepthStencilState:pipelineState.depthStencilState];
 
     // Set vertex buffers
     const GpuDrawItemHeader::VertexBufEntry* vertexBuffers = header->GetVertexBufferArray();
