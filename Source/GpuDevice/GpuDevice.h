@@ -102,12 +102,16 @@ struct GpuViewport {
 // -----------------------------------------------------------------------------
 
 struct GpuPipelineState {
+    GpuPipelineState();
+
     GpuShaderID vertexShader;
     GpuShaderID pixelShader;
     GpuInputLayoutID inputLayout;
 };
 
 struct GpuRenderPass {
+    GpuRenderPass();
+
     enum {
         FLAG_PERFORM_CLEAR = 1,
     };

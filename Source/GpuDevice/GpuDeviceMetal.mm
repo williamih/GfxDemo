@@ -331,6 +331,10 @@ void GpuDeviceMetal::FlushBufferRange(GpuBufferID bufferID, int start, int lengt
 
 GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineState& state)
 {
+    ASSERT(state.vertexShader != 0);
+    ASSERT(state.pixelShader != 0);
+    ASSERT(state.inputLayout != 0);
+
     GpuPipelineStateID pipelineStateID(m_pipelineStateTable.Add());
     PipelineStateObj& obj = m_pipelineStateTable.Lookup(pipelineStateID);
 
