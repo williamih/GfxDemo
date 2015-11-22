@@ -23,6 +23,7 @@ private:
     GpuInputLayoutID m_inputLayout;
     GpuPipelineStateID m_pipelineStateObj;
     GpuRenderPassID m_renderPass;
+    GpuDrawItem* m_drawItem;
     float m_angle;
 };
 

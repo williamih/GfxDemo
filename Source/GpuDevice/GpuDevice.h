@@ -84,16 +84,17 @@ enum GpuPrimitiveType {
 };
 
 enum GpuIndexType {
-    GPUINDEXTYPE_NONE,
     GPUINDEXTYPE_U16,
     GPUINDEXTYPE_U32,
 };
 
 struct GpuViewport {
-    float x;
-    float y;
-    float width;
-    float height;
+    u16 x;
+    u16 y;
+    u16 width;
+    u16 height;
+    float zNear;
+    float zFar;
 };
 
 // -----------------------------------------------------------------------------
@@ -115,29 +116,7 @@ struct GpuRenderPass {
     float clearDepth;
 };
 
-struct GpuDrawItem {
-    struct VertexBufEntry {
-        GpuBufferID bufferID;
-        unsigned offset;
-    };
-    static const unsigned MAX_VERTEX_BUFFERS = 16;
-
-    GpuPipelineStateID pipelineStateID;
-    // Input assembler state
-    GpuPrimitiveType primType;
-    GpuBufferID indexBufferID;
-    VertexBufEntry vertexBuffers[MAX_VERTEX_BUFFERS];
-    int nVertexBuffers;
-    // Resources
-    GpuBufferID cbuffers[GPU_MAX_CBUFFERS];
-    int nCBuffers;
-    // Draw call parameters
-    GpuViewport viewport;
-    int first;
-    int count;
-    unsigned indexBufferOffset;
-    GpuIndexType indexType;
-};
+class GpuDrawItem;
 
 // -----------------------------------------------------------------------------
 // GpuDeviceFormat
@@ -196,10 +175,10 @@ public:
                                        int nVertexBuffers,
                                        const unsigned* strides);
 
-    void BeginRenderPass(GpuRenderPassID passID);
+    void BeginRenderPass(GpuRenderPassID passID, const GpuViewport& viewport);
     void EndRenderPass();
 
-    void Draw(const GpuDrawItem& item);
+    void Draw(const GpuDrawItem* item);
 
     void SceneBegin();
     void ScenePresent();

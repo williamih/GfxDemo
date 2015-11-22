@@ -8,6 +8,7 @@
 
 #include "IDLookupTable.h"
 #include "Core/Macros.h"
+#include "GpuDevice/GpuDrawItem.h"
 
 // -----------------------------------------------------------------------------
 // Lookup tables
@@ -43,13 +44,11 @@ static const MTLPrimitiveType s_metalPrimitiveTypes[] = {
 };
 
 static const MTLIndexType s_metalIndexTypes[] = {
-    MTLIndexTypeUInt16, // GPUINDEXTYPE_NONE (placeholder only)
     MTLIndexTypeUInt16, // GPUINDEXTYPE_U16
     MTLIndexTypeUInt32, // GPUINDEXTYPE_U32
 };
 
 static const NSUInteger s_indexTypeByteSizes[] = {
-    0, // GPUINDEXTYPE_NONE (placeholder only)
     2, // GPUINDEXTYPE_U16
     4, // GPUINDEXTYPE_U32
 };
@@ -96,10 +95,10 @@ public:
                                        int nVertexBuffers,
                                        const unsigned* strides);
 
-    void BeginRenderPass(GpuRenderPassID passID);
+    void BeginRenderPass(GpuRenderPassID passID, const GpuViewport& viewport);
     void EndRenderPass();
 
-    void Draw(const GpuDrawItem& item);
+    void Draw(const GpuDrawItem* item);
 
     void SceneBegin();
     void ScenePresent();
@@ -421,7 +420,19 @@ GpuInputLayoutID GpuDeviceMetal::CreateInputLayout(int nVertexAttribs,
     return inputLayoutID;
 }
 
-void GpuDeviceMetal::BeginRenderPass(GpuRenderPassID passID)
+static MTLViewport GetMTLViewport(const GpuViewport& viewport)
+{
+    MTLViewport res;
+    res.originX = (double)viewport.x;
+    res.originY = (double)viewport.y;
+    res.width = (double)viewport.width;
+    res.height = (double)viewport.height;
+    res.znear = (double)viewport.zNear;
+    res.zfar = (double)viewport.zFar;
+    return res;
+}
+
+void GpuDeviceMetal::BeginRenderPass(GpuRenderPassID passID, const GpuViewport& viewport)
 {
     m_currentRenderPass = passID;
 
@@ -438,6 +449,7 @@ void GpuDeviceMetal::BeginRenderPass(GpuRenderPassID passID)
     ASSERT(m_depthBuf.height == m_deviceFormat.resolutionY);
 
     m_commandEncoder = [[m_commandBuffer renderCommandEncoderWithDescriptor:pass.descriptor] retain];
+    [m_commandEncoder setViewport:GetMTLViewport(viewport)];
 }
 
 void GpuDeviceMetal::EndRenderPass()
@@ -448,53 +460,55 @@ void GpuDeviceMetal::EndRenderPass()
     m_currentRenderPass = (GpuRenderPassID)0;
 }
 
-static MTLViewport MTLViewportFromGpuViewport(const GpuViewport& viewport)
+void GpuDeviceMetal::Draw(const GpuDrawItem* item)
 {
-    MTLViewport res = {viewport.x, viewport.y, viewport.width, viewport.height};
-    return res;
-}
-
-void GpuDeviceMetal::Draw(const GpuDrawItem& item)
-{
+    ASSERT(item != NULL);
     ASSERT(m_currentRenderPass != 0 && "Must call BeginRenderPass() before Draw()");
 
-    PipelineStateObj& pipelineState = m_pipelineStateTable.Lookup(item.pipelineStateID);
+    const GpuDrawItemHeader* header = (const GpuDrawItemHeader*)item;
+
+    ASSERT(m_pipelineStateTable.Has(header->pipelineStateID));
+    PipelineStateObj& pipelineState = m_pipelineStateTable.Lookup(header->pipelineStateID);
     [m_commandEncoder setRenderPipelineState:pipelineState.state];
 
-    [m_commandEncoder setViewport:MTLViewportFromGpuViewport(item.viewport)];
-
     // Set vertex buffers
-    for (int i = 0; i < item.nVertexBuffers; ++i) {
-        GpuBufferID bufferID = item.vertexBuffers[i].bufferID;
-        unsigned offset = item.vertexBuffers[i].offset;
+    const GpuDrawItemHeader::VertexBufEntry* vertexBuffers = header->GetVertexBufferArray();
+    for (int i = 0; i < header->nVertexBuffers; ++i) {
+        GpuBufferID bufferID(vertexBuffers[i].bufferID);
+        ASSERT(m_bufferTable.Has(bufferID));
+        unsigned offset = vertexBuffers[i].offset;
         [m_commandEncoder setVertexBuffer:m_bufferTable.Lookup(bufferID).buffer
                                    offset:offset
                                   atIndex:(GPU_MAX_CBUFFERS + i)];
     }
 
     // Set cbuffers
-    for (int i = 0; i < item.nCBuffers; ++i) {
-        GpuBufferID bufferID = item.cbuffers[i];
+    const u32* cbuffers = header->GetCBufferArray();
+    for (int i = 0; i < header->nCBuffers; ++i) {
+        GpuBufferID bufferID(cbuffers[i]);
+        ASSERT(m_bufferTable.Has(bufferID));
         id<MTLBuffer> buf = m_bufferTable.Lookup(bufferID).buffer;
         [m_commandEncoder setVertexBuffer:buf offset:0 atIndex:i];
         [m_commandEncoder setFragmentBuffer:buf offset:0 atIndex:i];
     }
 
     // Submit the draw call
-    MTLPrimitiveType primType = s_metalPrimitiveTypes[item.primType];
-    if (item.indexType != GPUINDEXTYPE_NONE) {
-        id<MTLBuffer> indexBuf = m_bufferTable.Lookup(item.indexBufferID).buffer;
-        NSUInteger indexBufOffset = item.indexBufferOffset;
-        indexBufOffset += item.first * s_indexTypeByteSizes[item.indexType];
+    MTLPrimitiveType primType = s_metalPrimitiveTypes[header->GetPrimitiveType()];
+    if (header->IsIndexed()) {
+        ASSERT(m_bufferTable.Has(header->indexBufferID));
+        GpuIndexType gpuIndexType = header->GetIndexType();
+        id<MTLBuffer> indexBuf = m_bufferTable.Lookup(header->indexBufferID).buffer;
+        NSUInteger indexBufOffset = header->indexBufferOffset;
+        indexBufOffset += header->first * s_indexTypeByteSizes[gpuIndexType];
         [m_commandEncoder drawIndexedPrimitives:primType
-                                     indexCount:item.count
-                                      indexType:s_metalIndexTypes[item.indexType]
+                                     indexCount:header->count
+                                      indexType:s_metalIndexTypes[gpuIndexType]
                                     indexBuffer:indexBuf
                               indexBufferOffset:indexBufOffset];
     } else {
         [m_commandEncoder drawPrimitives:primType
-                             vertexStart:item.first
-                             vertexCount:item.count];
+                             vertexStart:header->first
+                             vertexCount:header->count];
     }
 }
 
@@ -575,13 +589,13 @@ GpuInputLayoutID GpuDevice::CreateInputLayout(int nVertexAttribs,
                                               const unsigned* strides)
 { return Cast(this)->CreateInputLayout(nVertexAttribs, attribs, nVertexBuffers, strides); }
 
-void GpuDevice::BeginRenderPass(GpuRenderPassID passID)
-{ Cast(this)->BeginRenderPass(passID); }
+void GpuDevice::BeginRenderPass(GpuRenderPassID passID, const GpuViewport& viewport)
+{ Cast(this)->BeginRenderPass(passID, viewport); }
 
 void GpuDevice::EndRenderPass()
 { Cast(this)->EndRenderPass(); }
 
-void GpuDevice::Draw(const GpuDrawItem& item)
+void GpuDevice::Draw(const GpuDrawItem* item)
 { Cast(this)->Draw(item); }
 
 void GpuDevice::SceneBegin()

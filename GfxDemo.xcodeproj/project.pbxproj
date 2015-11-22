@@ -11,6 +11,7 @@
 		7A15D2C11BF97289000DD053 /* PixelShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 7A15D2BF1BF97289000DD053 /* PixelShader.metal */; };
 		7A15D2C21BF97289000DD053 /* VertexShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 7A15D2C01BF97289000DD053 /* VertexShader.metal */; };
 		7A15D2C41BF9728E000DD053 /* Assets in Resources */ = {isa = PBXBuildFile; fileRef = 7A15D2C31BF9728E000DD053 /* Assets */; };
+		7A208EB61C013423002B4459 /* GpuDrawItemWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */; };
 		7A4492031BF1E44100444DFC /* GpuDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492011BF1E44100444DFC /* GpuDevice.cpp */; };
 		7A4492051BF1E46700444DFC /* GpuDeviceMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */; };
 		7A4492071BF1E63500444DFC /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A4492061BF1E63500444DFC /* Metal.framework */; };
@@ -29,6 +30,9 @@
 		7A15D2BF1BF97289000DD053 /* PixelShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = PixelShader.metal; sourceTree = "<group>"; };
 		7A15D2C01BF97289000DD053 /* VertexShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = VertexShader.metal; sourceTree = "<group>"; };
 		7A15D2C31BF9728E000DD053 /* Assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets; sourceTree = "<group>"; };
+		7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemWriter.cpp; sourceTree = "<group>"; };
+		7A208EB51C013423002B4459 /* GpuDrawItemWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemWriter.h; sourceTree = "<group>"; };
+		7A208EB71C014263002B4459 /* GpuDrawItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GpuDrawItem.h; sourceTree = "<group>"; };
 		7A4492011BF1E44100444DFC /* GpuDevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDevice.cpp; sourceTree = "<group>"; };
 		7A4492021BF1E44100444DFC /* GpuDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDevice.h; sourceTree = "<group>"; };
 		7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GpuDeviceMetal.mm; sourceTree = "<group>"; };
@@ -89,6 +93,9 @@
 				7A4492021BF1E44100444DFC /* GpuDevice.h */,
 				7A4492011BF1E44100444DFC /* GpuDevice.cpp */,
 				7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */,
+				7A208EB51C013423002B4459 /* GpuDrawItemWriter.h */,
+				7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */,
+				7A208EB71C014263002B4459 /* GpuDrawItem.h */,
 			);
 			path = GpuDevice;
 			sourceTree = "<group>";
@@ -229,6 +236,7 @@
 				7AC5DFCA1B8AF1C700FC65B1 /* Application.cpp in Sources */,
 				CA5FF6831A4B8FBB004ADF7F /* File.cpp in Sources */,
 				7A4492031BF1E44100444DFC /* GpuDevice.cpp in Sources */,
+				7A208EB61C013423002B4459 /* GpuDrawItemWriter.cpp in Sources */,
 				7A15D2C21BF97289000DD053 /* VertexShader.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

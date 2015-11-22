@@ -1,8 +1,10 @@
 #include "Application.h"
 #include <stddef.h>
+#include <stdlib.h>
 #include <math.h>
 #include "OsWindow.h"
 #include "File.h"
+#include "GpuDevice/GpuDrawItemWriter.h"
 
 static GpuShaderID CreateShader(GpuDevice* device,
                                 const char* path,
@@ -29,9 +31,19 @@ static void OnPaint(const OsEvent& event, void* userdata)
     ((Application*)userdata)->Frame();
 }
 
+static void* Alloc(size_t size, void*) { return malloc(size); }
+
 Application::Application()
     : m_window(NULL)
     , m_gpuDevice(NULL)
+    , m_vertexShader(0)
+    , m_pixelShader(0)
+    , m_vertexBuffer(0)
+    , m_cbuffer(0)
+    , m_inputLayout(0)
+    , m_pipelineStateObj(0)
+    , m_renderPass(0)
+    , m_drawItem(NULL)
     , m_angle(0)
 {
     OsWindowPixelFormat pf;
@@ -96,16 +108,37 @@ Application::Application()
 
     m_window->RegisterEvent(OSEVENT_PAINT, OnPaint, (void*)this);
     m_window->RegisterEvent(OSEVENT_WINDOW_RESIZE, OnWindowResize, (void*)m_gpuDevice);
+
+    GpuDrawItemWriterDesc writerDesc;
+    writerDesc.SetNumCBuffers(1);
+    writerDesc.SetNumVertexBuffers(1);
+
+    GpuDrawItemWriter writer;
+    writer.Begin(writerDesc, Alloc, NULL);
+    writer.SetPipelineState(m_pipelineStateObj);
+    writer.SetVertexBuffer(0, m_vertexBuffer, 0);
+    writer.SetCBuffer(0, m_cbuffer);
+    writer.SetDrawCall(GPUPRIMITIVE_TRIANGLES, 0, 3);
+    m_drawItem = writer.End();
 }
 
 Application::~Application()
 {
     GpuDevice::Destroy(m_gpuDevice);
     OsWindow::Destroy(m_window);
+    free(m_drawItem);
 }
 
 void Application::Frame()
 {
+    GpuViewport viewport;
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.width = m_gpuDevice->GetFormat().resolutionX;
+    viewport.height = m_gpuDevice->GetFormat().resolutionY;
+    viewport.zNear = 0.0f;
+    viewport.zFar = 1.0f;
+
     m_gpuDevice->SceneBegin();
 
     m_angle += 0.02f;
@@ -118,30 +151,8 @@ void Application::Frame()
     memcpy(m_gpuDevice->GetBufferContents(m_cbuffer), matrix, sizeof matrix);
     m_gpuDevice->FlushBufferRange(m_cbuffer, 0, sizeof matrix);
 
-    m_gpuDevice->BeginRenderPass(m_renderPass);
-
-    GpuViewport viewport;
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.width = m_gpuDevice->GetFormat().resolutionX;
-    viewport.height = m_gpuDevice->GetFormat().resolutionY;
-
-    GpuDrawItem drawItem;
-    memset(&drawItem, 0, sizeof drawItem);
-    drawItem.pipelineStateID = m_pipelineStateObj;
-    drawItem.primType = GPUPRIMITIVE_TRIANGLES;
-    drawItem.nVertexBuffers = 1;
-    drawItem.vertexBuffers[0].bufferID = m_vertexBuffer;
-    drawItem.vertexBuffers[0].offset = 0;
-    drawItem.cbuffers[0] = m_cbuffer;
-    drawItem.nCBuffers = 1;
-    drawItem.viewport = viewport;
-    drawItem.first = 0;
-    drawItem.count = 3;
-    drawItem.indexBufferOffset = 0;
-    drawItem.indexType = GPUINDEXTYPE_NONE;
-    m_gpuDevice->Draw(drawItem);
-
+    m_gpuDevice->BeginRenderPass(m_renderPass, viewport);
+    m_gpuDevice->Draw(m_drawItem);
     m_gpuDevice->EndRenderPass();
 
     m_gpuDevice->ScenePresent();
