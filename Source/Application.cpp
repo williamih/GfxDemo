@@ -151,9 +151,8 @@ void Application::Frame()
     memcpy(m_gpuDevice->GetBufferContents(m_cbuffer), matrix, sizeof matrix);
     m_gpuDevice->FlushBufferRange(m_cbuffer, 0, sizeof matrix);
 
-    m_gpuDevice->BeginRenderPass(m_renderPass, viewport);
-    m_gpuDevice->Draw(m_drawItem);
-    m_gpuDevice->EndRenderPass();
+    const GpuDrawItem* items[] = {m_drawItem};
+    m_gpuDevice->Draw(items, sizeof items / sizeof items[0], m_renderPass, viewport);
 
     m_gpuDevice->ScenePresent();
 }

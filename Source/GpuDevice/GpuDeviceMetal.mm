@@ -111,10 +111,14 @@ public:
                                        int nVertexBuffers,
                                        const unsigned* strides);
 
-    void BeginRenderPass(GpuRenderPassID passID, const GpuViewport& viewport);
-    void EndRenderPass();
-
-    void Draw(const GpuDrawItem* item);
+private:
+    id<MTLRenderCommandEncoder> PreDraw(GpuRenderPassID passID, const GpuViewport& viewport);
+    void PostDraw(id<MTLRenderCommandEncoder> encoder);
+public:
+    void Draw(const GpuDrawItem* const* items,
+              int nItems,
+              GpuRenderPassID renderPass,
+              const GpuViewport& viewport);
 
     void SceneBegin();
     void ScenePresent();
@@ -159,7 +163,6 @@ private:
 
     id<MTLCommandQueue> m_commandQueue;
     id<MTLCommandBuffer> m_commandBuffer;
-    id<MTLRenderCommandEncoder> m_commandEncoder;
 
     id<CAMetalDrawable> m_currentDrawable;
 
@@ -168,8 +171,6 @@ private:
     IDLookupTable<PipelineStateObj, GpuPipelineStateID::Type, 16, 16> m_pipelineStateTable;
     IDLookupTable<RenderPassObj, GpuRenderPassID::Type, 16, 16> m_renderPassTable;
     IDLookupTable<InputLayout, GpuInputLayoutID::Type, 16, 16> m_inputLayoutTable;
-
-    GpuRenderPassID m_currentRenderPass;
 };
 
 // -----------------------------------------------------------------------------
@@ -187,7 +188,6 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
 
     , m_commandQueue(nil)
     , m_commandBuffer(nil)
-    , m_commandEncoder(nil)
 
     , m_currentDrawable(nil)
 
@@ -196,8 +196,6 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
     , m_pipelineStateTable()
     , m_renderPassTable()
     , m_inputLayoutTable()
-
-    , m_currentRenderPass(0)
 {
     if (![[m_view layer] isKindOfClass:[CAMetalLayer class]])
         FATAL("GpuDeviceMetal: View needs to have a CAMetalLayer");
@@ -469,10 +467,9 @@ static MTLViewport GetMTLViewport(const GpuViewport& viewport)
     return res;
 }
 
-void GpuDeviceMetal::BeginRenderPass(GpuRenderPassID passID, const GpuViewport& viewport)
+id<MTLRenderCommandEncoder> GpuDeviceMetal::PreDraw(GpuRenderPassID passID,
+                                                    const GpuViewport& viewport)
 {
-    m_currentRenderPass = passID;
-
     RenderPassObj& pass = m_renderPassTable.Lookup(passID);
 
     MTLRenderPassColorAttachmentDescriptor* colorDesc;
@@ -485,70 +482,81 @@ void GpuDeviceMetal::BeginRenderPass(GpuRenderPassID passID, const GpuViewport& 
     ASSERT(m_depthBuf.width == m_deviceFormat.resolutionX);
     ASSERT(m_depthBuf.height == m_deviceFormat.resolutionY);
 
-    m_commandEncoder = [[m_commandBuffer renderCommandEncoderWithDescriptor:pass.descriptor] retain];
-    [m_commandEncoder setViewport:GetMTLViewport(viewport)];
+    id<MTLRenderCommandEncoder> encoder;
+    encoder = [m_commandBuffer renderCommandEncoderWithDescriptor:pass.descriptor];
+    [encoder setViewport:GetMTLViewport(viewport)];
+    return encoder;
 }
 
-void GpuDeviceMetal::EndRenderPass()
+void GpuDeviceMetal::PostDraw(id<MTLRenderCommandEncoder> encoder)
 {
-    ASSERT(m_currentRenderPass != 0);
-    [m_commandEncoder endEncoding];
-    [m_commandEncoder release];
-    m_currentRenderPass = (GpuRenderPassID)0;
+    [encoder endEncoding];
 }
 
-void GpuDeviceMetal::Draw(const GpuDrawItem* item)
+void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
+                          int nItems,
+                          GpuRenderPassID renderPass,
+                          const GpuViewport& viewport)
 {
-    ASSERT(item != NULL);
-    ASSERT(m_currentRenderPass != 0 && "Must call BeginRenderPass() before Draw()");
+    ASSERT(items != NULL);
 
-    const GpuDrawItemHeader* header = (const GpuDrawItemHeader*)item;
+    id<MTLRenderCommandEncoder> encoder = PreDraw(renderPass, viewport);
 
-    // Set the pipeline state
-    ASSERT(m_pipelineStateTable.Has(header->pipelineStateID));
-    PipelineStateObj& pipelineState = m_pipelineStateTable.Lookup(header->pipelineStateID);
-    [m_commandEncoder setRenderPipelineState:pipelineState.state];
-    [m_commandEncoder setDepthStencilState:pipelineState.depthStencilState];
+    for (int drawItemIndex = 0; drawItemIndex < nItems; ++drawItemIndex) {
+        const GpuDrawItem* item = items[drawItemIndex];
+        ASSERT(item != NULL);
+        const GpuDrawItemHeader* header = (const GpuDrawItemHeader*)item;
 
-    // Set vertex buffers
-    const GpuDrawItemHeader::VertexBufEntry* vertexBuffers = header->GetVertexBufferArray();
-    for (int i = 0; i < header->nVertexBuffers; ++i) {
-        GpuBufferID bufferID(vertexBuffers[i].bufferID);
-        ASSERT(m_bufferTable.Has(bufferID));
-        unsigned offset = vertexBuffers[i].offset;
-        [m_commandEncoder setVertexBuffer:m_bufferTable.Lookup(bufferID).buffer
-                                   offset:offset
-                                  atIndex:(GPU_MAX_CBUFFERS + i)];
+        // Set the pipeline state
+        ASSERT(m_pipelineStateTable.Has(header->pipelineStateID));
+        PipelineStateObj& pipelineState
+            = m_pipelineStateTable.Lookup(header->pipelineStateID);
+        [encoder setRenderPipelineState:pipelineState.state];
+        [encoder setDepthStencilState:pipelineState.depthStencilState];
+
+        // Set vertex buffers
+        const GpuDrawItemHeader::VertexBufEntry* vertexBuffers
+            = header->GetVertexBufferArray();
+        for (int i = 0; i < header->nVertexBuffers; ++i) {
+            GpuBufferID bufferID(vertexBuffers[i].bufferID);
+            ASSERT(m_bufferTable.Has(bufferID));
+            unsigned offset = vertexBuffers[i].offset;
+            [encoder setVertexBuffer:m_bufferTable.Lookup(bufferID).buffer
+                              offset:offset
+                             atIndex:(GPU_MAX_CBUFFERS + i)];
+        }
+
+        // Set cbuffers
+        const u32* cbuffers = header->GetCBufferArray();
+        for (int i = 0; i < header->nCBuffers; ++i) {
+            GpuBufferID bufferID(cbuffers[i]);
+            ASSERT(m_bufferTable.Has(bufferID));
+            id<MTLBuffer> buf = m_bufferTable.Lookup(bufferID).buffer;
+            [encoder setVertexBuffer:buf offset:0 atIndex:i];
+            [encoder setFragmentBuffer:buf offset:0 atIndex:i];
+        }
+
+        // Submit the draw call
+        MTLPrimitiveType primType = s_metalPrimitiveTypes[header->GetPrimitiveType()];
+        if (header->IsIndexed()) {
+            ASSERT(m_bufferTable.Has(header->indexBufferID));
+            GpuIndexType gpuIndexType = header->GetIndexType();
+            id<MTLBuffer> indexBuf = m_bufferTable.Lookup(header->indexBufferID).buffer;
+            NSUInteger indexBufOffset = header->indexBufferOffset;
+            indexBufOffset += header->first * s_indexTypeByteSizes[gpuIndexType];
+            [encoder drawIndexedPrimitives:primType
+                                indexCount:header->count
+                                 indexType:s_metalIndexTypes[gpuIndexType]
+                               indexBuffer:indexBuf
+                         indexBufferOffset:indexBufOffset];
+        } else {
+            [encoder drawPrimitives:primType
+                        vertexStart:header->first
+                        vertexCount:header->count];
+        }
     }
 
-    // Set cbuffers
-    const u32* cbuffers = header->GetCBufferArray();
-    for (int i = 0; i < header->nCBuffers; ++i) {
-        GpuBufferID bufferID(cbuffers[i]);
-        ASSERT(m_bufferTable.Has(bufferID));
-        id<MTLBuffer> buf = m_bufferTable.Lookup(bufferID).buffer;
-        [m_commandEncoder setVertexBuffer:buf offset:0 atIndex:i];
-        [m_commandEncoder setFragmentBuffer:buf offset:0 atIndex:i];
-    }
-
-    // Submit the draw call
-    MTLPrimitiveType primType = s_metalPrimitiveTypes[header->GetPrimitiveType()];
-    if (header->IsIndexed()) {
-        ASSERT(m_bufferTable.Has(header->indexBufferID));
-        GpuIndexType gpuIndexType = header->GetIndexType();
-        id<MTLBuffer> indexBuf = m_bufferTable.Lookup(header->indexBufferID).buffer;
-        NSUInteger indexBufOffset = header->indexBufferOffset;
-        indexBufOffset += header->first * s_indexTypeByteSizes[gpuIndexType];
-        [m_commandEncoder drawIndexedPrimitives:primType
-                                     indexCount:header->count
-                                      indexType:s_metalIndexTypes[gpuIndexType]
-                                    indexBuffer:indexBuf
-                              indexBufferOffset:indexBufOffset];
-    } else {
-        [m_commandEncoder drawPrimitives:primType
-                             vertexStart:header->first
-                             vertexCount:header->count];
-    }
+    PostDraw(encoder);
 }
 
 void GpuDeviceMetal::SceneBegin()
@@ -628,14 +636,11 @@ GpuInputLayoutID GpuDevice::CreateInputLayout(int nVertexAttribs,
                                               const unsigned* strides)
 { return Cast(this)->CreateInputLayout(nVertexAttribs, attribs, nVertexBuffers, strides); }
 
-void GpuDevice::BeginRenderPass(GpuRenderPassID passID, const GpuViewport& viewport)
-{ Cast(this)->BeginRenderPass(passID, viewport); }
-
-void GpuDevice::EndRenderPass()
-{ Cast(this)->EndRenderPass(); }
-
-void GpuDevice::Draw(const GpuDrawItem* item)
-{ Cast(this)->Draw(item); }
+void GpuDevice::Draw(const GpuDrawItem* const* items,
+                     int nItems,
+                     GpuRenderPassID renderPass,
+                     const GpuViewport& viewport)
+{ Cast(this)->Draw(items, nItems, renderPass, viewport); }
 
 void GpuDevice::SceneBegin()
 { Cast(this)->SceneBegin(); }

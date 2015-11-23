@@ -192,10 +192,10 @@ public:
                                        int nVertexBuffers,
                                        const unsigned* strides);
 
-    void BeginRenderPass(GpuRenderPassID passID, const GpuViewport& viewport);
-    void EndRenderPass();
-
-    void Draw(const GpuDrawItem* item);
+    void Draw(const GpuDrawItem* const* items,
+              int nItems,
+              GpuRenderPassID renderPass,
+              const GpuViewport& viewport);
 
     void SceneBegin();
     void ScenePresent();
