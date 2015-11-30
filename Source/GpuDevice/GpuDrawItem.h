@@ -83,8 +83,6 @@ struct GpuDrawItem {
     u32 indexBufferID;
     u16 nVertexBuffers;
     u16 nCBuffers;
-    f32 zNear;
-    f32 zFar;
     u32 first;
     u32 count;
     u32 indexBufferOffset;
