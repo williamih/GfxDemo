@@ -74,7 +74,7 @@ GpuDrawItem* GpuDrawItemWriter::End()
 void GpuDrawItemWriter::ValidateVertexBuffers()
 {
     GpuDrawItemHeader::VertexBufEntry* bufs;
-    bufs = ((GpuDrawItemHeader*)m_drawItem)->GetVertexBufferArray();
+    bufs = ((GpuDrawItemHeader*)m_drawItem)->VertexBuffers();
     for (int i = 0; i < m_desc.m_nVertexBuffers; ++i) {
         if (bufs[i].bufferID == 0)
             FATAL("GpuDrawItemWriter: vertex buffer (index %d) not set", i);
@@ -83,7 +83,7 @@ void GpuDrawItemWriter::ValidateVertexBuffers()
 
 void GpuDrawItemWriter::ValidateCBuffers()
 {
-    u32* cbufs = ((GpuDrawItemHeader*)m_drawItem)->GetCBufferArray();
+    u32* cbufs = ((GpuDrawItemHeader*)m_drawItem)->CBuffers();
     for (int i = 0; i < m_desc.m_nVertexBuffers; ++i) {
         if (cbufs[i] == 0)
             FATAL("GpuDrawItemWriter: constant buffer (index %d) not set", i);
@@ -109,7 +109,7 @@ void GpuDrawItemWriter::SetVertexBuffer(int index, GpuBufferID buffer, unsigned 
     ASSERT(index >= 0 && index < m_desc.m_nVertexBuffers);
     ASSERT(buffer != 0);
     GpuDrawItemHeader::VertexBufEntry* bufs;
-    bufs = ((GpuDrawItemHeader*)m_drawItem)->GetVertexBufferArray();
+    bufs = ((GpuDrawItemHeader*)m_drawItem)->VertexBuffers();
     bufs[index].bufferID = buffer;
     bufs[index].offset = offset;
 }
@@ -118,7 +118,7 @@ void GpuDrawItemWriter::SetCBuffer(int index, GpuBufferID buffer)
 {
     ASSERT(index >= 0 && index < m_desc.m_nCBuffers);
     ASSERT(buffer != 0);
-    u32* cbufs = ((GpuDrawItemHeader*)m_drawItem)->GetCBufferArray();
+    u32* cbufs = ((GpuDrawItemHeader*)m_drawItem)->CBuffers();
     cbufs[index] = buffer;
 }
 

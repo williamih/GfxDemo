@@ -515,8 +515,7 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
         [encoder setDepthStencilState:pipelineState.depthStencilState];
 
         // Set vertex buffers
-        const GpuDrawItemHeader::VertexBufEntry* vertexBuffers
-            = header->GetVertexBufferArray();
+        const GpuDrawItemHeader::VertexBufEntry* vertexBuffers = header->VertexBuffers();
         for (int i = 0; i < header->nVertexBuffers; ++i) {
             GpuBufferID bufferID(vertexBuffers[i].bufferID);
             ASSERT(m_bufferTable.Has(bufferID));
@@ -527,7 +526,7 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
         }
 
         // Set cbuffers
-        const u32* cbuffers = header->GetCBufferArray();
+        const u32* cbuffers = header->CBuffers();
         for (int i = 0; i < header->nCBuffers; ++i) {
             GpuBufferID bufferID(cbuffers[i]);
             ASSERT(m_bufferTable.Has(bufferID));
