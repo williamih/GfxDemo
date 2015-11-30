@@ -50,7 +50,7 @@ private:
     void ValidateVertexBuffers();
     void ValidateCBuffers();
 
-    u8* m_drawItem;
+    GpuDrawItem* m_drawItem;
     GpuDrawItemWriterDesc m_desc;
     u32 m_flags;
 };

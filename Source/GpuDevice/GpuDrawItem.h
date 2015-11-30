@@ -17,7 +17,7 @@
 #include "Core/Types.h"
 #include "GpuDevice/GpuDevice.h"
 
-struct GpuDrawItemHeader {
+struct GpuDrawItem {
     struct VertexBufEntry {
         u32 bufferID;
         u32 offset;

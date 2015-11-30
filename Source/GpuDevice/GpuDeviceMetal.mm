@@ -505,18 +505,17 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
     for (int drawItemIndex = 0; drawItemIndex < nItems; ++drawItemIndex) {
         const GpuDrawItem* item = items[drawItemIndex];
         ASSERT(item != NULL);
-        const GpuDrawItemHeader* header = (const GpuDrawItemHeader*)item;
 
         // Set the pipeline state
-        ASSERT(m_pipelineStateTable.Has(header->pipelineStateID));
+        ASSERT(m_pipelineStateTable.Has(item->pipelineStateID));
         PipelineStateObj& pipelineState
-            = m_pipelineStateTable.Lookup(header->pipelineStateID);
+            = m_pipelineStateTable.Lookup(item->pipelineStateID);
         [encoder setRenderPipelineState:pipelineState.state];
         [encoder setDepthStencilState:pipelineState.depthStencilState];
 
         // Set vertex buffers
-        const GpuDrawItemHeader::VertexBufEntry* vertexBuffers = header->VertexBuffers();
-        for (int i = 0; i < header->nVertexBuffers; ++i) {
+        const GpuDrawItem::VertexBufEntry* vertexBuffers = item->VertexBuffers();
+        for (int i = 0; i < item->nVertexBuffers; ++i) {
             GpuBufferID bufferID(vertexBuffers[i].bufferID);
             ASSERT(m_bufferTable.Has(bufferID));
             unsigned offset = vertexBuffers[i].offset;
@@ -526,8 +525,8 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
         }
 
         // Set cbuffers
-        const u32* cbuffers = header->CBuffers();
-        for (int i = 0; i < header->nCBuffers; ++i) {
+        const u32* cbuffers = item->CBuffers();
+        for (int i = 0; i < item->nCBuffers; ++i) {
             GpuBufferID bufferID(cbuffers[i]);
             ASSERT(m_bufferTable.Has(bufferID));
             id<MTLBuffer> buf = m_bufferTable.Lookup(bufferID).buffer;
@@ -536,22 +535,22 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
         }
 
         // Submit the draw call
-        MTLPrimitiveType primType = s_metalPrimitiveTypes[header->GetPrimitiveType()];
-        if (header->IsIndexed()) {
-            ASSERT(m_bufferTable.Has(header->indexBufferID));
-            GpuIndexType gpuIndexType = header->GetIndexType();
-            id<MTLBuffer> indexBuf = m_bufferTable.Lookup(header->indexBufferID).buffer;
-            NSUInteger indexBufOffset = header->indexBufferOffset;
-            indexBufOffset += header->first * s_indexTypeByteSizes[gpuIndexType];
+        MTLPrimitiveType primType = s_metalPrimitiveTypes[item->GetPrimitiveType()];
+        if (item->IsIndexed()) {
+            ASSERT(m_bufferTable.Has(item->indexBufferID));
+            GpuIndexType gpuIndexType = item->GetIndexType();
+            id<MTLBuffer> indexBuf = m_bufferTable.Lookup(item->indexBufferID).buffer;
+            NSUInteger indexBufOffset = item->indexBufferOffset;
+            indexBufOffset += item->first * s_indexTypeByteSizes[gpuIndexType];
             [encoder drawIndexedPrimitives:primType
-                                indexCount:header->count
+                                indexCount:item->count
                                  indexType:s_metalIndexTypes[gpuIndexType]
                                indexBuffer:indexBuf
                          indexBufferOffset:indexBufOffset];
         } else {
             [encoder drawPrimitives:primType
-                        vertexStart:header->first
-                        vertexCount:header->count];
+                        vertexStart:item->first
+                        vertexCount:item->count];
         }
     }
 
