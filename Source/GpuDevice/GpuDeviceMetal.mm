@@ -103,13 +103,17 @@ public:
 private:
     id<MTLRenderPipelineState> CreateMTLRenderPipelineState(const GpuPipelineStateDesc& state);
     id<MTLDepthStencilState> CreateMTLDepthStencilState(const GpuPipelineStateDesc& state);
-
 public:
+    void DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID);
+
     GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
+    void DestroyRenderPassObject(GpuRenderPassID renderPassID);
+
     GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
                                        const GpuVertexAttribute* attribs,
                                        int nVertexBuffers,
                                        const unsigned* strides);
+    void DestroyInputLayout(GpuInputLayoutID inputLayoutID);
 
 private:
     id<MTLRenderCommandEncoder> PreDraw(GpuRenderPassID passID, const GpuViewport& viewport);
@@ -392,6 +396,15 @@ id<MTLDepthStencilState> GpuDeviceMetal::CreateMTLDepthStencilState(const GpuPip
     return [m_device newDepthStencilStateWithDescriptor:desc];
 }
 
+void GpuDeviceMetal::DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID)
+{
+    ASSERT(m_pipelineStateTable.Has(pipelineStateID));
+    PipelineStateObj& obj = m_pipelineStateTable.Lookup(pipelineStateID);
+    [obj.state release];
+    [obj.depthStencilState release];
+    m_pipelineStateTable.Remove(pipelineStateID);
+}
+
 GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPassDesc& pass)
 {
     m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
@@ -424,6 +437,14 @@ GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPassDesc& 
     return renderPassID;
 }
 
+void GpuDeviceMetal::DestroyRenderPassObject(GpuRenderPassID renderPassID)
+{
+    ASSERT(m_renderPassTable.Has(renderPassID));
+    RenderPassObj& obj = m_renderPassTable.Lookup(renderPassID);
+    [obj.descriptor release];
+    m_renderPassTable.Remove(renderPassID);
+}
+
 GpuInputLayoutID GpuDeviceMetal::CreateInputLayout(int nVertexAttribs,
                                                    const GpuVertexAttribute* attribs,
                                                    int nVertexBuffers,
@@ -453,6 +474,14 @@ GpuInputLayoutID GpuDeviceMetal::CreateInputLayout(int nVertexAttribs,
     }
 
     return inputLayoutID;
+}
+
+void GpuDeviceMetal::DestroyInputLayout(GpuInputLayoutID inputLayoutID)
+{
+    ASSERT(m_inputLayoutTable.Has(inputLayoutID));
+    InputLayout& layout = m_inputLayoutTable.Lookup(inputLayoutID);
+    [layout.descriptor release];
+    m_inputLayoutTable.Remove(inputLayoutID);
 }
 
 static MTLViewport GetMTLViewport(const GpuViewport& viewport)
@@ -625,14 +654,23 @@ void GpuDevice::FlushBufferRange(GpuBufferID bufferID, int start, int length)
 GpuPipelineStateID GpuDevice::CreatePipelineStateObject(const GpuPipelineStateDesc& state)
 { return Cast(this)->CreatePipelineStateObject(state); }
 
+void GpuDevice::DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID)
+{ Cast(this)->DestroyPipelineStateObject(pipelineStateID); }
+
 GpuRenderPassID GpuDevice::CreateRenderPassObject(const GpuRenderPassDesc& pass)
 { return Cast(this)->CreateRenderPassObject(pass); }
+
+void GpuDevice::DestroyRenderPassObject(GpuRenderPassID renderPassID)
+{ Cast(this)->DestroyRenderPassObject(renderPassID); }
 
 GpuInputLayoutID GpuDevice::CreateInputLayout(int nVertexAttribs,
                                               const GpuVertexAttribute* attribs,
                                               int nVertexBuffers,
                                               const unsigned* strides)
 { return Cast(this)->CreateInputLayout(nVertexAttribs, attribs, nVertexBuffers, strides); }
+
+void GpuDevice::DestroyInputLayout(GpuInputLayoutID inputLayoutID)
+{ Cast(this)->DestroyInputLayout(inputLayoutID); }
 
 void GpuDevice::Draw(const GpuDrawItem* const* items,
                      int nItems,

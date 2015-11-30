@@ -186,11 +186,16 @@ public:
     void FlushBufferRange(GpuBufferID bufferID, int start, int length);
 
     GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
+    void DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID);
+
     GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
+    void DestroyRenderPassObject(GpuRenderPassID renderPassID);
+
     GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
                                        const GpuVertexAttribute* attribs,
                                        int nVertexBuffers,
                                        const unsigned* strides);
+    void DestroyInputLayout(GpuInputLayoutID inputLayoutID);
 
     void Draw(const GpuDrawItem* const* items,
               int nItems,

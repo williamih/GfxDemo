@@ -124,9 +124,16 @@ Application::Application()
 
 Application::~Application()
 {
+    m_gpuDevice->DestroyShader(m_vertexShader);
+    m_gpuDevice->DestroyShader(m_pixelShader);
+    m_gpuDevice->DestroyBuffer(m_vertexBuffer);
+    m_gpuDevice->DestroyBuffer(m_cbuffer);
+    m_gpuDevice->DestroyPipelineStateObject(m_pipelineStateObj);
+    m_gpuDevice->DestroyRenderPassObject(m_renderPass);
+    m_gpuDevice->DestroyInputLayout(m_inputLayout);
+    free(m_drawItem);
     GpuDevice::Destroy(m_gpuDevice);
     OsWindow::Destroy(m_window);
-    free(m_drawItem);
 }
 
 void Application::Frame()
