@@ -113,6 +113,16 @@ public:
         return m_objects[theID & INDEX_MASK].u.value;
     }
 
+    T& LookupRaw(ID rawIndex)
+    {
+        return m_objects[rawIndex].u.value;
+    }
+
+    const T& LookupRaw(ID rawIndex) const
+    {
+        return m_objects[rawIndex].u.value;
+    }
+
     ID Add()
     {
         ASSERT(m_nextInnerID < INNER_ID_MASK);

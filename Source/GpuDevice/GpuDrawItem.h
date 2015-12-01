@@ -18,11 +18,6 @@
 #include "GpuDevice/GpuDevice.h"
 
 struct GpuDrawItem {
-    struct VertexBufEntry {
-        u32 bufferID;
-        u32 offset;
-    };
-
     GpuPrimitiveType GetPrimitiveType() const
     {
         switch (flags & 0x7) {
@@ -72,23 +67,27 @@ struct GpuDrawItem {
         flags |= 0x10;
     }
 
-    VertexBufEntry* VertexBuffers() const
-    { return (VertexBufEntry*)(this + 1); }
+    u32* VertexBufferOffsets() const
+    { return (u32*)(this + 1); }
 
-    u32* CBuffers() const
-    { return (u32*)(VertexBuffers() + nVertexBuffers); }
+    u16* VertexBuffers() const
+    { return (u16*)(VertexBufferOffsets() + nVertexBuffers); }
 
-    u32 pipelineStateID;
-    u32 flags; // contains the primitive type and the index type
-    u32 indexBufferID;
-    u16 nVertexBuffers;
-    u16 nCBuffers;
+    u16* CBuffers() const
+    { return (u16*)(VertexBuffers() + nVertexBuffers); }
+
+    u16 pipelineStateIdx;
+    u16 flags; // contains the primitive type and the index type
+    u16 indexBufferIdx;
+    u8 nVertexBuffers;
+    u8 nCBuffers;
     u32 first;
     u32 count;
     u32 indexBufferOffset;
     // Following this are:
-    //   (1) vertex buffers: array of size nVertexBuffers of VertexBufEntry
-    //   (2) cbuffers: array of size nCBuffers of u32
+    //   (1) vertex buffers offsets: array of size nVertexBuffers of u32
+    //   (2) vertex buffer indices: array of size nVertexBuffers of u16
+    //   (3) cbuffers indices: array of size nCBuffers of u16
 };
 
 #endif // GPUDEVICE_GPUDRAWITEM_H

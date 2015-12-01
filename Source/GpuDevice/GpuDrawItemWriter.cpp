@@ -5,8 +5,11 @@
 
 const u32 FLAG_SETDRAWCALL = 1;
 const u32 FLAG_INDEXED = 2;
-const u32 FLAG_SETINDEXBUFFER = 4;
-const u32 FLAG_SETPIPELINESTATE = 8;
+
+static u16 GetRawIndex(u32 resourceID)
+{
+    return (u16)(resourceID & 0xFFFF);
+}
 
 GpuDrawItemWriterDesc::GpuDrawItemWriterDesc()
     : m_nCBuffers(0)
@@ -15,19 +18,22 @@ GpuDrawItemWriterDesc::GpuDrawItemWriterDesc()
 
 void GpuDrawItemWriterDesc::SetNumCBuffers(int n)
 {
+    ASSERT(n > 0 && n <= 255);
     m_nCBuffers = n;
 }
 
 void GpuDrawItemWriterDesc::SetNumVertexBuffers(int n)
 {
+    ASSERT(n > 0 && n <= 255);
     m_nVertexBuffers = n;
 }
 
 size_t GpuDrawItemWriter::SizeInBytes(const GpuDrawItemWriterDesc& desc)
 {
     size_t size = sizeof(GpuDrawItem);
-    size += desc.m_nVertexBuffers * sizeof(GpuDrawItem::VertexBufEntry);
-    size += desc.m_nCBuffers * sizeof(u32);
+    size += desc.m_nVertexBuffers * sizeof(u32);
+    size += desc.m_nVertexBuffers * sizeof(u16);
+    size += desc.m_nCBuffers * sizeof(u16);
     return size;
 }
 
@@ -42,15 +48,24 @@ void GpuDrawItemWriter::Begin(const GpuDrawItemWriterDesc& desc,
                               void* userdata)
 {
     ASSERT(!m_drawItem && "Must call End() before calling Begin() again");
+    ASSERT(desc.m_nVertexBuffers > 0 && desc.m_nVertexBuffers <= 255);
+    ASSERT(desc.m_nCBuffers > 0 && desc.m_nCBuffers <= 255);
 
     size_t size = SizeInBytes(desc);
     m_drawItem = (GpuDrawItem*)alloc(size, userdata);
     m_desc = desc;
     m_flags = 0;
 
-    memset(m_drawItem, 0, size);
-    m_drawItem->nVertexBuffers = desc.m_nVertexBuffers;
-    m_drawItem->nCBuffers = desc.m_nCBuffers;
+    m_drawItem->pipelineStateIdx = 0xFFFF;
+    m_drawItem->flags = 0;
+    m_drawItem->indexBufferIdx = 0xFFFF;
+    m_drawItem->nVertexBuffers = (u8)desc.m_nVertexBuffers;
+    m_drawItem->nCBuffers = (u8)desc.m_nCBuffers;
+    m_drawItem->first = 0;
+    m_drawItem->count = 0;
+    m_drawItem->indexBufferOffset = 0;
+    memset(m_drawItem->VertexBuffers(), 0xFF, desc.m_nVertexBuffers * sizeof(u16));
+    memset(m_drawItem->CBuffers(), 0xFF, desc.m_nCBuffers * sizeof(u16));
 }
 
 GpuDrawItem* GpuDrawItemWriter::End()
@@ -60,10 +75,10 @@ GpuDrawItem* GpuDrawItemWriter::End()
     // Validation code
     ValidateVertexBuffers();
     ValidateCBuffers();
-    ASSERT((m_flags & FLAG_SETPIPELINESTATE)
+    ASSERT(m_drawItem->pipelineStateIdx != 0xFFFF
            && "No pipeline state object has been specified");
     ASSERT((m_flags & FLAG_SETDRAWCALL) && "No draw call has been specified");
-    ASSERT(!(m_flags & FLAG_INDEXED) || (m_flags & FLAG_SETINDEXBUFFER)
+    ASSERT(!(m_flags & FLAG_INDEXED) || (m_drawItem->indexBufferIdx != 0xFFFF)
            && "Index buffer not specified for indexed draw call");
 
     GpuDrawItem* item = m_drawItem;
@@ -73,51 +88,45 @@ GpuDrawItem* GpuDrawItemWriter::End()
 
 void GpuDrawItemWriter::ValidateVertexBuffers()
 {
-    GpuDrawItem::VertexBufEntry* bufs = m_drawItem->VertexBuffers();
+    u16* bufs = m_drawItem->VertexBuffers();
     for (int i = 0; i < m_desc.m_nVertexBuffers; ++i) {
-        if (bufs[i].bufferID == 0)
+        if (bufs[i] == 0xFFFF)
             FATAL("GpuDrawItemWriter: vertex buffer (index %d) not set", i);
     }
 }
 
 void GpuDrawItemWriter::ValidateCBuffers()
 {
-    u32* cbufs = m_drawItem->CBuffers();
+    u16* cbufs = m_drawItem->CBuffers();
     for (int i = 0; i < m_desc.m_nVertexBuffers; ++i) {
-        if (cbufs[i] == 0)
+        if (cbufs[i] == 0xFFFF)
             FATAL("GpuDrawItemWriter: constant buffer (index %d) not set", i);
     }
 }
 
 void GpuDrawItemWriter::SetPipelineState(GpuPipelineStateID state)
 {
-    m_drawItem->pipelineStateID = state;
-
-    m_flags |= FLAG_SETPIPELINESTATE;
+    m_drawItem->pipelineStateIdx = GetRawIndex(state);
 }
 
 void GpuDrawItemWriter::SetIndexBuffer(GpuBufferID buffer)
 {
-    m_drawItem->indexBufferID = buffer;
-
-    m_flags |= FLAG_SETINDEXBUFFER;
+    m_drawItem->indexBufferIdx = GetRawIndex(buffer);
 }
 
 void GpuDrawItemWriter::SetVertexBuffer(int index, GpuBufferID buffer, unsigned offset)
 {
     ASSERT(index >= 0 && index < m_desc.m_nVertexBuffers);
     ASSERT(buffer != 0);
-    GpuDrawItem::VertexBufEntry* bufs = m_drawItem->VertexBuffers();
-    bufs[index].bufferID = buffer;
-    bufs[index].offset = offset;
+    m_drawItem->VertexBufferOffsets()[index] = (u32)offset;
+    m_drawItem->VertexBuffers()[index] = GetRawIndex(buffer);
 }
 
 void GpuDrawItemWriter::SetCBuffer(int index, GpuBufferID buffer)
 {
     ASSERT(index >= 0 && index < m_desc.m_nCBuffers);
     ASSERT(buffer != 0);
-    u32* cbufs = m_drawItem->CBuffers();
-    cbufs[index] = buffer;
+    m_drawItem->CBuffers()[index] = GetRawIndex(buffer);
 }
 
 void GpuDrawItemWriter::SetDrawCall(GpuPrimitiveType primType, int first, int count)

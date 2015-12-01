@@ -536,29 +536,25 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
         ASSERT(item != NULL);
 
         // Set the pipeline state
-        ASSERT(m_pipelineStateTable.Has(item->pipelineStateID));
         PipelineStateObj& pipelineState
-            = m_pipelineStateTable.Lookup(item->pipelineStateID);
+            = m_pipelineStateTable.LookupRaw(item->pipelineStateIdx);
         [encoder setRenderPipelineState:pipelineState.state];
         [encoder setDepthStencilState:pipelineState.depthStencilState];
 
         // Set vertex buffers
-        const GpuDrawItem::VertexBufEntry* vertexBuffers = item->VertexBuffers();
+        const u32* vertexBufferOffsets = item->VertexBufferOffsets();
+        const u16* vertexBuffers = item->VertexBuffers();
         for (int i = 0; i < item->nVertexBuffers; ++i) {
-            GpuBufferID bufferID(vertexBuffers[i].bufferID);
-            ASSERT(m_bufferTable.Has(bufferID));
-            unsigned offset = vertexBuffers[i].offset;
-            [encoder setVertexBuffer:m_bufferTable.Lookup(bufferID).buffer
-                              offset:offset
+            Buffer& buf = m_bufferTable.LookupRaw(vertexBuffers[i]);
+            [encoder setVertexBuffer:buf.buffer
+                              offset:vertexBufferOffsets[i]
                              atIndex:(GPU_MAX_CBUFFERS + i)];
         }
 
         // Set cbuffers
-        const u32* cbuffers = item->CBuffers();
+        const u16* cbuffers = item->CBuffers();
         for (int i = 0; i < item->nCBuffers; ++i) {
-            GpuBufferID bufferID(cbuffers[i]);
-            ASSERT(m_bufferTable.Has(bufferID));
-            id<MTLBuffer> buf = m_bufferTable.Lookup(bufferID).buffer;
+            id<MTLBuffer> buf = m_bufferTable.LookupRaw(cbuffers[i]).buffer;
             [encoder setVertexBuffer:buf offset:0 atIndex:i];
             [encoder setFragmentBuffer:buf offset:0 atIndex:i];
         }
@@ -566,9 +562,8 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
         // Submit the draw call
         MTLPrimitiveType primType = s_metalPrimitiveTypes[item->GetPrimitiveType()];
         if (item->IsIndexed()) {
-            ASSERT(m_bufferTable.Has(item->indexBufferID));
             GpuIndexType gpuIndexType = item->GetIndexType();
-            id<MTLBuffer> indexBuf = m_bufferTable.Lookup(item->indexBufferID).buffer;
+            id<MTLBuffer> indexBuf = m_bufferTable.LookupRaw(item->indexBufferIdx).buffer;
             NSUInteger indexBufOffset = item->indexBufferOffset;
             indexBufOffset += item->first * s_indexTypeByteSizes[gpuIndexType];
             [encoder drawIndexedPrimitives:primType
