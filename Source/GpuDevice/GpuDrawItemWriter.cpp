@@ -86,7 +86,9 @@ GpuDrawItem* GpuDrawItemWriter::End()
     ASSERT(!(m_flags & FLAG_INDEXED) || (m_drawItem->indexBufferIdx != 0xFFFF)
            && "Index buffer not specified for indexed draw call");
 
+#ifdef GPUDEVICE_DEBUG_MODE
     m_device->RegisterDrawItem(m_drawItem);
+#endif
     m_device = NULL;
 
     GpuDrawItem* item = m_drawItem;

@@ -341,7 +341,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
-					"-DGFX_API_OPENGL",
+					"-DGPUDEVICE_DEBUG_MODE",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "My-Company.GfxDemo";
 				PRODUCT_NAME = GfxDemo;
@@ -359,7 +359,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
-					"-DGFX_API_OPENGL",
+					"-DGPUDEVICE_DEBUG_MODE",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "My-Company.GfxDemo";
 				PRODUCT_NAME = GfxDemo;

@@ -132,32 +132,40 @@ public:
     void SceneBegin();
     void ScenePresent();
 
+#ifdef GPUDEVICE_DEBUG_MODE
     void DrawItem_UpdateRefCounts(const GpuDrawItem* item, int increment);
     void RegisterDrawItem(const GpuDrawItem* item);
     void UnregisterDrawItem(const GpuDrawItem* item);
+#endif
 
 private:
     GpuDeviceMetal(const GpuDeviceMetal&);
     GpuDeviceMetal& operator=(const GpuDeviceMetal&);
 
     struct Shader {
+#ifdef GPUDEVICE_DEBUG_MODE
         int dbg_refCount;
+#endif
         id<MTLLibrary> library;
         id<MTLFunction> function;
     };
 
     struct Buffer {
+#ifdef GPUDEVICE_DEBUG_MODE
         int dbg_refCount;
+#endif
         id<MTLBuffer> buffer;
         GpuBufferType type;
         GpuBufferAccessMode accessMode;
     };
 
     struct PipelineStateObj {
+#ifdef GPUDEVICE_DEBUG_MODE
         int dbg_refCount;
         u32 dbg_vertexShader;
         u32 dbg_pixelShader;
         u32 dbg_inputLayout;
+#endif
         id<MTLRenderPipelineState> state;
         id<MTLDepthStencilState> depthStencilState;
     };
@@ -341,7 +349,9 @@ GpuShaderID GpuDeviceMetal::CreateShader(GpuShaderType type, const char* code, s
 {
     GpuShaderID shaderID(m_shaderTable.Add());
     Shader& shader = m_shaderTable.Lookup(shaderID);
+#ifdef GPUDEVICE_DEBUG_MODE
     shader.dbg_refCount = 0;
+#endif
 
     void* codeCopy = malloc(length);
     memcpy(codeCopy, code, length);
@@ -366,10 +376,14 @@ void GpuDeviceMetal::DestroyShader(GpuShaderID shaderID)
 {
     ASSERT(ShaderIDExists(shaderID));
     Shader& shader = m_shaderTable.Lookup(shaderID);
+
+#ifdef GPUDEVICE_DEBUG_MODE
     if (shader.dbg_refCount != 0) {
         FATAL("Can't destroy shader as it still has %d pipeline state "
               "object(s) referencing it", shader.dbg_refCount);
     }
+#endif
+
     [shader.function release];
     [shader.library release];
     m_shaderTable.Remove(shaderID);
@@ -389,7 +403,10 @@ GpuBufferID GpuDeviceMetal::CreateBuffer(GpuBufferType type,
 {
     GpuBufferID bufferID(m_bufferTable.Add());
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
+#ifdef GPUDEVICE_DEBUG_MODE
     buffer.dbg_refCount = 0;
+#endif
+
     MTLResourceOptions options = s_bufferAccessModeToResourceOptions[accessMode];
     if (data) {
         buffer.buffer = [m_device newBufferWithBytes:data
@@ -410,10 +427,14 @@ void GpuDeviceMetal::DestroyBuffer(GpuBufferID bufferID)
 {
     ASSERT(BufferIDExists(bufferID));
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
+
+#ifdef GPUDEVICE_DEBUG_MODE
     if (buffer.dbg_refCount != 0) {
         FATAL("Can't destroy buffer as it still has %d draw "
               "item(s) referencing it", buffer.dbg_refCount);
     }
+#endif
+
     [buffer.buffer release];
     m_bufferTable.Remove(bufferID);
 
@@ -449,17 +470,18 @@ GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineSt
 
     GpuPipelineStateID pipelineStateID(m_pipelineStateTable.Add());
     PipelineStateObj& obj = m_pipelineStateTable.Lookup(pipelineStateID);
+#ifdef GPUDEVICE_DEBUG_MODE
     obj.dbg_refCount = 0;
-
-    obj.state = CreateMTLRenderPipelineState(state);
-    obj.depthStencilState = CreateMTLDepthStencilState(state);
-
     obj.dbg_vertexShader = state.vertexShader;
     obj.dbg_pixelShader = state.pixelShader;
     obj.dbg_inputLayout = state.inputLayout;
     ++m_shaderTable.Lookup(state.vertexShader).dbg_refCount;
     ++m_shaderTable.Lookup(state.pixelShader).dbg_refCount;
     ++m_inputLayoutTable.Lookup(state.inputLayout).dbg_refCount;
+#endif
+
+    obj.state = CreateMTLRenderPipelineState(state);
+    obj.depthStencilState = CreateMTLDepthStencilState(state);
 
     ++m_dbg_psoCount;
 
@@ -503,14 +525,16 @@ void GpuDeviceMetal::DestroyPipelineStateObject(GpuPipelineStateID pipelineState
 {
     ASSERT(PipelineStateObjectIDExists(pipelineStateID));
     PipelineStateObj& obj = m_pipelineStateTable.Lookup(pipelineStateID);
+
+#ifdef GPUDEVICE_DEBUG_MODE
     if (obj.dbg_refCount != 0) {
         FATAL("Can't destroy pipeline state object as it still has %d draw "
               "item(s) referencing it", obj.dbg_refCount);
     }
-
     --m_shaderTable.Lookup(obj.dbg_vertexShader).dbg_refCount;
     --m_shaderTable.Lookup(obj.dbg_pixelShader).dbg_refCount;
     --m_inputLayoutTable.Lookup(obj.dbg_inputLayout).dbg_refCount;
+#endif
 
     [obj.state release];
     [obj.depthStencilState release];
@@ -744,6 +768,7 @@ void GpuDeviceMetal::ScenePresent()
     ++m_frameNumber;
 }
 
+#ifdef GPUDEVICE_DEBUG_MODE
 void GpuDeviceMetal::DrawItem_UpdateRefCounts(const GpuDrawItem* item, int increment)
 {
     m_pipelineStateTable.LookupRaw(item->pipelineStateIdx).dbg_refCount += increment;
@@ -771,6 +796,7 @@ void GpuDeviceMetal::UnregisterDrawItem(const GpuDrawItem* item)
 {
     DrawItem_UpdateRefCounts(item, -1);
 }
+#endif // GPUDEVICE_DEBUG_MODE
 
 static const GpuDeviceMetal* Cast(const GpuDevice* dev) { return (const GpuDeviceMetal*)dev; }
 static GpuDeviceMetal* Cast(GpuDevice* dev) { return (GpuDeviceMetal*)dev; }
@@ -859,8 +885,10 @@ void GpuDevice::SceneBegin()
 void GpuDevice::ScenePresent()
 { Cast(this)->ScenePresent(); }
 
+#ifdef GPUDEVICE_DEBUG_MODE
 void GpuDevice::RegisterDrawItem(const GpuDrawItem* item)
 { Cast(this)->RegisterDrawItem(item); }
 
 void GpuDevice::UnregisterDrawItem(const GpuDrawItem* item)
 { Cast(this)->UnregisterDrawItem(item); }
+#endif // GPUDEVICE_DEBUG_MODE

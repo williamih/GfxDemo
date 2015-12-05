@@ -210,6 +210,7 @@ public:
     void SceneBegin();
     void ScenePresent();
 
+#ifdef GPUDEVICE_DEBUG_MODE
     // Notifies the GpuDevice of the creation of a new GpuDrawItem.
     // This is called automatically by GpuDrawItemWriter, so typically clients
     // won't need to call this method.
@@ -219,6 +220,7 @@ public:
     // This should be called by client code immediately before deleting a
     // GpuDrawItem or reusing its memory.
     void UnregisterDrawItem(const GpuDrawItem* item);
+#endif // GPUDEVICE_DEBUG_MODE
 
 private:
     GpuDevice();
@@ -226,5 +228,11 @@ private:
     GpuDevice(const GpuDevice&);
     GpuDevice& operator=(const GpuDevice&);
 };
+
+#ifdef GPUDEVICE_DEBUG_MODE
+#  define GPUDEVICE_UNREGISTER_DRAWITEM(dev, item) dev->UnregisterDrawItem(item)
+#else
+#  define GPUDEVICE_UNREGISTER_DRAWITEM(dev, item) ((void)0)
+#endif
 
 #endif // GPUDEVICE_GPUDEVICE_H

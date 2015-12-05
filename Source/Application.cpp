@@ -124,7 +124,7 @@ Application::Application()
 
 Application::~Application()
 {
-    m_gpuDevice->UnregisterDrawItem(m_drawItem);
+    GPUDEVICE_UNREGISTER_DRAWITEM(m_gpuDevice, m_drawItem);
     free(m_drawItem);
     m_gpuDevice->DestroyPipelineStateObject(m_pipelineStateObj);
     m_gpuDevice->DestroyShader(m_vertexShader);
