@@ -174,9 +174,11 @@ public:
     const GpuDeviceFormat& GetFormat() const;
     void OnWindowResized();
 
+    bool ShaderIDExists(GpuShaderID shaderID) const;
     GpuShaderID CreateShader(GpuShaderType type, const char* code, size_t length);
     void DestroyShader(GpuShaderID shaderID);
 
+    bool BufferIDExists(GpuBufferID bufferID) const;
     GpuBufferID CreateBuffer(GpuBufferType type,
                              GpuBufferAccessMode accessMode,
                              const void* data,
@@ -185,12 +187,15 @@ public:
     void* GetBufferContents(GpuBufferID bufferID);
     void FlushBufferRange(GpuBufferID bufferID, int start, int length);
 
+    bool PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const;
     GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
     void DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID);
 
+    bool RenderPassObjectIDExists(GpuRenderPassID renderPassID) const;
     GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
     void DestroyRenderPassObject(GpuRenderPassID renderPassID);
 
+    bool InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const;
     GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
                                        const GpuVertexAttribute* attribs,
                                        int nVertexBuffers,
@@ -204,6 +209,16 @@ public:
 
     void SceneBegin();
     void ScenePresent();
+
+    // Notifies the GpuDevice of the creation of a new GpuDrawItem.
+    // This is called automatically by GpuDrawItemWriter, so typically clients
+    // won't need to call this method.
+    void RegisterDrawItem(const GpuDrawItem* item);
+
+    // Notifies the GpuDevice that a GpuDrawItem is about to be destroyed.
+    // This should be called by client code immediately before deleting a
+    // GpuDrawItem or reusing its memory.
+    void UnregisterDrawItem(const GpuDrawItem* item);
 
 private:
     GpuDevice();

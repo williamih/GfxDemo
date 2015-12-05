@@ -88,9 +88,11 @@ public:
     const GpuDeviceFormat& GetFormat() const;
     void OnWindowResized();
 
+    bool ShaderIDExists(GpuShaderID shaderID) const;
     GpuShaderID CreateShader(GpuShaderType type, const char* code, size_t length);
     void DestroyShader(GpuShaderID shaderID);
 
+    bool BufferIDExists(GpuBufferID bufferID) const;
     GpuBufferID CreateBuffer(GpuBufferType type,
                              GpuBufferAccessMode accessMode,
                              const void* data,
@@ -99,6 +101,7 @@ public:
     void* GetBufferContents(GpuBufferID bufferID);
     void FlushBufferRange(GpuBufferID bufferID, int start, int length);
 
+    bool PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const;
     GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
 private:
     id<MTLRenderPipelineState> CreateMTLRenderPipelineState(const GpuPipelineStateDesc& state);
@@ -106,9 +109,11 @@ private:
 public:
     void DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID);
 
+    bool RenderPassObjectIDExists(GpuRenderPassID renderPassID) const;
     GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
     void DestroyRenderPassObject(GpuRenderPassID renderPassID);
 
+    bool InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const;
     GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
                                        const GpuVertexAttribute* attribs,
                                        int nVertexBuffers,
@@ -126,22 +131,33 @@ public:
 
     void SceneBegin();
     void ScenePresent();
+
+    void DrawItem_UpdateRefCounts(const GpuDrawItem* item, int increment);
+    void RegisterDrawItem(const GpuDrawItem* item);
+    void UnregisterDrawItem(const GpuDrawItem* item);
+
 private:
     GpuDeviceMetal(const GpuDeviceMetal&);
     GpuDeviceMetal& operator=(const GpuDeviceMetal&);
 
     struct Shader {
+        int dbg_refCount;
         id<MTLLibrary> library;
         id<MTLFunction> function;
     };
 
     struct Buffer {
+        int dbg_refCount;
         id<MTLBuffer> buffer;
         GpuBufferType type;
         GpuBufferAccessMode accessMode;
     };
 
     struct PipelineStateObj {
+        int dbg_refCount;
+        u32 dbg_vertexShader;
+        u32 dbg_pixelShader;
+        u32 dbg_inputLayout;
         id<MTLRenderPipelineState> state;
         id<MTLDepthStencilState> depthStencilState;
     };
@@ -151,6 +167,7 @@ private:
     };
 
     struct InputLayout {
+        int dbg_refCount;
         MTLVertexDescriptor* descriptor;
     };
 
@@ -175,6 +192,12 @@ private:
     IDLookupTable<PipelineStateObj, GpuPipelineStateID::Type, 16, 16> m_pipelineStateTable;
     IDLookupTable<RenderPassObj, GpuRenderPassID::Type, 16, 16> m_renderPassTable;
     IDLookupTable<InputLayout, GpuInputLayoutID::Type, 16, 16> m_inputLayoutTable;
+
+    int m_dbg_shaderCount;
+    int m_dbg_bufferCount;
+    int m_dbg_psoCount;
+    int m_dbg_renderPassCount;
+    int m_dbg_inputLayoutCount;
 };
 
 // -----------------------------------------------------------------------------
@@ -200,6 +223,12 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
     , m_pipelineStateTable()
     , m_renderPassTable()
     , m_inputLayoutTable()
+
+    , m_dbg_shaderCount(0)
+    , m_dbg_bufferCount(0)
+    , m_dbg_psoCount(0)
+    , m_dbg_renderPassCount(0)
+    , m_dbg_inputLayoutCount(0)
 {
     if (![[m_view layer] isKindOfClass:[CAMetalLayer class]])
         FATAL("GpuDeviceMetal: View needs to have a CAMetalLayer");
@@ -217,6 +246,32 @@ GpuDeviceMetal::~GpuDeviceMetal()
 {
     [m_commandQueue release];
     [m_device release];
+
+    if (m_dbg_shaderCount != 0) {
+        fprintf(stderr,
+                "GpuDeviceMetal: warning - %d shader(s) not destroyed\n",
+                m_dbg_shaderCount);
+    }
+    if (m_dbg_bufferCount != 0) {
+        fprintf(stderr,
+                "GpuDeviceMetal: warning - %d buffer(s) not destroyed\n",
+                m_dbg_bufferCount);
+    }
+    if (m_dbg_psoCount != 0) {
+        fprintf(stderr,
+                "GpuDeviceMetal: warning - %d pipeline state object(s) "
+                "not destroyed\n", m_dbg_psoCount);
+    }
+    if (m_dbg_renderPassCount != 0) {
+        fprintf(stderr,
+                "GpuDeviceMetal: warning - %d render pass object(s) "
+                "not destroyed\n", m_dbg_renderPassCount);
+    }
+    if (m_dbg_inputLayoutCount != 0) {
+        fprintf(stderr,
+                "GpuDeviceMetal: warning - %d input layout(s) "
+                "not destroyed\n", m_dbg_inputLayoutCount);
+    }
 }
 
 void GpuDeviceMetal::CreateOrDestroyDepthBuffer()
@@ -277,10 +332,16 @@ void GpuDeviceMetal::OnWindowResized()
     CreateOrDestroyDepthBuffer();
 }
 
+bool GpuDeviceMetal::ShaderIDExists(GpuShaderID shaderID) const
+{
+    return m_shaderTable.Has(shaderID);
+}
+
 GpuShaderID GpuDeviceMetal::CreateShader(GpuShaderType type, const char* code, size_t length)
 {
     GpuShaderID shaderID(m_shaderTable.Add());
     Shader& shader = m_shaderTable.Lookup(shaderID);
+    shader.dbg_refCount = 0;
 
     void* codeCopy = malloc(length);
     memcpy(codeCopy, code, length);
@@ -296,15 +357,29 @@ GpuShaderID GpuDeviceMetal::CreateShader(GpuShaderType type, const char* code, s
 
     shader.function = [shader.library newFunctionWithName:s_shaderEntryPointNames[type]];
 
+    ++m_dbg_shaderCount;
+
     return shaderID;
 }
 
 void GpuDeviceMetal::DestroyShader(GpuShaderID shaderID)
 {
+    ASSERT(ShaderIDExists(shaderID));
     Shader& shader = m_shaderTable.Lookup(shaderID);
+    if (shader.dbg_refCount != 0) {
+        FATAL("Can't destroy shader as it still has %d pipeline state "
+              "object(s) referencing it", shader.dbg_refCount);
+    }
     [shader.function release];
     [shader.library release];
     m_shaderTable.Remove(shaderID);
+
+    --m_dbg_shaderCount;
+}
+
+bool GpuDeviceMetal::BufferIDExists(GpuBufferID bufferID) const
+{
+    return m_bufferTable.Has(bufferID);
 }
 
 GpuBufferID GpuDeviceMetal::CreateBuffer(GpuBufferType type,
@@ -314,6 +389,7 @@ GpuBufferID GpuDeviceMetal::CreateBuffer(GpuBufferType type,
 {
     GpuBufferID bufferID(m_bufferTable.Add());
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
+    buffer.dbg_refCount = 0;
     MTLResourceOptions options = s_bufferAccessModeToResourceOptions[accessMode];
     if (data) {
         buffer.buffer = [m_device newBufferWithBytes:data
@@ -324,18 +400,29 @@ GpuBufferID GpuDeviceMetal::CreateBuffer(GpuBufferType type,
     }
     buffer.type = type;
     buffer.accessMode = accessMode;
+
+    ++m_dbg_bufferCount;
+
     return bufferID;
 }
 
 void GpuDeviceMetal::DestroyBuffer(GpuBufferID bufferID)
 {
+    ASSERT(BufferIDExists(bufferID));
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
+    if (buffer.dbg_refCount != 0) {
+        FATAL("Can't destroy buffer as it still has %d draw "
+              "item(s) referencing it", buffer.dbg_refCount);
+    }
     [buffer.buffer release];
     m_bufferTable.Remove(bufferID);
+
+    --m_dbg_bufferCount;
 }
 
 void* GpuDeviceMetal::GetBufferContents(GpuBufferID bufferID)
 {
+    ASSERT(BufferIDExists(bufferID));
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
     ASSERT(buffer.accessMode == GPUBUFFER_ACCESS_DYNAMIC);
     return [buffer.buffer contents];
@@ -343,22 +430,38 @@ void* GpuDeviceMetal::GetBufferContents(GpuBufferID bufferID)
 
 void GpuDeviceMetal::FlushBufferRange(GpuBufferID bufferID, int start, int length)
 {
+    ASSERT(BufferIDExists(bufferID));
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
     ASSERT(buffer.accessMode == GPUBUFFER_ACCESS_DYNAMIC);
     [buffer.buffer didModifyRange:NSMakeRange(start, length)];
 }
 
+bool GpuDeviceMetal::PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const
+{
+    return m_pipelineStateTable.Has(pipelineStateID);
+}
+
 GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineStateDesc& state)
 {
-    ASSERT(state.vertexShader != 0);
-    ASSERT(state.pixelShader != 0);
-    ASSERT(state.inputLayout != 0);
+    ASSERT(ShaderIDExists(state.vertexShader));
+    ASSERT(ShaderIDExists(state.pixelShader));
+    ASSERT(InputLayoutIDExists(state.inputLayout));
 
     GpuPipelineStateID pipelineStateID(m_pipelineStateTable.Add());
     PipelineStateObj& obj = m_pipelineStateTable.Lookup(pipelineStateID);
+    obj.dbg_refCount = 0;
 
     obj.state = CreateMTLRenderPipelineState(state);
     obj.depthStencilState = CreateMTLDepthStencilState(state);
+
+    obj.dbg_vertexShader = state.vertexShader;
+    obj.dbg_pixelShader = state.pixelShader;
+    obj.dbg_inputLayout = state.inputLayout;
+    ++m_shaderTable.Lookup(state.vertexShader).dbg_refCount;
+    ++m_shaderTable.Lookup(state.pixelShader).dbg_refCount;
+    ++m_inputLayoutTable.Lookup(state.inputLayout).dbg_refCount;
+
+    ++m_dbg_psoCount;
 
     return pipelineStateID;
 }
@@ -398,11 +501,27 @@ id<MTLDepthStencilState> GpuDeviceMetal::CreateMTLDepthStencilState(const GpuPip
 
 void GpuDeviceMetal::DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID)
 {
-    ASSERT(m_pipelineStateTable.Has(pipelineStateID));
+    ASSERT(PipelineStateObjectIDExists(pipelineStateID));
     PipelineStateObj& obj = m_pipelineStateTable.Lookup(pipelineStateID);
+    if (obj.dbg_refCount != 0) {
+        FATAL("Can't destroy pipeline state object as it still has %d draw "
+              "item(s) referencing it", obj.dbg_refCount);
+    }
+
+    --m_shaderTable.Lookup(obj.dbg_vertexShader).dbg_refCount;
+    --m_shaderTable.Lookup(obj.dbg_pixelShader).dbg_refCount;
+    --m_inputLayoutTable.Lookup(obj.dbg_inputLayout).dbg_refCount;
+
     [obj.state release];
     [obj.depthStencilState release];
     m_pipelineStateTable.Remove(pipelineStateID);
+
+    --m_dbg_psoCount;
+}
+
+bool GpuDeviceMetal::RenderPassObjectIDExists(GpuRenderPassID renderPassID) const
+{
+    return m_renderPassTable.Has(renderPassID);
 }
 
 GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPassDesc& pass)
@@ -434,15 +553,24 @@ GpuRenderPassID GpuDeviceMetal::CreateRenderPassObject(const GpuRenderPassDesc& 
     obj.descriptor.depthAttachment = depthDesc;
     [obj.descriptor.colorAttachments setObject:colorDesc atIndexedSubscript:0];
 
+    ++m_dbg_renderPassCount;
+
     return renderPassID;
 }
 
 void GpuDeviceMetal::DestroyRenderPassObject(GpuRenderPassID renderPassID)
 {
-    ASSERT(m_renderPassTable.Has(renderPassID));
+    ASSERT(RenderPassObjectIDExists(renderPassID));
     RenderPassObj& obj = m_renderPassTable.Lookup(renderPassID);
     [obj.descriptor release];
     m_renderPassTable.Remove(renderPassID);
+
+    --m_dbg_renderPassCount;
+}
+
+bool GpuDeviceMetal::InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const
+{
+    return m_inputLayoutTable.Has(inputLayoutID);
 }
 
 GpuInputLayoutID GpuDeviceMetal::CreateInputLayout(int nVertexAttribs,
@@ -473,15 +601,23 @@ GpuInputLayoutID GpuDeviceMetal::CreateInputLayout(int nVertexAttribs,
                           atIndexedSubscript:(GPU_MAX_CBUFFERS + i)];
     }
 
+    ++m_dbg_inputLayoutCount;
+
     return inputLayoutID;
 }
 
 void GpuDeviceMetal::DestroyInputLayout(GpuInputLayoutID inputLayoutID)
 {
-    ASSERT(m_inputLayoutTable.Has(inputLayoutID));
+    ASSERT(InputLayoutIDExists(inputLayoutID));
     InputLayout& layout = m_inputLayoutTable.Lookup(inputLayoutID);
+    if (layout.dbg_refCount != 0) {
+        FATAL("Can't destroy input layout as it still has %d pipeline state "
+              "object(s) referencing it", layout.dbg_refCount);
+    }
     [layout.descriptor release];
     m_inputLayoutTable.Remove(inputLayoutID);
+
+    --m_dbg_inputLayoutCount;
 }
 
 static MTLViewport GetMTLViewport(const GpuViewport& viewport)
@@ -528,6 +664,7 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
                           const GpuViewport& viewport)
 {
     ASSERT(items != NULL);
+    ASSERT(RenderPassObjectIDExists(renderPass));
 
     id<MTLRenderCommandEncoder> encoder = PreDraw(renderPass, viewport);
 
@@ -607,6 +744,34 @@ void GpuDeviceMetal::ScenePresent()
     ++m_frameNumber;
 }
 
+void GpuDeviceMetal::DrawItem_UpdateRefCounts(const GpuDrawItem* item, int increment)
+{
+    m_pipelineStateTable.LookupRaw(item->pipelineStateIdx).dbg_refCount += increment;
+
+    if (item->IsIndexed())
+        m_bufferTable.LookupRaw(item->indexBufferIdx).dbg_refCount += increment;
+
+    u16* vertexBuffers = item->VertexBuffers();
+    for (int i = 0; i < item->nVertexBuffers; ++i) {
+        m_bufferTable.LookupRaw(vertexBuffers[i]).dbg_refCount += increment;
+    }
+
+    u16* cbuffers = item->CBuffers();
+    for (int i = 0; i < item->nCBuffers; ++i) {
+        m_bufferTable.LookupRaw(cbuffers[i]).dbg_refCount += increment;
+    }
+}
+
+void GpuDeviceMetal::RegisterDrawItem(const GpuDrawItem* item)
+{
+    DrawItem_UpdateRefCounts(item, 1);
+}
+
+void GpuDeviceMetal::UnregisterDrawItem(const GpuDrawItem* item)
+{
+    DrawItem_UpdateRefCounts(item, -1);
+}
+
 static const GpuDeviceMetal* Cast(const GpuDevice* dev) { return (const GpuDeviceMetal*)dev; }
 static GpuDeviceMetal* Cast(GpuDevice* dev) { return (GpuDeviceMetal*)dev; }
 static GpuDevice* Cast(GpuDeviceMetal* dev) { return (GpuDevice*)dev; }
@@ -625,11 +790,17 @@ const GpuDeviceFormat& GpuDevice::GetFormat() const
 void GpuDevice::OnWindowResized()
 { Cast(this)->OnWindowResized(); }
 
+bool GpuDevice::ShaderIDExists(GpuShaderID shaderID) const
+{ return Cast(this)->ShaderIDExists(shaderID); }
+
 GpuShaderID GpuDevice::CreateShader(GpuShaderType type, const char* code, size_t length)
 { return Cast(this)->CreateShader(type, code, length); }
 
 void GpuDevice::DestroyShader(GpuShaderID shaderID)
 { Cast(this)->DestroyShader(shaderID); }
+
+bool GpuDevice::BufferIDExists(GpuBufferID bufferID) const
+{ return Cast(this)->BufferIDExists(bufferID); }
 
 GpuBufferID GpuDevice::CreateBuffer(GpuBufferType type,
                                     GpuBufferAccessMode accessMode,
@@ -646,17 +817,26 @@ void* GpuDevice::GetBufferContents(GpuBufferID bufferID)
 void GpuDevice::FlushBufferRange(GpuBufferID bufferID, int start, int length)
 { Cast(this)->FlushBufferRange(bufferID, start, length); }
 
+bool GpuDevice::PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const
+{ return Cast(this)->PipelineStateObjectIDExists(pipelineStateID); }
+
 GpuPipelineStateID GpuDevice::CreatePipelineStateObject(const GpuPipelineStateDesc& state)
 { return Cast(this)->CreatePipelineStateObject(state); }
 
 void GpuDevice::DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID)
 { Cast(this)->DestroyPipelineStateObject(pipelineStateID); }
 
+bool GpuDevice::RenderPassObjectIDExists(GpuRenderPassID renderPassID) const
+{ return Cast(this)->RenderPassObjectIDExists(renderPassID); }
+
 GpuRenderPassID GpuDevice::CreateRenderPassObject(const GpuRenderPassDesc& pass)
 { return Cast(this)->CreateRenderPassObject(pass); }
 
 void GpuDevice::DestroyRenderPassObject(GpuRenderPassID renderPassID)
 { Cast(this)->DestroyRenderPassObject(renderPassID); }
+
+bool GpuDevice::InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const
+{ return Cast(this)->InputLayoutIDExists(inputLayoutID); }
 
 GpuInputLayoutID GpuDevice::CreateInputLayout(int nVertexAttribs,
                                               const GpuVertexAttribute* attribs,
@@ -678,3 +858,9 @@ void GpuDevice::SceneBegin()
 
 void GpuDevice::ScenePresent()
 { Cast(this)->ScenePresent(); }
+
+void GpuDevice::RegisterDrawItem(const GpuDrawItem* item)
+{ Cast(this)->RegisterDrawItem(item); }
+
+void GpuDevice::UnregisterDrawItem(const GpuDrawItem* item)
+{ Cast(this)->UnregisterDrawItem(item); }

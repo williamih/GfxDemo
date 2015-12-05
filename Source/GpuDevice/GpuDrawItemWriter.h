@@ -27,7 +27,8 @@ public:
 
     GpuDrawItemWriter();
 
-    void Begin(const GpuDrawItemWriterDesc& desc,
+    void Begin(GpuDevice* device,
+               const GpuDrawItemWriterDesc& desc,
                PFnAlloc alloc,
                void* userdata);
     GpuDrawItem* End();
@@ -50,6 +51,7 @@ private:
     void ValidateVertexBuffers();
     void ValidateCBuffers();
 
+    GpuDevice* m_device;
     GpuDrawItem* m_drawItem;
     GpuDrawItemWriterDesc m_desc;
     u32 m_flags;

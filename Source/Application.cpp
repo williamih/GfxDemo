@@ -114,7 +114,7 @@ Application::Application()
     writerDesc.SetNumVertexBuffers(1);
 
     GpuDrawItemWriter writer;
-    writer.Begin(writerDesc, Alloc, NULL);
+    writer.Begin(m_gpuDevice, writerDesc, Alloc, NULL);
     writer.SetPipelineState(m_pipelineStateObj);
     writer.SetVertexBuffer(0, m_vertexBuffer, 0);
     writer.SetCBuffer(0, m_cbuffer);
@@ -124,14 +124,15 @@ Application::Application()
 
 Application::~Application()
 {
+    m_gpuDevice->UnregisterDrawItem(m_drawItem);
+    free(m_drawItem);
+    m_gpuDevice->DestroyPipelineStateObject(m_pipelineStateObj);
     m_gpuDevice->DestroyShader(m_vertexShader);
     m_gpuDevice->DestroyShader(m_pixelShader);
     m_gpuDevice->DestroyBuffer(m_vertexBuffer);
     m_gpuDevice->DestroyBuffer(m_cbuffer);
-    m_gpuDevice->DestroyPipelineStateObject(m_pipelineStateObj);
     m_gpuDevice->DestroyRenderPassObject(m_renderPass);
     m_gpuDevice->DestroyInputLayout(m_inputLayout);
-    free(m_drawItem);
     GpuDevice::Destroy(m_gpuDevice);
     OsWindow::Destroy(m_window);
 }
