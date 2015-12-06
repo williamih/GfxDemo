@@ -604,6 +604,9 @@ GpuInputLayoutID GpuDeviceMetal::CreateInputLayout(int nVertexAttribs,
 {
     GpuInputLayoutID inputLayoutID(m_inputLayoutTable.Add());
     InputLayout& layout = m_inputLayoutTable.Lookup(inputLayoutID);
+#ifdef GPUDEVICE_DEBUG_MODE
+    layout.dbg_refCount = 0;
+#endif
 
     layout.descriptor = [[MTLVertexDescriptor alloc] init];
 
