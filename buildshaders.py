@@ -55,8 +55,8 @@ def compile_shader(path, output_path):
 	os.rmdir(tempdir)
 
 def main():
-	compile_shader("Shaders/VertexShader.metal", "Assets/Shaders/VertexShader.metallib")
-	compile_shader("Shaders/PixelShader.metal", "Assets/Shaders/PixelShader.metallib")
+	compile_shader("Shaders/ModelVS.metal", "Assets/Shaders/ModelVS.metallib")
+	compile_shader("Shaders/ModelPS.metal", "Assets/Shaders/ModelPS.metallib")
 
 if __name__ == "__main__":
 	main()

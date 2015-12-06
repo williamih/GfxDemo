@@ -1,7 +1,11 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include <memory>
 #include "GpuDevice/GpuDevice.h"
+#include "Model/ModelCache.h"
+#include "Model/ModelRenderQueue.h"
+#include "Model/ModelInstance.h"
 
 class OsWindow;
 
@@ -16,14 +20,10 @@ private:
 
     OsWindow* m_window;
     GpuDevice* m_gpuDevice;
-    GpuShaderID m_vertexShader;
-    GpuShaderID m_pixelShader;
-    GpuBufferID m_vertexBuffer;
-    GpuBufferID m_cbuffer;
-    GpuInputLayoutID m_inputLayout;
-    GpuPipelineStateID m_pipelineStateObj;
     GpuRenderPassID m_renderPass;
-    GpuDrawItem* m_drawItem;
+    ModelCache* m_modelCache;
+    ModelRenderQueue* m_modelRenderQueue;
+    ModelInstance* m_modelInstance;
     float m_angle;
 };
 

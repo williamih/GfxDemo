@@ -912,3 +912,30 @@ void GpuDevice::RegisterDrawItem(const GpuDrawItem* item)
 void GpuDevice::UnregisterDrawItem(const GpuDrawItem* item)
 { Cast(this)->UnregisterDrawItem(item); }
 #endif // GPUDEVICE_DEBUG_MODE
+
+Matrix44 GpuDevice::MakeOrthoMatrix(float left, float right,
+                                    float bot, float top,
+                                    float near, float far)
+{
+    float tx = -(right + left) / (right - left);
+    float ty = -(top + bot) / (top - bot);
+    float tz = -(near) / (far - near);
+    return Matrix44(2.0f / (right - left), 0.0f, 0.0f, tx,
+                    0.0f, 2.0f / (top - bot), 0.0f, ty,
+                    0.0f, 0.0f, -1.0f / (far - near), tz,
+                    0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+Matrix44 GpuDevice::MakePerspectiveMatrix(float left, float right,
+                                          float bot, float top,
+                                          float near, float far)
+{
+    float A = (right + left) / (right - left);
+    float B = (top + bot) / (top - bot);
+    float C = -(far) / (far - near);
+    float D = -(far * near) / (far - near);
+    return Matrix44(2.0f * near / (right - left), 0.0f, A, 0.0f,
+                    0.0f, 2.0f * near / (top - bot), B, 0.0f,
+                    0.0f, 0.0f, C, D,
+                    0.0f, 0.0f, -1.0f, 0.0f);
+}

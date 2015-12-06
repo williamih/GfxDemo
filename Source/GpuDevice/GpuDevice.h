@@ -19,6 +19,7 @@
 
 #include <stddef.h>
 #include "Core/Types.h"
+#include "Math/Matrix44.h"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -214,6 +215,13 @@ public:
                                        int nVertexBuffers,
                                        const unsigned* strides);
     void DestroyInputLayout(GpuInputLayoutID inputLayoutID);
+
+    static Matrix44 MakeOrthoMatrix(float left, float right,
+                                    float bot, float top,
+                                    float near, float far);
+    static Matrix44 MakePerspectiveMatrix(float left, float right,
+                                          float bot, float top,
+                                          float near, float far);
 
     void Draw(const GpuDrawItem* const* items,
               int nItems,

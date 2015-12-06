@@ -4,22 +4,8 @@
 #include <math.h>
 #include "OsWindow.h"
 #include "File.h"
+#include "Math/Vector3.h"
 #include "GpuDevice/GpuDrawItemWriter.h"
-
-static GpuShaderID CreateShader(GpuDevice* device,
-                                const char* path,
-                                GpuShaderType type)
-{
-    std::vector<char> data;
-    FileReadFile(path, data);
-    return device->CreateShader(type, &data[0], data.size() - 1);
-}
-
-struct Vertex {
-    float position[3];
-    float normal[3];
-    unsigned char color[4];
-};
 
 static void OnWindowResize(const OsEvent& event, void* userdata)
 {
@@ -31,20 +17,14 @@ static void OnPaint(const OsEvent& event, void* userdata)
     ((Application*)userdata)->Frame();
 }
 
-static void* Alloc(size_t size, void*) { return malloc(size); }
-
 Application::Application()
     : m_window(NULL)
     , m_gpuDevice(NULL)
-    , m_vertexShader(0)
-    , m_pixelShader(0)
-    , m_vertexBuffer(0)
-    , m_cbuffer(0)
-    , m_inputLayout(0)
-    , m_pipelineStateObj(0)
     , m_renderPass(0)
-    , m_drawItem(NULL)
-    , m_angle(0)
+    , m_modelCache(NULL)
+    , m_modelRenderQueue(NULL)
+    , m_modelInstance(NULL)
+    , m_angle(0.0f)
 {
     OsWindowPixelFormat pf;
     pf.colorBits = 32;
@@ -60,85 +40,59 @@ Application::Application()
     deviceFormat.flags = GpuDeviceFormat::FLAG_SCALE_RES_WITH_WINDOW_SIZE;
     m_gpuDevice = GpuDevice::Create(deviceFormat, m_window->GetNSView());
 
-    m_vertexShader = CreateShader(m_gpuDevice, "Assets/Shaders/VertexShader.metallib",
-                                  GPUSHADERTYPE_VERTEX);
-    m_pixelShader = CreateShader(m_gpuDevice, "Assets/Shaders/PixelShader.metallib",
-                                 GPUSHADERTYPE_PIXEL);
-
-    Vertex vertices[] = {
-        { {-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 0.0f}, {255, 0, 0, 255}, },
-        { {0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0, 255, 0, 255}, },
-        { {0.0f, 0.5f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0, 0, 255, 255}, },
-    };
-    m_vertexBuffer = m_gpuDevice->CreateBuffer(GPUBUFFERTYPE_VERTEX,
-                                               GPUBUFFER_ACCESS_STATIC,
-                                               vertices,
-                                               sizeof vertices);
-
-    m_cbuffer = m_gpuDevice->CreateBuffer(GPUBUFFERTYPE_CONSTANT,
-                                          GPUBUFFER_ACCESS_DYNAMIC,
-                                          NULL,
-                                          16 * sizeof(float));
-
-    GpuVertexAttribute attribs[] = {
-        {GPUVERTEXATTRIB_FLOAT3, offsetof(Vertex, position), 0},
-        {GPUVERTEXATTRIB_FLOAT3, offsetof(Vertex, normal), 0},
-        {GPUVERTEXATTRIB_UBYTE4_NORMALIZED, offsetof(Vertex, color), 0},
-    };
-    unsigned strides[] = { sizeof(Vertex) };
-    m_inputLayout = m_gpuDevice->CreateInputLayout(sizeof attribs / sizeof attribs[0],
-                                                   attribs,
-                                                   1,
-                                                   strides);
-
-    GpuPipelineStateDesc pipelineState;
-    pipelineState.vertexShader = m_vertexShader;
-    pipelineState.pixelShader = m_pixelShader;
-    pipelineState.inputLayout = m_inputLayout;
-    m_pipelineStateObj = m_gpuDevice->CreatePipelineStateObject(pipelineState);
-
     GpuRenderPassDesc renderPass;
     renderPass.flags |= GpuRenderPassDesc::FLAG_PERFORM_CLEAR;
     renderPass.clearR = 0.0f;
     renderPass.clearB = 0.0f;
     renderPass.clearG = 0.0f;
     renderPass.clearA = 0.0f;
-    renderPass.clearDepth = 0.0f;
+    renderPass.clearDepth = 1.0f;
     m_renderPass = m_gpuDevice->CreateRenderPassObject(renderPass);
+
+    m_modelCache = new ModelCache(m_gpuDevice);
+    m_modelRenderQueue = new ModelRenderQueue(m_gpuDevice);
+    std::shared_ptr<ModelAsset> model(m_modelCache->FindOrLoad("Assets/Models/Torus.mdl"));
+    m_modelInstance = m_modelRenderQueue->CreateModelInstance(model);
 
     m_window->RegisterEvent(OSEVENT_PAINT, OnPaint, (void*)this);
     m_window->RegisterEvent(OSEVENT_WINDOW_RESIZE, OnWindowResize, (void*)m_gpuDevice);
-
-    GpuDrawItemWriterDesc writerDesc;
-    writerDesc.SetNumCBuffers(1);
-    writerDesc.SetNumVertexBuffers(1);
-
-    GpuDrawItemWriter writer;
-    writer.Begin(m_gpuDevice, writerDesc, Alloc, NULL);
-    writer.SetPipelineState(m_pipelineStateObj);
-    writer.SetVertexBuffer(0, m_vertexBuffer, 0);
-    writer.SetCBuffer(0, m_cbuffer);
-    writer.SetDrawCall(GPUPRIMITIVE_TRIANGLES, 0, 3);
-    m_drawItem = writer.End();
 }
 
 Application::~Application()
 {
-    GPUDEVICE_UNREGISTER_DRAWITEM(m_gpuDevice, m_drawItem);
-    free(m_drawItem);
-    m_gpuDevice->DestroyPipelineStateObject(m_pipelineStateObj);
-    m_gpuDevice->DestroyShader(m_vertexShader);
-    m_gpuDevice->DestroyShader(m_pixelShader);
-    m_gpuDevice->DestroyBuffer(m_vertexBuffer);
-    m_gpuDevice->DestroyBuffer(m_cbuffer);
+    ModelInstance::Destroy(m_modelInstance);
+    delete m_modelRenderQueue;
+    delete m_modelCache;
     m_gpuDevice->DestroyRenderPassObject(m_renderPass);
-    m_gpuDevice->DestroyInputLayout(m_inputLayout);
     GpuDevice::Destroy(m_gpuDevice);
     OsWindow::Destroy(m_window);
 }
 
+static Matrix44 CreatePerspectiveMatrix(float aspect, float fovY, float zNear, float zFar)
+{
+    float tanHalfFovY = tanf(fovY * (3.141592654f / 360.0f));
+    float top = tanHalfFovY * zNear;
+    float bot = -top;
+    float right = top * aspect;
+    float left = -right;
+    return GpuDevice::MakePerspectiveMatrix(left, right, bot, top, zNear, zFar);
+}
+
 void Application::Frame()
 {
+    m_angle += 0.01f;
+    float sinAngle = sinf(m_angle);
+    float cosAngle = cosf(m_angle);
+    Matrix44 matrix(1.0f, 0.0f, 0.0f, 0.0f,
+                    0.0f, cosAngle, -sinAngle, 0.0f,
+                    0.0f, sinAngle, cosAngle, 0.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f);
+
+    const Vector3 diffuseColor(0.0f, 0.5f, 0.5f);
+    const Vector3 specularColor(0.3f, 0.3f, 0.3f);
+    const float glossiness = 50.0f;
+    m_modelInstance->Update(matrix, diffuseColor, specularColor, glossiness);
+
     GpuViewport viewport;
     viewport.x = 0;
     viewport.y = 0;
@@ -147,20 +101,26 @@ void Application::Frame()
     viewport.zNear = 0.0f;
     viewport.zFar = 1.0f;
 
+    Matrix44 proj = CreatePerspectiveMatrix(4.0f/3.0f, 75.0f, 0.1f, 10.0f);
+    Matrix44 view(1.0f, 0.0f, 0.0f, 0.0f,
+                  0.0f, 1.0f, 0.0f, 0.0f,
+                  0.0f, 0.0f, 1.0f, -3.0f,
+                  0.0f, 0.0f, 0.0f, 1.0f);
+    Matrix44 viewProj = proj * view;
+    Vector3 cameraPos(0.0f, 0.0f, 3.0f);
+
     m_gpuDevice->SceneBegin();
 
-    m_angle += 0.02f;
-    float matrix[] = {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.5f * cosf(m_angle), 0.0f, 0.0f, 1.0f,
-    };
-    memcpy(m_gpuDevice->GetBufferContents(m_cbuffer), matrix, sizeof matrix);
-    m_gpuDevice->FlushBufferRange(m_cbuffer, 0, sizeof matrix);
+    ModelRenderQueue::SceneInfo info;
+    info.viewProjTransform = viewProj;
+    info.cameraPos = cameraPos;
+    info.dirToLight = Vector3(0.0f, 1.0f, 0.0f);
+    info.irradiance = Vector3(1.0f, 1.0f, 1.0f);
+    info.ambientRadiance = Vector3(0.3f, 0.3f, 0.3f);
 
-    const GpuDrawItem* items[] = {m_drawItem};
-    m_gpuDevice->Draw(items, sizeof items / sizeof items[0], m_renderPass, viewport);
+    m_modelRenderQueue->Clear();
+    m_modelRenderQueue->Add(m_modelInstance);
+    m_modelRenderQueue->Draw(info, viewport, m_renderPass);
 
     m_gpuDevice->ScenePresent();
 }
