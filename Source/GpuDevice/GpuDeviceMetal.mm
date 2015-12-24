@@ -75,6 +75,12 @@ static const MTLCompareFunction s_metalCompareFunctions[] = {
     MTLCompareFunctionAlways, // GPU_COMPARE_ALWAYS
 };
 
+static const MTLCullMode s_metalCullModes[] = {
+    MTLCullModeNone, // GPU_CULL_NONE
+    MTLCullModeBack, // GPU_CULL_BACK
+    MTLCullModeFront, // GPU_CULL_FRONT
+};
+
 // -----------------------------------------------------------------------------
 // GpuDeviceMetal class declaration
 // -----------------------------------------------------------------------------
@@ -168,6 +174,7 @@ private:
 #endif
         id<MTLRenderPipelineState> state;
         id<MTLDepthStencilState> depthStencilState;
+        MTLCullMode cullMode;
     };
 
     struct RenderPassObj {
@@ -482,6 +489,7 @@ GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineSt
 
     obj.state = CreateMTLRenderPipelineState(state);
     obj.depthStencilState = CreateMTLDepthStencilState(state);
+    obj.cullMode = s_metalCullModes[state.cullMode];
 
     ++m_dbg_psoCount;
 
@@ -704,6 +712,7 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
             = m_pipelineStateTable.LookupRaw(item->pipelineStateIdx);
         [encoder setRenderPipelineState:pipelineState.state];
         [encoder setDepthStencilState:pipelineState.depthStencilState];
+        [encoder setCullMode:pipelineState.cullMode];
 
         // Set vertex buffers
         const u32* vertexBufferOffsets = item->VertexBufferOffsets();

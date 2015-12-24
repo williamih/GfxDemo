@@ -108,6 +108,12 @@ enum GpuCompareFunction {
     GPU_COMPARE_ALWAYS,
 };
 
+enum GpuCullMode {
+    GPU_CULL_NONE,
+    GPU_CULL_BACK,
+    GPU_CULL_FRONT,
+};
+
 // -----------------------------------------------------------------------------
 // Draw items
 // -----------------------------------------------------------------------------
@@ -120,6 +126,7 @@ struct GpuPipelineStateDesc {
     GpuInputLayoutID inputLayout;
     GpuCompareFunction depthCompare;
     bool depthWritesEnabled;
+    GpuCullMode cullMode;
 };
 
 struct GpuRenderPassDesc {

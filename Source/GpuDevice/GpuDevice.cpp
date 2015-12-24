@@ -6,6 +6,7 @@ GpuPipelineStateDesc::GpuPipelineStateDesc()
     , inputLayout(0)
     , depthCompare(GPU_COMPARE_ALWAYS)
     , depthWritesEnabled(false)
+    , cullMode(GPU_CULL_NONE)
 {}
 
 GpuRenderPassDesc::GpuRenderPassDesc()
