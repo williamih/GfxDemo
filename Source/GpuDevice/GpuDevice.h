@@ -114,6 +114,11 @@ enum GpuCullMode {
     GPU_CULL_FRONT,
 };
 
+enum GpuWindingOrder {
+    GPU_WINDING_CLOCKWISE,
+    GPU_WINDING_COUNTER_CLOCKWISE,
+};
+
 // -----------------------------------------------------------------------------
 // Draw items
 // -----------------------------------------------------------------------------
@@ -127,6 +132,7 @@ struct GpuPipelineStateDesc {
     GpuCompareFunction depthCompare;
     bool depthWritesEnabled;
     GpuCullMode cullMode;
+    GpuWindingOrder frontFaceWinding;
 };
 
 struct GpuRenderPassDesc {

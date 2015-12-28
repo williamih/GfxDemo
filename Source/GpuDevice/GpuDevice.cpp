@@ -7,6 +7,7 @@ GpuPipelineStateDesc::GpuPipelineStateDesc()
     , depthCompare(GPU_COMPARE_ALWAYS)
     , depthWritesEnabled(false)
     , cullMode(GPU_CULL_NONE)
+    , frontFaceWinding(GPU_WINDING_CLOCKWISE)
 {}
 
 GpuRenderPassDesc::GpuRenderPassDesc()

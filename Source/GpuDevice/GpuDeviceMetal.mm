@@ -81,6 +81,11 @@ static const MTLCullMode s_metalCullModes[] = {
     MTLCullModeFront, // GPU_CULL_FRONT
 };
 
+static const MTLWinding s_metalWindingOrders[] = {
+    MTLWindingClockwise, // GPU_WINDING_CLOCKWISE
+    MTLWindingCounterClockwise, // GPU_WINDING_COUNTER_CLOCKWISE
+};
+
 // -----------------------------------------------------------------------------
 // GpuDeviceMetal class declaration
 // -----------------------------------------------------------------------------
@@ -175,6 +180,7 @@ private:
         id<MTLRenderPipelineState> state;
         id<MTLDepthStencilState> depthStencilState;
         MTLCullMode cullMode;
+        MTLWinding frontFaceWinding;
     };
 
     struct RenderPassObj {
@@ -490,6 +496,7 @@ GpuPipelineStateID GpuDeviceMetal::CreatePipelineStateObject(const GpuPipelineSt
     obj.state = CreateMTLRenderPipelineState(state);
     obj.depthStencilState = CreateMTLDepthStencilState(state);
     obj.cullMode = s_metalCullModes[state.cullMode];
+    obj.frontFaceWinding = s_metalWindingOrders[state.frontFaceWinding];
 
     ++m_dbg_psoCount;
 
@@ -713,6 +720,7 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
         [encoder setRenderPipelineState:pipelineState.state];
         [encoder setDepthStencilState:pipelineState.depthStencilState];
         [encoder setCullMode:pipelineState.cullMode];
+        [encoder setFrontFacingWinding:pipelineState.frontFaceWinding];
 
         // Set vertex buffers
         const u32* vertexBufferOffsets = item->VertexBufferOffsets();
