@@ -51,7 +51,7 @@ Application::Application()
 
     m_modelCache = new ModelCache(m_gpuDevice);
     m_modelRenderQueue = new ModelRenderQueue(m_gpuDevice);
-    std::shared_ptr<ModelAsset> model(m_modelCache->FindOrLoad("Assets/Models/Torus.mdl"));
+    std::shared_ptr<ModelAsset> model(m_modelCache->FindOrLoad("Assets/Models/Teapot.mdl"));
     m_modelInstance = m_modelRenderQueue->CreateModelInstance(model);
 
     m_window->RegisterEvent(OSEVENT_PAINT, OnPaint, (void*)this);
@@ -78,15 +78,17 @@ static Matrix44 CreatePerspectiveMatrix(float aspect, float fovY, float zNear, f
     return GpuDevice::MakePerspectiveMatrix(left, right, bot, top, zNear, zFar);
 }
 
+const float VIEW_ANGLE = 30.0f * (3.141592654f / 180.0f);
+
 void Application::Frame()
 {
     m_angle += 0.01f;
     float sinAngle = sinf(m_angle);
     float cosAngle = cosf(m_angle);
-    Matrix44 matrix(1.0f, 0.0f, 0.0f, 0.0f,
-                    0.0f, cosAngle, -sinAngle, 0.0f,
-                    0.0f, sinAngle, cosAngle, 0.0f,
-                    0.0f, 0.0f, 0.0f, 1.0f);
+    Matrix44 matrix(cosAngle,  0.0f, sinAngle, 0.0f,
+                    0.0f,      1.0f, 0.0f, 0.0f,
+                    -sinAngle, 0.0f, cosAngle, 0.0f,
+                    0.0f,      0.0f, 0.0f, 1.0f);
 
     const Vector3 diffuseColor(0.0f, 0.5f, 0.5f);
     const Vector3 specularColor(0.3f, 0.3f, 0.3f);
@@ -103,8 +105,8 @@ void Application::Frame()
 
     Matrix44 proj = CreatePerspectiveMatrix(4.0f/3.0f, 75.0f, 0.1f, 10.0f);
     Matrix44 view(1.0f, 0.0f, 0.0f, 0.0f,
-                  0.0f, 1.0f, 0.0f, 0.0f,
-                  0.0f, 0.0f, 1.0f, -3.0f,
+                  0.0f, cosf(VIEW_ANGLE), -sinf(VIEW_ANGLE), 0.0f,
+                  0.0f, sinf(VIEW_ANGLE), cosf(VIEW_ANGLE), -3.7f,
                   0.0f, 0.0f, 0.0f, 1.0f);
     Matrix44 viewProj = proj * view;
     Vector3 cameraPos(0.0f, 0.0f, 3.0f);

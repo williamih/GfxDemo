@@ -1,1 +1,1 @@
-Models/Torus.obj
+Models/Teapot.obj
