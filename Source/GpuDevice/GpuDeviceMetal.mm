@@ -11,36 +11,11 @@
 #include "GpuDevice/GpuDrawItem.h"
 
 // -----------------------------------------------------------------------------
-// Lookup tables
+// Lookup tables for miscellaneous types
 // -----------------------------------------------------------------------------
 
-static const MTLPixelFormat s_metalColorPixelFormats[] = {
-    MTLPixelFormatBGRA8Unorm, // GPUPIXELCOLORFORMAT_RGBA8888
-};
-
-// Metal doesn't support a 24-bit depth buffer. We use 32-bit no matter what
-// the client requests.
-static const MTLPixelFormat s_metalDepthPixelFormats[] = {
-    MTLPixelFormatInvalid, // GPUPIXELDEPTHFORMAT_NONE
-    MTLPixelFormatDepth32Float, // GPUPIXELDEPTHFORMAT_FLOAT24
-    MTLPixelFormatDepth32Float, // GPUPIXELDEPTHFORMAT_FLOAT32
-};
-
-static NSString* const s_shaderEntryPointNames[] = {
-    @"VertexMain", // GPUSHADERTYPE_VERTEX
-    @"PixelMain", // GPUSHADERTYPE_PIXEL
-};
-
-static MTLResourceOptions s_bufferAccessModeToResourceOptions[] = {
-    // GPUBUFFER_ACCESS_STATIC
-    MTLResourceStorageModeManaged | MTLResourceCPUCacheModeDefaultCache,
-
-    // GPUBUFFER_ACCESS_DYNAMIC
-    MTLResourceStorageModeManaged | MTLResourceCPUCacheModeWriteCombined,
-};
-
 static const MTLPrimitiveType s_metalPrimitiveTypes[] = {
-    MTLPrimitiveTypeTriangle, // GPUPRIMITIVE_TRIANGLES 
+    MTLPrimitiveTypeTriangle, // GPUPRIMITIVE_TRIANGLES
 };
 
 static const MTLIndexType s_metalIndexTypes[] = {
@@ -51,17 +26,6 @@ static const MTLIndexType s_metalIndexTypes[] = {
 static const NSUInteger s_indexTypeByteSizes[] = {
     2, // GPUINDEXTYPE_U16
     4, // GPUINDEXTYPE_U32
-};
-
-static const MTLVertexFormat s_metalVertexAttribFormats[] = {
-    MTLVertexFormatHalf2, // GPUVERTEXATTRIB_HALF2
-    MTLVertexFormatHalf3, // GPUVERTEXATTRIB_HALF3
-    MTLVertexFormatHalf4, // GPUVERTEXATTRIB_HALF4
-    MTLVertexFormatFloat, // GPUVERTEXATTRIB_FLOAT
-    MTLVertexFormatFloat2, // GPUVERTEXATTRIB_FLOAT2
-    MTLVertexFormatFloat3, // GPUVERTEXATTRIB_FLOAT3
-    MTLVertexFormatFloat4, // GPUVERTEXATTRIB_FLOAT4
-    MTLVertexFormatUChar4Normalized, // GPUVERTEXATTRIB_UBYTE4_NORMALIZED
 };
 
 static const MTLCompareFunction s_metalCompareFunctions[] = {
@@ -84,6 +48,58 @@ static const MTLCullMode s_metalCullModes[] = {
 static const MTLWinding s_metalWindingOrders[] = {
     MTLWindingClockwise, // GPU_WINDING_CLOCKWISE
     MTLWindingCounterClockwise, // GPU_WINDING_COUNTER_CLOCKWISE
+};
+
+// -----------------------------------------------------------------------------
+// Lookup tables for shaders
+// -----------------------------------------------------------------------------
+
+static NSString* const s_shaderEntryPointNames[] = {
+    @"VertexMain", // GPUSHADERTYPE_VERTEX
+    @"PixelMain", // GPUSHADERTYPE_PIXEL
+};
+
+// -----------------------------------------------------------------------------
+// Lookup tables for buffers
+// -----------------------------------------------------------------------------
+
+static const MTLResourceOptions s_bufferAccessModeToResourceOptions[] = {
+    // GPUBUFFER_ACCESS_STATIC
+    MTLResourceStorageModeManaged | MTLResourceCPUCacheModeDefaultCache,
+
+    // GPUBUFFER_ACCESS_DYNAMIC
+    MTLResourceStorageModeManaged | MTLResourceCPUCacheModeWriteCombined,
+};
+
+// -----------------------------------------------------------------------------
+// Lookup tables for vertex formats
+// -----------------------------------------------------------------------------
+
+static const MTLVertexFormat s_metalVertexAttribFormats[] = {
+    MTLVertexFormatHalf2, // GPUVERTEXATTRIB_HALF2
+    MTLVertexFormatHalf3, // GPUVERTEXATTRIB_HALF3
+    MTLVertexFormatHalf4, // GPUVERTEXATTRIB_HALF4
+    MTLVertexFormatFloat, // GPUVERTEXATTRIB_FLOAT
+    MTLVertexFormatFloat2, // GPUVERTEXATTRIB_FLOAT2
+    MTLVertexFormatFloat3, // GPUVERTEXATTRIB_FLOAT3
+    MTLVertexFormatFloat4, // GPUVERTEXATTRIB_FLOAT4
+    MTLVertexFormatUChar4Normalized, // GPUVERTEXATTRIB_UBYTE4_NORMALIZED
+};
+
+// -----------------------------------------------------------------------------
+// Lookup tables for the device format
+// -----------------------------------------------------------------------------
+
+static const MTLPixelFormat s_metalColorPixelFormats[] = {
+    MTLPixelFormatBGRA8Unorm, // GPUPIXELCOLORFORMAT_RGBA8888
+};
+
+// Metal doesn't support a 24-bit depth buffer. We use 32-bit no matter what
+// the client requests.
+static const MTLPixelFormat s_metalDepthPixelFormats[] = {
+    MTLPixelFormatInvalid, // GPUPIXELDEPTHFORMAT_NONE
+    MTLPixelFormatDepth32Float, // GPUPIXELDEPTHFORMAT_FLOAT24
+    MTLPixelFormatDepth32Float, // GPUPIXELDEPTHFORMAT_FLOAT32
 };
 
 // -----------------------------------------------------------------------------
@@ -112,6 +128,13 @@ public:
     void* GetBufferContents(GpuBufferID bufferID);
     void FlushBufferRange(GpuBufferID bufferID, int start, int length);
 
+    bool InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const;
+    GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
+                                       const GpuVertexAttribute* attribs,
+                                       int nVertexBuffers,
+                                       const unsigned* strides);
+    void DestroyInputLayout(GpuInputLayoutID inputLayoutID);
+
     bool PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const;
     GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
 private:
@@ -123,13 +146,6 @@ public:
     bool RenderPassObjectIDExists(GpuRenderPassID renderPassID) const;
     GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
     void DestroyRenderPassObject(GpuRenderPassID renderPassID);
-
-    bool InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const;
-    GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
-                                       const GpuVertexAttribute* attribs,
-                                       int nVertexBuffers,
-                                       const unsigned* strides);
-    void DestroyInputLayout(GpuInputLayoutID inputLayoutID);
 
 private:
     id<MTLRenderCommandEncoder> PreDraw(GpuRenderPassID passID, const GpuViewport& viewport);
@@ -188,7 +204,9 @@ private:
     };
 
     struct InputLayout {
+#ifdef GPUDEVICE_DEBUG_MODE
         int dbg_refCount;
+#endif
         MTLVertexDescriptor* descriptor;
     };
 
@@ -470,6 +488,65 @@ void GpuDeviceMetal::FlushBufferRange(GpuBufferID bufferID, int start, int lengt
     [buffer.buffer didModifyRange:NSMakeRange(start, length)];
 }
 
+bool GpuDeviceMetal::InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const
+{
+    return m_inputLayoutTable.Has(inputLayoutID);
+}
+
+GpuInputLayoutID GpuDeviceMetal::CreateInputLayout(int nVertexAttribs,
+                                                   const GpuVertexAttribute* attribs,
+                                                   int nVertexBuffers,
+                                                   const unsigned* strides)
+{
+    GpuInputLayoutID inputLayoutID(m_inputLayoutTable.Add());
+    InputLayout& layout = m_inputLayoutTable.Lookup(inputLayoutID);
+#ifdef GPUDEVICE_DEBUG_MODE
+    layout.dbg_refCount = 0;
+#endif
+
+    layout.descriptor = [[MTLVertexDescriptor alloc] init];
+
+    for (int i = 0; i < nVertexAttribs; ++i) {
+        MTLVertexAttributeDescriptor* attribDesc;
+        attribDesc = [[[MTLVertexAttributeDescriptor alloc] init] autorelease];
+        attribDesc.format = s_metalVertexAttribFormats[attribs[i].format];
+        attribDesc.offset = attribs[i].offset;
+        attribDesc.bufferIndex = GPU_MAX_CBUFFERS + attribs[i].bufferSlot;
+        [layout.descriptor.attributes setObject:attribDesc
+                             atIndexedSubscript:i];
+    }
+
+    for (int i = 0; i < nVertexBuffers; ++i) {
+        MTLVertexBufferLayoutDescriptor* layoutDesc;
+        layoutDesc = [[[MTLVertexBufferLayoutDescriptor alloc] init] autorelease];
+        layoutDesc.stride = strides[i];
+        [layout.descriptor.layouts setObject:layoutDesc
+                          atIndexedSubscript:(GPU_MAX_CBUFFERS + i)];
+    }
+
+    ++m_dbg_inputLayoutCount;
+
+    return inputLayoutID;
+}
+
+void GpuDeviceMetal::DestroyInputLayout(GpuInputLayoutID inputLayoutID)
+{
+    ASSERT(InputLayoutIDExists(inputLayoutID));
+    InputLayout& layout = m_inputLayoutTable.Lookup(inputLayoutID);
+
+#ifdef GPUDEVICE_DEBUG_MODE
+    if (layout.dbg_refCount != 0) {
+        FATAL("Can't destroy input layout as it still has %d pipeline state "
+              "object(s) referencing it", layout.dbg_refCount);
+    }
+    [layout.descriptor release];
+#endif
+
+    m_inputLayoutTable.Remove(inputLayoutID);
+
+    --m_dbg_inputLayoutCount;
+}
+
 bool GpuDeviceMetal::PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const
 {
     return m_pipelineStateTable.Has(pipelineStateID);
@@ -605,61 +682,6 @@ void GpuDeviceMetal::DestroyRenderPassObject(GpuRenderPassID renderPassID)
     m_renderPassTable.Remove(renderPassID);
 
     --m_dbg_renderPassCount;
-}
-
-bool GpuDeviceMetal::InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const
-{
-    return m_inputLayoutTable.Has(inputLayoutID);
-}
-
-GpuInputLayoutID GpuDeviceMetal::CreateInputLayout(int nVertexAttribs,
-                                                   const GpuVertexAttribute* attribs,
-                                                   int nVertexBuffers,
-                                                   const unsigned* strides)
-{
-    GpuInputLayoutID inputLayoutID(m_inputLayoutTable.Add());
-    InputLayout& layout = m_inputLayoutTable.Lookup(inputLayoutID);
-#ifdef GPUDEVICE_DEBUG_MODE
-    layout.dbg_refCount = 0;
-#endif
-
-    layout.descriptor = [[MTLVertexDescriptor alloc] init];
-
-    for (int i = 0; i < nVertexAttribs; ++i) {
-        MTLVertexAttributeDescriptor* attribDesc;
-        attribDesc = [[[MTLVertexAttributeDescriptor alloc] init] autorelease];
-        attribDesc.format = s_metalVertexAttribFormats[attribs[i].format];
-        attribDesc.offset = attribs[i].offset;
-        attribDesc.bufferIndex = GPU_MAX_CBUFFERS + attribs[i].bufferSlot;
-        [layout.descriptor.attributes setObject:attribDesc
-                             atIndexedSubscript:i];
-    }
-
-    for (int i = 0; i < nVertexBuffers; ++i) {
-        MTLVertexBufferLayoutDescriptor* layoutDesc;
-        layoutDesc = [[[MTLVertexBufferLayoutDescriptor alloc] init] autorelease];
-        layoutDesc.stride = strides[i];
-        [layout.descriptor.layouts setObject:layoutDesc
-                          atIndexedSubscript:(GPU_MAX_CBUFFERS + i)];
-    }
-
-    ++m_dbg_inputLayoutCount;
-
-    return inputLayoutID;
-}
-
-void GpuDeviceMetal::DestroyInputLayout(GpuInputLayoutID inputLayoutID)
-{
-    ASSERT(InputLayoutIDExists(inputLayoutID));
-    InputLayout& layout = m_inputLayoutTable.Lookup(inputLayoutID);
-    if (layout.dbg_refCount != 0) {
-        FATAL("Can't destroy input layout as it still has %d pipeline state "
-              "object(s) referencing it", layout.dbg_refCount);
-    }
-    [layout.descriptor release];
-    m_inputLayoutTable.Remove(inputLayoutID);
-
-    --m_dbg_inputLayoutCount;
 }
 
 static MTLViewport GetMTLViewport(const GpuViewport& viewport)
@@ -863,6 +885,18 @@ void* GpuDevice::GetBufferContents(GpuBufferID bufferID)
 void GpuDevice::FlushBufferRange(GpuBufferID bufferID, int start, int length)
 { Cast(this)->FlushBufferRange(bufferID, start, length); }
 
+bool GpuDevice::InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const
+{ return Cast(this)->InputLayoutIDExists(inputLayoutID); }
+
+GpuInputLayoutID GpuDevice::CreateInputLayout(int nVertexAttribs,
+                                              const GpuVertexAttribute* attribs,
+                                              int nVertexBuffers,
+                                              const unsigned* strides)
+{ return Cast(this)->CreateInputLayout(nVertexAttribs, attribs, nVertexBuffers, strides); }
+
+void GpuDevice::DestroyInputLayout(GpuInputLayoutID inputLayoutID)
+{ Cast(this)->DestroyInputLayout(inputLayoutID); }
+
 bool GpuDevice::PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const
 { return Cast(this)->PipelineStateObjectIDExists(pipelineStateID); }
 
@@ -880,18 +914,6 @@ GpuRenderPassID GpuDevice::CreateRenderPassObject(const GpuRenderPassDesc& pass)
 
 void GpuDevice::DestroyRenderPassObject(GpuRenderPassID renderPassID)
 { Cast(this)->DestroyRenderPassObject(renderPassID); }
-
-bool GpuDevice::InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const
-{ return Cast(this)->InputLayoutIDExists(inputLayoutID); }
-
-GpuInputLayoutID GpuDevice::CreateInputLayout(int nVertexAttribs,
-                                              const GpuVertexAttribute* attribs,
-                                              int nVertexBuffers,
-                                              const unsigned* strides)
-{ return Cast(this)->CreateInputLayout(nVertexAttribs, attribs, nVertexBuffers, strides); }
-
-void GpuDevice::DestroyInputLayout(GpuInputLayoutID inputLayoutID)
-{ Cast(this)->DestroyInputLayout(inputLayoutID); }
 
 void GpuDevice::Draw(const GpuDrawItem* const* items,
                      int nItems,

@@ -28,66 +28,8 @@
 const unsigned GPU_MAX_CBUFFERS = 14;
 
 // -----------------------------------------------------------------------------
-// Graphics resources
-// -----------------------------------------------------------------------------
-
-DECLARE_PRIMITIVE_WRAPPER(u32, GpuShaderID);
-DECLARE_PRIMITIVE_WRAPPER(u32, GpuBufferID);
-DECLARE_PRIMITIVE_WRAPPER(u32, GpuTextureID);
-DECLARE_PRIMITIVE_WRAPPER(u32, GpuPipelineStateID);
-DECLARE_PRIMITIVE_WRAPPER(u32, GpuRenderPassID);
-DECLARE_PRIMITIVE_WRAPPER(u32, GpuDescriptorSetID);
-DECLARE_PRIMITIVE_WRAPPER(u32, GpuInputLayoutID);
-
-enum GpuShaderType {
-    GPUSHADERTYPE_VERTEX,
-    GPUSHADERTYPE_PIXEL,
-};
-
-enum GpuBufferType {
-    GPUBUFFERTYPE_VERTEX,
-    GPUBUFFERTYPE_INDEX,
-    GPUBUFFERTYPE_CONSTANT,
-};
-
-enum GpuBufferAccessMode {
-    GPUBUFFER_ACCESS_STATIC,
-    GPUBUFFER_ACCESS_DYNAMIC,
-};
-
-// -----------------------------------------------------------------------------
-// Vertex formats
-// -----------------------------------------------------------------------------
-
-enum GpuVertexAttribFormat {
-    GPUVERTEXATTRIB_HALF2,
-    GPUVERTEXATTRIB_HALF3,
-    GPUVERTEXATTRIB_HALF4,
-    GPUVERTEXATTRIB_FLOAT,
-    GPUVERTEXATTRIB_FLOAT2,
-    GPUVERTEXATTRIB_FLOAT3,
-    GPUVERTEXATTRIB_FLOAT4,
-    GPUVERTEXATTRIB_UBYTE4_NORMALIZED,
-};
-
-struct GpuVertexAttribute {
-    GpuVertexAttribFormat format;
-    unsigned offset;
-    int bufferSlot;
-};
-
-// -----------------------------------------------------------------------------
 // Miscellaneous types
 // -----------------------------------------------------------------------------
-
-enum GpuPrimitiveType {
-    GPUPRIMITIVE_TRIANGLES,
-};
-
-enum GpuIndexType {
-    GPUINDEXTYPE_U16,
-    GPUINDEXTYPE_U32,
-};
 
 struct GpuViewport {
     u16 x;
@@ -96,6 +38,15 @@ struct GpuViewport {
     u16 height;
     float zNear;
     float zFar;
+};
+
+enum GpuPrimitiveType {
+    GPUPRIMITIVE_TRIANGLES,
+};
+
+enum GpuIndexType {
+    GPUINDEXTYPE_U16,
+    GPUINDEXTYPE_U32,
 };
 
 enum GpuCompareFunction {
@@ -121,8 +72,31 @@ enum GpuWindingOrder {
 };
 
 // -----------------------------------------------------------------------------
-// Draw items
+// Graphics resources
 // -----------------------------------------------------------------------------
+
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuShaderID);
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuBufferID);
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuTextureID);
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuInputLayoutID);
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuPipelineStateID);
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuRenderPassID);
+
+enum GpuShaderType {
+    GPUSHADERTYPE_VERTEX,
+    GPUSHADERTYPE_PIXEL,
+};
+
+enum GpuBufferType {
+    GPUBUFFERTYPE_VERTEX,
+    GPUBUFFERTYPE_INDEX,
+    GPUBUFFERTYPE_CONSTANT,
+};
+
+enum GpuBufferAccessMode {
+    GPUBUFFER_ACCESS_STATIC,
+    GPUBUFFER_ACCESS_DYNAMIC,
+};
 
 struct GpuPipelineStateDesc {
     GpuPipelineStateDesc();
@@ -146,6 +120,31 @@ struct GpuRenderPassDesc {
     float clearR, clearG, clearB, clearA;
     float clearDepth;
 };
+
+// -----------------------------------------------------------------------------
+// Vertex formats
+// -----------------------------------------------------------------------------
+
+enum GpuVertexAttribFormat {
+    GPUVERTEXATTRIB_HALF2,
+    GPUVERTEXATTRIB_HALF3,
+    GPUVERTEXATTRIB_HALF4,
+    GPUVERTEXATTRIB_FLOAT,
+    GPUVERTEXATTRIB_FLOAT2,
+    GPUVERTEXATTRIB_FLOAT3,
+    GPUVERTEXATTRIB_FLOAT4,
+    GPUVERTEXATTRIB_UBYTE4_NORMALIZED,
+};
+
+struct GpuVertexAttribute {
+    GpuVertexAttribFormat format;
+    unsigned offset;
+    int bufferSlot;
+};
+
+// -----------------------------------------------------------------------------
+// GpuDrawItem -- client code only ever sees this forward declaration
+// -----------------------------------------------------------------------------
 
 class GpuDrawItem;
 
@@ -201,6 +200,13 @@ public:
     void* GetBufferContents(GpuBufferID bufferID);
     void FlushBufferRange(GpuBufferID bufferID, int start, int length);
 
+    bool InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const;
+    GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
+                                       const GpuVertexAttribute* attribs,
+                                       int nVertexBuffers,
+                                       const unsigned* strides);
+    void DestroyInputLayout(GpuInputLayoutID inputLayoutID);
+
     bool PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const;
     GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
     void DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID);
@@ -208,13 +214,6 @@ public:
     bool RenderPassObjectIDExists(GpuRenderPassID renderPassID) const;
     GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
     void DestroyRenderPassObject(GpuRenderPassID renderPassID);
-
-    bool InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const;
-    GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
-                                       const GpuVertexAttribute* attribs,
-                                       int nVertexBuffers,
-                                       const unsigned* strides);
-    void DestroyInputLayout(GpuInputLayoutID inputLayoutID);
 
     static Matrix44 MakeOrthoMatrix(float left, float right,
                                     float bot, float top,
