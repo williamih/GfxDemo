@@ -47,7 +47,7 @@ Application::Application()
     renderPass.clearG = 0.0f;
     renderPass.clearA = 0.0f;
     renderPass.clearDepth = 1.0f;
-    m_renderPass = m_gpuDevice->CreateRenderPassObject(renderPass);
+    m_renderPass = m_gpuDevice->RenderPassCreate(renderPass);
 
     m_modelCache = new ModelCache(m_gpuDevice);
     m_modelRenderQueue = new ModelRenderQueue(m_gpuDevice);
@@ -63,7 +63,7 @@ Application::~Application()
     ModelInstance::Destroy(m_modelInstance);
     delete m_modelRenderQueue;
     delete m_modelCache;
-    m_gpuDevice->DestroyRenderPassObject(m_renderPass);
+    m_gpuDevice->RenderPassDestroy(m_renderPass);
     GpuDevice::Destroy(m_gpuDevice);
     OsWindow::Destroy(m_window);
 }
@@ -75,7 +75,7 @@ static Matrix44 CreatePerspectiveMatrix(float aspect, float fovY, float zNear, f
     float bot = -top;
     float right = top * aspect;
     float left = -right;
-    return GpuDevice::MakePerspectiveMatrix(left, right, bot, top, zNear, zFar);
+    return GpuDevice::TransformCreatePerspective(left, right, bot, top, zNear, zFar);
 }
 
 const float VIEW_ANGLE = 30.0f * (3.141592654f / 180.0f);

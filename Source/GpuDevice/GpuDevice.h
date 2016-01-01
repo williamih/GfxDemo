@@ -183,50 +183,59 @@ public:
     static GpuDevice* Create(const GpuDeviceFormat& format, void* osViewHandle);
     static void Destroy(GpuDevice* dev);
 
+    // Device format
     void SetFormat(const GpuDeviceFormat& format);
     const GpuDeviceFormat& GetFormat() const;
     void OnWindowResized();
 
-    bool ShaderIDExists(GpuShaderID shaderID) const;
-    GpuShaderID CreateShader(GpuShaderType type, const char* code, size_t length);
-    void DestroyShader(GpuShaderID shaderID);
+    // Shaders
+    bool ShaderExists(GpuShaderID shaderID) const;
+    GpuShaderID ShaderCreate(GpuShaderType type, const char* code, size_t length);
+    void ShaderDestroy(GpuShaderID shaderID);
 
-    bool BufferIDExists(GpuBufferID bufferID) const;
-    GpuBufferID CreateBuffer(GpuBufferType type,
+    // Buffers
+    bool BufferExists(GpuBufferID bufferID) const;
+    GpuBufferID BufferCreate(GpuBufferType type,
                              GpuBufferAccessMode accessMode,
                              const void* data,
                              unsigned size);
-    void DestroyBuffer(GpuBufferID bufferID);
-    void* GetBufferContents(GpuBufferID bufferID);
-    void FlushBufferRange(GpuBufferID bufferID, int start, int length);
+    void BufferDestroy(GpuBufferID bufferID);
+    void* BufferGetContents(GpuBufferID bufferID);
+    void BufferFlushRange(GpuBufferID bufferID, int start, int length);
 
-    bool InputLayoutIDExists(GpuInputLayoutID inputLayoutID) const;
-    GpuInputLayoutID CreateInputLayout(int nVertexAttribs,
+    // Input layouts
+    bool InputLayoutExists(GpuInputLayoutID inputLayoutID) const;
+    GpuInputLayoutID InputLayoutCreate(int nVertexAttribs,
                                        const GpuVertexAttribute* attribs,
                                        int nVertexBuffers,
                                        const unsigned* strides);
-    void DestroyInputLayout(GpuInputLayoutID inputLayoutID);
+    void InputLayoutDestroy(GpuInputLayoutID inputLayoutID);
 
-    bool PipelineStateObjectIDExists(GpuPipelineStateID pipelineStateID) const;
-    GpuPipelineStateID CreatePipelineStateObject(const GpuPipelineStateDesc& state);
-    void DestroyPipelineStateObject(GpuPipelineStateID pipelineStateID);
+    // Pipeline state objects
+    bool PipelineStateExists(GpuPipelineStateID pipelineStateID) const;
+    GpuPipelineStateID PipelineStateCreate(const GpuPipelineStateDesc& state);
+    void PipelineStateDestroy(GpuPipelineStateID pipelineStateID);
 
-    bool RenderPassObjectIDExists(GpuRenderPassID renderPassID) const;
-    GpuRenderPassID CreateRenderPassObject(const GpuRenderPassDesc& pass);
-    void DestroyRenderPassObject(GpuRenderPassID renderPassID);
+    // Render passes
+    bool RenderPassExists(GpuRenderPassID renderPassID) const;
+    GpuRenderPassID RenderPassCreate(const GpuRenderPassDesc& pass);
+    void RenderPassDestroy(GpuRenderPassID renderPassID);
 
-    static Matrix44 MakeOrthoMatrix(float left, float right,
-                                    float bot, float top,
-                                    float near, float far);
-    static Matrix44 MakePerspectiveMatrix(float left, float right,
-                                          float bot, float top,
-                                          float near, float far);
+    // Transforms
+    static Matrix44 TransformCreateOrtho(float left, float right,
+                                         float bot, float top,
+                                         float near, float far);
+    static Matrix44 TransformCreatePerspective(float left, float right,
+                                               float bot, float top,
+                                               float near, float far);
 
+    // Submit an array of draw items
     void Draw(const GpuDrawItem* const* items,
               int nItems,
               GpuRenderPassID renderPass,
               const GpuViewport& viewport);
 
+    // Scene begin/end functions
     void SceneBegin();
     void ScenePresent();
 

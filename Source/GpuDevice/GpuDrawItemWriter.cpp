@@ -116,20 +116,20 @@ void GpuDrawItemWriter::ValidateCBuffers()
 
 void GpuDrawItemWriter::SetPipelineState(GpuPipelineStateID state)
 {
-    ASSERT(m_device->PipelineStateObjectIDExists(state));
+    ASSERT(m_device->PipelineStateExists(state));
     m_drawItem->pipelineStateIdx = GetRawIndex(state);
 }
 
 void GpuDrawItemWriter::SetIndexBuffer(GpuBufferID buffer)
 {
-    ASSERT(m_device->BufferIDExists(buffer));
+    ASSERT(m_device->BufferExists(buffer));
     m_drawItem->indexBufferIdx = GetRawIndex(buffer);
 }
 
 void GpuDrawItemWriter::SetVertexBuffer(int index, GpuBufferID buffer, unsigned offset)
 {
     ASSERT(index >= 0 && index < m_desc.m_nVertexBuffers);
-    ASSERT(m_device->BufferIDExists(buffer));
+    ASSERT(m_device->BufferExists(buffer));
     m_drawItem->VertexBufferOffsets()[index] = (u32)offset;
     m_drawItem->VertexBuffers()[index] = GetRawIndex(buffer);
 }
@@ -137,7 +137,7 @@ void GpuDrawItemWriter::SetVertexBuffer(int index, GpuBufferID buffer, unsigned 
 void GpuDrawItemWriter::SetCBuffer(int index, GpuBufferID buffer)
 {
     ASSERT(index >= 0 && index < m_desc.m_nCBuffers);
-    ASSERT(m_device->BufferIDExists(buffer));
+    ASSERT(m_device->BufferExists(buffer));
     m_drawItem->CBuffers()[index] = GetRawIndex(buffer);
 }
 

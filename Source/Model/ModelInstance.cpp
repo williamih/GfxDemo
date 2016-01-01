@@ -48,7 +48,7 @@ ModelInstance::ModelInstance(const ModelInstanceCreateContext& ctx)
     , m_cbuffer(0)
 {
     GpuDevice* dev = ctx.model->GetGpuDevice();
-    m_cbuffer = dev->CreateBuffer(GPUBUFFERTYPE_CONSTANT,
+    m_cbuffer = dev->BufferCreate(GPUBUFFERTYPE_CONSTANT,
                                   GPUBUFFER_ACCESS_DYNAMIC,
                                   NULL,
                                   sizeof(ModelInstanceCBuffer));
@@ -73,7 +73,7 @@ ModelInstance::ModelInstance(const ModelInstanceCreateContext& ctx)
 ModelInstance::~ModelInstance()
 {
     GPUDEVICE_UNREGISTER_DRAWITEM(m_model->GetGpuDevice(), GetDrawItem());
-    m_model->GetGpuDevice()->DestroyBuffer(m_cbuffer);
+    m_model->GetGpuDevice()->BufferDestroy(m_cbuffer);
 }
 
 const GpuDrawItem* ModelInstance::GetDrawItem() const
@@ -97,7 +97,7 @@ void ModelInstance::Update(const Matrix44& worldTransform,
                            float glossiness)
 {
     GpuDevice* dev = m_model->GetGpuDevice();
-    ModelInstanceCBuffer* buf = (ModelInstanceCBuffer*)dev->GetBufferContents(m_cbuffer);
+    ModelInstanceCBuffer* buf = (ModelInstanceCBuffer*)dev->BufferGetContents(m_cbuffer);
 
     Matrix33 normalTransform = worldTransform.UpperLeft3x3().Inverse().Transpose();
 
@@ -112,5 +112,5 @@ void ModelInstance::Update(const Matrix44& worldTransform,
     buf->specularColorAndGlossiness[2] = specularColor.z;
     buf->specularColorAndGlossiness[3] = glossiness;
 
-    dev->FlushBufferRange(m_cbuffer, 0, sizeof(ModelInstanceCBuffer));
+    dev->BufferFlushRange(m_cbuffer, 0, sizeof(ModelInstanceCBuffer));
 }

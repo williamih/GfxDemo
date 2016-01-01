@@ -28,7 +28,7 @@ static GpuShaderID LoadShader(GpuDevice* dev, GpuShaderType type, const char* pa
         FATAL("Failed to read shader %s", path);
     // subtract 1 because we don't want to include the null terminator
     size_t length = data.size() - 1;
-    GpuShaderID shader = dev->CreateShader(type, &data[0], length);
+    GpuShaderID shader = dev->ShaderCreate(type, &data[0], length);
     return shader;
 }
 
@@ -42,7 +42,7 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
     , m_inputLayout(0)
     , m_pipelineStateObj(0)
 {
-    m_sceneCBuffer = device->CreateBuffer(GPUBUFFERTYPE_CONSTANT,
+    m_sceneCBuffer = device->BufferCreate(GPUBUFFERTYPE_CONSTANT,
                                           GPUBUFFER_ACCESS_DYNAMIC,
                                           NULL,
                                           sizeof(ModelSceneCBuffer));
@@ -54,7 +54,7 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
         {GPUVERTEXATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, normal), 0},
     };
     unsigned stride = sizeof(ModelAsset::Vertex);
-    m_inputLayout = device->CreateInputLayout(sizeof attribs / sizeof attribs[0],
+    m_inputLayout = device->InputLayoutCreate(sizeof attribs / sizeof attribs[0],
                                               attribs,
                                               1,
                                               &stride);
@@ -67,16 +67,16 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
     pipelineState.depthWritesEnabled = true;
     pipelineState.cullMode = GPU_CULL_BACK;
     pipelineState.frontFaceWinding = GPU_WINDING_COUNTER_CLOCKWISE;
-    m_pipelineStateObj = device->CreatePipelineStateObject(pipelineState);
+    m_pipelineStateObj = device->PipelineStateCreate(pipelineState);
 }
 
 ModelRenderQueue::~ModelRenderQueue()
 {
-    m_device->DestroyPipelineStateObject(m_pipelineStateObj);
-    m_device->DestroyInputLayout(m_inputLayout);
-    m_device->DestroyBuffer(m_sceneCBuffer);
-    m_device->DestroyShader(m_vertexShader);
-    m_device->DestroyShader(m_pixelShader);
+    m_device->PipelineStateDestroy(m_pipelineStateObj);
+    m_device->InputLayoutDestroy(m_inputLayout);
+    m_device->BufferDestroy(m_sceneCBuffer);
+    m_device->ShaderDestroy(m_vertexShader);
+    m_device->ShaderDestroy(m_pixelShader);
 }
 
 ModelInstance* ModelRenderQueue::CreateModelInstance(std::shared_ptr<ModelAsset> model)
@@ -104,7 +104,7 @@ void ModelRenderQueue::Draw(const SceneInfo& sceneInfo,
                             const GpuViewport& viewport,
                             GpuRenderPassID renderPass)
 {
-    ModelSceneCBuffer* sceneCBuf = (ModelSceneCBuffer*)m_device->GetBufferContents(m_sceneCBuffer);
+    ModelSceneCBuffer* sceneCBuf = (ModelSceneCBuffer*)m_device->BufferGetContents(m_sceneCBuffer);
     GpuMathUtils::FillArrayColumnMajor(sceneInfo.viewProjTransform,
                                        sceneCBuf->viewProjTransform);
     sceneCBuf->cameraPos[0] = sceneInfo.cameraPos.x;
@@ -123,7 +123,7 @@ void ModelRenderQueue::Draw(const SceneInfo& sceneInfo,
     sceneCBuf->ambientRadiance[1] = sceneInfo.ambientRadiance.y;
     sceneCBuf->ambientRadiance[2] = sceneInfo.ambientRadiance.z;
     sceneCBuf->ambientRadiance[3] = 0.0f;
-    m_device->FlushBufferRange(m_sceneCBuffer, 0, sizeof(ModelSceneCBuffer));
+    m_device->BufferFlushRange(m_sceneCBuffer, 0, sizeof(ModelSceneCBuffer));
 
     m_device->Draw(&m_drawItems[0], (int)m_drawItems.size(), renderPass, viewport);
 }
