@@ -75,7 +75,7 @@ enum GpuWindingOrder {
 // Graphics resources
 // -----------------------------------------------------------------------------
 
-DECLARE_PRIMITIVE_WRAPPER(u32, GpuShaderID);
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuShaderProgramID);
 DECLARE_PRIMITIVE_WRAPPER(u32, GpuBufferID);
 DECLARE_PRIMITIVE_WRAPPER(u32, GpuTextureID);
 DECLARE_PRIMITIVE_WRAPPER(u32, GpuInputLayoutID);
@@ -101,8 +101,8 @@ enum GpuBufferAccessMode {
 struct GpuPipelineStateDesc {
     GpuPipelineStateDesc();
 
-    GpuShaderID vertexShader;
-    GpuShaderID pixelShader;
+    GpuShaderProgramID shaderProgram;
+    u32 shaderStateBitfield;
     GpuInputLayoutID inputLayout;
     GpuCompareFunction depthCompare;
     bool depthWritesEnabled;
@@ -189,9 +189,9 @@ public:
     void OnWindowResized();
 
     // Shaders
-    bool ShaderExists(GpuShaderID shaderID) const;
-    GpuShaderID ShaderCreate(GpuShaderType type, const char* code, size_t length);
-    void ShaderDestroy(GpuShaderID shaderID);
+    bool ShaderProgramExists(GpuShaderProgramID shaderProgramID) const;
+    GpuShaderProgramID ShaderProgramCreate(const char* data, size_t length);
+    void ShaderProgramDestroy(GpuShaderProgramID shaderProgramID);
 
     // Buffers
     bool BufferExists(GpuBufferID bufferID) const;

@@ -1,2 +1,1 @@
-Shaders/ModelVS.metal
-Shaders/ModelPS.metal
+Shaders/Model.metal

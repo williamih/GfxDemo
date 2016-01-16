@@ -21,15 +21,15 @@ struct ModelSceneCBuffer {
     float ambientRadiance[4];
 };
 
-static GpuShaderID LoadShader(GpuDevice* dev, GpuShaderType type, const char* path)
+static GpuShaderProgramID LoadShaderProgram(GpuDevice* dev, const char* path)
 {
     std::vector<char> data;
     if (!FileReadFile(path, data))
         FATAL("Failed to read shader %s", path);
     // subtract 1 because we don't want to include the null terminator
     size_t length = data.size() - 1;
-    GpuShaderID shader = dev->ShaderCreate(type, &data[0], length);
-    return shader;
+    GpuShaderProgramID program = dev->ShaderProgramCreate(&data[0], length);
+    return program;
 }
 
 ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
@@ -37,8 +37,7 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
     , m_drawItems()
     , m_device(device)
     , m_sceneCBuffer(0)
-    , m_vertexShader(0)
-    , m_pixelShader(0)
+    , m_shaderProgram(0)
     , m_inputLayout(0)
     , m_pipelineStateObj(0)
 {
@@ -46,8 +45,7 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
                                           GPUBUFFER_ACCESS_DYNAMIC,
                                           NULL,
                                           sizeof(ModelSceneCBuffer));
-    m_vertexShader = LoadShader(device, GPUSHADERTYPE_VERTEX, "Assets/Shaders/ModelVS.metallib");
-    m_pixelShader = LoadShader(device, GPUSHADERTYPE_PIXEL, "Assets/Shaders/ModelPS.metallib");
+    m_shaderProgram = LoadShaderProgram(device, "Assets/Shaders/Model_MTL.shd");
 
     GpuVertexAttribute attribs[] = {
         {GPUVERTEXATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, position), 0},
@@ -60,8 +58,8 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
                                               &stride);
 
     GpuPipelineStateDesc pipelineState;
-    pipelineState.vertexShader = m_vertexShader;
-    pipelineState.pixelShader = m_pixelShader;
+    pipelineState.shaderProgram = m_shaderProgram;
+    pipelineState.shaderStateBitfield = 0;
     pipelineState.inputLayout = m_inputLayout;
     pipelineState.depthCompare = GPU_COMPARE_LESS_EQUAL;
     pipelineState.depthWritesEnabled = true;
@@ -75,8 +73,7 @@ ModelRenderQueue::~ModelRenderQueue()
     m_device->PipelineStateDestroy(m_pipelineStateObj);
     m_device->InputLayoutDestroy(m_inputLayout);
     m_device->BufferDestroy(m_sceneCBuffer);
-    m_device->ShaderDestroy(m_vertexShader);
-    m_device->ShaderDestroy(m_pixelShader);
+    m_device->ShaderProgramDestroy(m_shaderProgram);
 }
 
 ModelInstance* ModelRenderQueue::CreateModelInstance(std::shared_ptr<ModelAsset> model)

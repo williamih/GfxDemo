@@ -37,8 +37,7 @@ private:
     std::vector<const GpuDrawItem*> m_drawItems;
     GpuDevice* m_device;
     GpuBufferID m_sceneCBuffer;
-    GpuShaderID m_vertexShader;
-    GpuShaderID m_pixelShader;
+    GpuShaderProgramID m_shaderProgram;
     GpuInputLayoutID m_inputLayout;
     GpuPipelineStateID m_pipelineStateObj;
 };

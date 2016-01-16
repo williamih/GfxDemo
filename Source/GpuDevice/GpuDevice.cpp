@@ -1,8 +1,8 @@
 #include "GpuDevice/GpuDevice.h"
 
 GpuPipelineStateDesc::GpuPipelineStateDesc()
-    : vertexShader(0)
-    , pixelShader(0)
+    : shaderProgram(0)
+    , shaderStateBitfield(0)
     , inputLayout(0)
     , depthCompare(GPU_COMPARE_ALWAYS)
     , depthWritesEnabled(false)

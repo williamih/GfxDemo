@@ -9,6 +9,10 @@
 #include "IDLookupTable.h"
 #include "Core/Macros.h"
 #include "GpuDevice/GpuDrawItem.h"
+#include "GpuDevice/GpuShaderLoad.h"
+#include "GpuDevice/GpuShaderPermutations.h"
+
+#define FOURCC(a, b, c, d) (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
 
 // -----------------------------------------------------------------------------
 // Lookup tables for miscellaneous types
@@ -48,15 +52,6 @@ static const MTLCullMode s_metalCullModes[] = {
 static const MTLWinding s_metalWindingOrders[] = {
     MTLWindingClockwise, // GPU_WINDING_CLOCKWISE
     MTLWindingCounterClockwise, // GPU_WINDING_COUNTER_CLOCKWISE
-};
-
-// -----------------------------------------------------------------------------
-// Lookup tables for shaders
-// -----------------------------------------------------------------------------
-
-static NSString* const s_shaderEntryPointNames[] = {
-    @"VertexMain", // GPUSHADERTYPE_VERTEX
-    @"PixelMain", // GPUSHADERTYPE_PIXEL
 };
 
 // -----------------------------------------------------------------------------
@@ -117,9 +112,9 @@ public:
     void OnWindowResized();
 
     // Shaders
-    bool ShaderExists(GpuShaderID shaderID) const;
-    GpuShaderID ShaderCreate(GpuShaderType type, const char* code, size_t length);
-    void ShaderDestroy(GpuShaderID shaderID);
+    bool ShaderProgramExists(GpuShaderProgramID shaderProgramID) const;
+    GpuShaderProgramID ShaderProgramCreate(const char* data, size_t length);
+    void ShaderProgramDestroy(GpuShaderProgramID shaderProgramID);
 
     // Buffers
     bool BufferExists(GpuBufferID bufferID) const;
@@ -177,12 +172,61 @@ private:
     GpuDeviceMetal(const GpuDeviceMetal&);
     GpuDeviceMetal& operator=(const GpuDeviceMetal&);
 
-    struct Shader {
+    struct PermutationApiData {
+        PermutationApiData()
+            : library(NULL)
+            , vertexFunction(NULL)
+            , fragmentFunction(NULL)
+        {}
+
+        bool IsInUse() const
+        {
+            return library != NULL;
+        }
+
+        void LoadVertexShader(GpuDevice* device, const char* code, int length)
+        {
+            GpuDeviceMetal* devMTL = (GpuDeviceMetal*)device;
+
+            void* codeCopy = malloc(length);
+            memcpy(codeCopy, code, length);
+            dispatch_data_t data = dispatch_data_create(codeCopy, length, NULL,
+                                                        DISPATCH_DATA_DESTRUCTOR_FREE);
+
+            NSError* error;
+            library = [devMTL->m_device newLibraryWithData:data error:&error];
+            if (error) {
+                FATAL("GpuDeviceMetal: Failed to create shader: %s",
+                      error.localizedDescription.UTF8String);
+            }
+
+            vertexFunction = [library newFunctionWithName:@"VertexMain"];
+            fragmentFunction = [library newFunctionWithName:@"PixelMain"];
+        }
+
+        void LoadPixelShader(GpuDevice* device, const char* code, int length)
+        {}
+
+        void Release()
+        {
+            [library release];
+            [vertexFunction release];
+            [fragmentFunction release];
+            library = NULL;
+            vertexFunction = NULL;
+            fragmentFunction = NULL;
+        }
+
+        id<MTLLibrary> library;
+        id<MTLFunction> vertexFunction;
+        id<MTLFunction> fragmentFunction;
+    };
+
+    struct ShaderProgram {
 #ifdef GPUDEVICE_DEBUG_MODE
         int dbg_refCount;
 #endif
-        id<MTLLibrary> library;
-        id<MTLFunction> function;
+        u32 idxFirstPermutation;
     };
 
     struct Buffer {
@@ -197,8 +241,7 @@ private:
     struct PipelineStateObj {
 #ifdef GPUDEVICE_DEBUG_MODE
         int dbg_refCount;
-        u32 dbg_vertexShader;
-        u32 dbg_pixelShader;
+        u32 dbg_shaderProgram;
         u32 dbg_inputLayout;
 #endif
         id<MTLRenderPipelineState> state;
@@ -234,7 +277,8 @@ private:
 
     id<CAMetalDrawable> m_currentDrawable;
 
-    IDLookupTable<Shader, GpuShaderID::Type, 16, 16> m_shaderTable;
+    GpuShaderPermutations<PermutationApiData> m_permutations;
+    IDLookupTable<ShaderProgram, GpuShaderProgramID::Type, 16, 16> m_shaderProgramTable;
     IDLookupTable<Buffer, GpuBufferID::Type, 16, 16> m_bufferTable;
     IDLookupTable<PipelineStateObj, GpuPipelineStateID::Type, 16, 16> m_pipelineStateTable;
     IDLookupTable<RenderPassObj, GpuRenderPassID::Type, 16, 16> m_renderPassTable;
@@ -265,7 +309,8 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
 
     , m_currentDrawable(nil)
 
-    , m_shaderTable()
+    , m_permutations()
+    , m_shaderProgramTable()
     , m_bufferTable()
     , m_pipelineStateTable()
     , m_renderPassTable()
@@ -379,53 +424,47 @@ void GpuDeviceMetal::OnWindowResized()
     CreateOrDestroyDepthBuffer();
 }
 
-bool GpuDeviceMetal::ShaderExists(GpuShaderID shaderID) const
+bool GpuDeviceMetal::ShaderProgramExists(GpuShaderProgramID shaderProgramID) const
 {
-    return m_shaderTable.Has(shaderID);
+    return m_shaderProgramTable.Has(shaderProgramID);
 }
 
-GpuShaderID GpuDeviceMetal::ShaderCreate(GpuShaderType type, const char* code, size_t length)
+GpuShaderProgramID GpuDeviceMetal::ShaderProgramCreate(const char* data, size_t length)
 {
-    GpuShaderID shaderID(m_shaderTable.Add());
-    Shader& shader = m_shaderTable.Lookup(shaderID);
+    GpuShaderProgramID shaderProgramID(m_shaderProgramTable.Add());
+    ShaderProgram& program = m_shaderProgramTable.Lookup(shaderProgramID);
 #ifdef GPUDEVICE_DEBUG_MODE
-    shader.dbg_refCount = 0;
+    program.dbg_refCount = 0;
 #endif
 
-    void* codeCopy = malloc(length);
-    memcpy(codeCopy, code, length);
-    dispatch_data_t data = dispatch_data_create(codeCopy, length, NULL,
-                                                DISPATCH_DATA_DESTRUCTOR_FREE);
-
-    NSError* error;
-    shader.library = [m_device newLibraryWithData:data error:&error];
-    if (error) {
-        FATAL("GpuDeviceMetal: Failed to create shader: %s",
-              error.localizedDescription.UTF8String);
-    }
-
-    shader.function = [shader.library newFunctionWithName:s_shaderEntryPointNames[type]];
+    program.idxFirstPermutation = GpuShaderLoad::LoadShader(
+        data,
+        (int)length,
+        FOURCC('M', 'E', 'T', 'L'),
+        (GpuDevice*)this,
+        m_permutations
+    );
 
     ++m_dbg_shaderCount;
 
-    return shaderID;
+    return shaderProgramID;
 }
 
-void GpuDeviceMetal::ShaderDestroy(GpuShaderID shaderID)
+void GpuDeviceMetal::ShaderProgramDestroy(GpuShaderProgramID shaderProgramID)
 {
-    ASSERT(ShaderExists(shaderID));
-    Shader& shader = m_shaderTable.Lookup(shaderID);
+    ASSERT(ShaderProgramExists(shaderProgramID));
+    ShaderProgram& program = m_shaderProgramTable.Lookup(shaderProgramID);
 
 #ifdef GPUDEVICE_DEBUG_MODE
-    if (shader.dbg_refCount != 0) {
-        FATAL("Can't destroy shader as it still has %d pipeline state "
-              "object(s) referencing it", shader.dbg_refCount);
+    if (program.dbg_refCount != 0) {
+        FATAL("Can't destroy shader program as it still has %d pipeline state "
+              "object(s) referencing it", program.dbg_refCount);
     }
 #endif
 
-    [shader.function release];
-    [shader.library release];
-    m_shaderTable.Remove(shaderID);
+    m_permutations.ReleaseChain(program.idxFirstPermutation);
+
+    m_shaderProgramTable.Remove(shaderProgramID);
 
     --m_dbg_shaderCount;
 }
@@ -562,19 +601,16 @@ bool GpuDeviceMetal::PipelineStateExists(GpuPipelineStateID pipelineStateID) con
 
 GpuPipelineStateID GpuDeviceMetal::PipelineStateCreate(const GpuPipelineStateDesc& state)
 {
-    ASSERT(ShaderExists(state.vertexShader));
-    ASSERT(ShaderExists(state.pixelShader));
+    ASSERT(ShaderProgramExists(state.shaderProgram));
     ASSERT(InputLayoutExists(state.inputLayout));
 
     GpuPipelineStateID pipelineStateID(m_pipelineStateTable.Add());
     PipelineStateObj& obj = m_pipelineStateTable.Lookup(pipelineStateID);
 #ifdef GPUDEVICE_DEBUG_MODE
     obj.dbg_refCount = 0;
-    obj.dbg_vertexShader = state.vertexShader;
-    obj.dbg_pixelShader = state.pixelShader;
+    obj.dbg_shaderProgram = state.shaderProgram;
     obj.dbg_inputLayout = state.inputLayout;
-    ++m_shaderTable.Lookup(state.vertexShader).dbg_refCount;
-    ++m_shaderTable.Lookup(state.pixelShader).dbg_refCount;
+    ++m_shaderProgramTable.Lookup(state.shaderProgram).dbg_refCount;
     ++m_inputLayoutTable.Lookup(state.inputLayout).dbg_refCount;
 #endif
 
@@ -590,9 +626,16 @@ GpuPipelineStateID GpuDeviceMetal::PipelineStateCreate(const GpuPipelineStateDes
 
 id<MTLRenderPipelineState> GpuDeviceMetal::CreateMTLRenderPipelineState(const GpuPipelineStateDesc& state)
 {
+    ShaderProgram& shaderProgram = m_shaderProgramTable.Lookup(state.shaderProgram);
+    u32 idxPermutation = m_permutations.FindPermutationForStates(
+        shaderProgram.idxFirstPermutation,
+        state.shaderStateBitfield
+    );
+    PermutationApiData& permutation = m_permutations.Lookup(idxPermutation).program;
+
     MTLRenderPipelineDescriptor* desc = [[[MTLRenderPipelineDescriptor alloc] init] autorelease];
-    desc.vertexFunction = m_shaderTable.Lookup(state.vertexShader).function;
-    desc.fragmentFunction = m_shaderTable.Lookup(state.pixelShader).function;
+    desc.vertexFunction = permutation.vertexFunction;
+    desc.fragmentFunction = permutation.fragmentFunction;
     desc.vertexDescriptor = m_inputLayoutTable.Lookup(state.inputLayout).descriptor;
 
     MTLRenderPipelineColorAttachmentDescriptor* colorDesc;
@@ -631,8 +674,7 @@ void GpuDeviceMetal::PipelineStateDestroy(GpuPipelineStateID pipelineStateID)
         FATAL("Can't destroy pipeline state object as it still has %d draw "
               "item(s) referencing it", obj.dbg_refCount);
     }
-    --m_shaderTable.Lookup(obj.dbg_vertexShader).dbg_refCount;
-    --m_shaderTable.Lookup(obj.dbg_pixelShader).dbg_refCount;
+    --m_shaderProgramTable.Lookup(obj.dbg_shaderProgram).dbg_refCount;
     --m_inputLayoutTable.Lookup(obj.dbg_inputLayout).dbg_refCount;
 #endif
 
@@ -866,14 +908,14 @@ const GpuDeviceFormat& GpuDevice::GetFormat() const
 void GpuDevice::OnWindowResized()
 { Cast(this)->OnWindowResized(); }
 
-bool GpuDevice::ShaderExists(GpuShaderID shaderID) const
-{ return Cast(this)->ShaderExists(shaderID); }
+bool GpuDevice::ShaderProgramExists(GpuShaderProgramID shaderProgramID) const
+{ return Cast(this)->ShaderProgramExists(shaderProgramID); }
 
-GpuShaderID GpuDevice::ShaderCreate(GpuShaderType type, const char* code, size_t length)
-{ return Cast(this)->ShaderCreate(type, code, length); }
+GpuShaderProgramID GpuDevice::ShaderProgramCreate(const char* data, size_t length)
+{ return Cast(this)->ShaderProgramCreate(data, length); }
 
-void GpuDevice::ShaderDestroy(GpuShaderID shaderID)
-{ Cast(this)->ShaderDestroy(shaderID); }
+void GpuDevice::ShaderProgramDestroy(GpuShaderProgramID shaderProgramID)
+{ Cast(this)->ShaderProgramDestroy(shaderProgramID); }
 
 bool GpuDevice::BufferExists(GpuBufferID bufferID) const
 { return Cast(this)->BufferExists(bufferID); }

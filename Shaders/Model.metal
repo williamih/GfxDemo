@@ -2,9 +2,15 @@
 
 using namespace metal;
 
-struct FragmentInput {
-    float3 normal [[user(normal)]];
-    float3 dirToViewer [[user(dirToViewer)]];
+struct Vertex {
+    float3 position [[attribute(0)]];
+    float3 normal [[attribute(1)]];
+};
+
+struct ProjectedVertex {
+    float4 position [[position]];
+    float3 normal;
+    float3 dirToViewer;
 };
 
 struct SceneData {
@@ -29,7 +35,19 @@ float3 BRDF(float3 cDiff,
             float3 l,
             float3 v);
 
-fragment float4 PixelMain(FragmentInput input [[stage_in]],
+vertex ProjectedVertex VertexMain(Vertex vert [[stage_in]],
+                                  constant SceneData& sceneData [[buffer(0)]],
+                                  constant InstanceData& instanceData [[buffer(1)]])
+{
+    float4 worldPos = instanceData.worldTransform * float4(vert.position, 1);
+    ProjectedVertex outVert;
+    outVert.position = sceneData.viewProjTransform * worldPos;
+    outVert.normal = instanceData.normalTransform * vert.normal;
+    outVert.dirToViewer = sceneData.cameraPos.xyz - worldPos.xyz;
+    return outVert;
+}
+
+fragment float4 PixelMain(ProjectedVertex input [[stage_in]],
                           constant SceneData& sceneData [[buffer(0)]],
                           constant InstanceData& instanceData [[buffer(1)]])
 {

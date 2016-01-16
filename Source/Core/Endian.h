@@ -16,6 +16,14 @@ inline u32 EndianSwap32(u32 n)
            ((n & 0x000000FF) << 24);
 }
 
+inline u64 EndianSwap64(u64 n)
+{
+    n = (n & 0x00000000FFFFFFFF) << 32 | (n & 0xFFFFFFFF00000000) >> 32;
+    n = (n & 0x0000FFFF0000FFFF) << 16 | (n & 0xFFFF0000FFFF0000) >> 16;
+    n = (n & 0x00FF00FF00FF00FF) << 8  | (n & 0xFF00FF00FF00FF00) >> 8;
+    return n;
+}
+
 union EndianU32F32 {
     u32 asU32;
     f32 asF32;
@@ -46,6 +54,16 @@ inline u32 EndianSwapLE32(u32 n)
     return n;
 #endif
 }
+
+inline u64 EndianSwapLE64(u64 n)
+{
+#ifdef ENDIAN_BIG
+    return EndianSwap64(n);
+#else
+    return n;
+#endif
+}
+
 
 inline f32 EndianSwapLEFloat32(f32 n)
 {
