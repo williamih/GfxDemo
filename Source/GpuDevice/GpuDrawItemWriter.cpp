@@ -18,7 +18,7 @@ GpuDrawItemWriterDesc::GpuDrawItemWriterDesc()
 
 void GpuDrawItemWriterDesc::SetNumCBuffers(int n)
 {
-    ASSERT(n > 0 && n <= 255);
+    ASSERT(n >= 0 && n <= 255);
     m_nCBuffers = n;
 }
 
@@ -52,7 +52,7 @@ void GpuDrawItemWriter::Begin(GpuDevice* device,
     ASSERT(device != NULL);
     ASSERT(!m_drawItem && "Must call End() before calling Begin() again");
     ASSERT(desc.m_nVertexBuffers > 0 && desc.m_nVertexBuffers <= 255);
-    ASSERT(desc.m_nCBuffers > 0 && desc.m_nCBuffers <= 255);
+    ASSERT(desc.m_nCBuffers >= 0 && desc.m_nCBuffers <= 255);
 
     m_device = device;
 
@@ -108,7 +108,7 @@ void GpuDrawItemWriter::ValidateVertexBuffers()
 void GpuDrawItemWriter::ValidateCBuffers()
 {
     u16* cbufs = m_drawItem->CBuffers();
-    for (int i = 0; i < m_desc.m_nVertexBuffers; ++i) {
+    for (int i = 0; i < m_desc.m_nCBuffers; ++i) {
         if (cbufs[i] == 0xFFFF)
             FATAL("GpuDrawItemWriter: constant buffer (index %d) not set", i);
     }
