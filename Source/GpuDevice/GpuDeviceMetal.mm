@@ -19,17 +19,17 @@
 // -----------------------------------------------------------------------------
 
 static const MTLPrimitiveType s_metalPrimitiveTypes[] = {
-    MTLPrimitiveTypeTriangle, // GPUPRIMITIVE_TRIANGLES
+    MTLPrimitiveTypeTriangle, // GPU_PRIMITIVE_TRIANGLES
 };
 
 static const MTLIndexType s_metalIndexTypes[] = {
-    MTLIndexTypeUInt16, // GPUINDEXTYPE_U16
-    MTLIndexTypeUInt32, // GPUINDEXTYPE_U32
+    MTLIndexTypeUInt16, // GPU_INDEX_U16
+    MTLIndexTypeUInt32, // GPU_INDEX_U32
 };
 
 static const NSUInteger s_indexTypeByteSizes[] = {
-    2, // GPUINDEXTYPE_U16
-    4, // GPUINDEXTYPE_U32
+    2, // GPU_INDEX_U16
+    4, // GPU_INDEX_U32
 };
 
 static const MTLCompareFunction s_metalCompareFunctions[] = {
@@ -59,10 +59,10 @@ static const MTLWinding s_metalWindingOrders[] = {
 // -----------------------------------------------------------------------------
 
 static const MTLResourceOptions s_bufferAccessModeToResourceOptions[] = {
-    // GPUBUFFER_ACCESS_STATIC
+    // GPU_BUFFER_ACCESS_STATIC
     MTLResourceStorageModeManaged | MTLResourceCPUCacheModeDefaultCache,
 
-    // GPUBUFFER_ACCESS_DYNAMIC
+    // GPU_BUFFER_ACCESS_DYNAMIC
     MTLResourceStorageModeManaged | MTLResourceCPUCacheModeWriteCombined,
 };
 
@@ -71,14 +71,14 @@ static const MTLResourceOptions s_bufferAccessModeToResourceOptions[] = {
 // -----------------------------------------------------------------------------
 
 static const MTLVertexFormat s_metalVertexAttribFormats[] = {
-    MTLVertexFormatHalf2, // GPUVERTEXATTRIB_HALF2
-    MTLVertexFormatHalf3, // GPUVERTEXATTRIB_HALF3
-    MTLVertexFormatHalf4, // GPUVERTEXATTRIB_HALF4
-    MTLVertexFormatFloat, // GPUVERTEXATTRIB_FLOAT
-    MTLVertexFormatFloat2, // GPUVERTEXATTRIB_FLOAT2
-    MTLVertexFormatFloat3, // GPUVERTEXATTRIB_FLOAT3
-    MTLVertexFormatFloat4, // GPUVERTEXATTRIB_FLOAT4
-    MTLVertexFormatUChar4Normalized, // GPUVERTEXATTRIB_UBYTE4_NORMALIZED
+    MTLVertexFormatHalf2, // GPU_VERTEX_ATTRIB_HALF2
+    MTLVertexFormatHalf3, // GPU_VERTEX_ATTRIB_HALF3
+    MTLVertexFormatHalf4, // GPU_VERTEX_ATTRIB_HALF4
+    MTLVertexFormatFloat, // GPU_VERTEX_ATTRIB_FLOAT
+    MTLVertexFormatFloat2, // GPU_VERTEX_ATTRIB_FLOAT2
+    MTLVertexFormatFloat3, // GPU_VERTEX_ATTRIB_FLOAT3
+    MTLVertexFormatFloat4, // GPU_VERTEX_ATTRIB_FLOAT4
+    MTLVertexFormatUChar4Normalized, // GPU_VERTEX_ATTRIB_UBYTE4_NORMALIZED
 };
 
 // -----------------------------------------------------------------------------
@@ -86,15 +86,15 @@ static const MTLVertexFormat s_metalVertexAttribFormats[] = {
 // -----------------------------------------------------------------------------
 
 static const MTLPixelFormat s_metalColorPixelFormats[] = {
-    MTLPixelFormatBGRA8Unorm, // GPUPIXELCOLORFORMAT_RGBA8888
+    MTLPixelFormatBGRA8Unorm, // GPU_PIXEL_COLOR_FORMAT_RGBA8888
 };
 
 // Metal doesn't support a 24-bit depth buffer. We use 32-bit no matter what
 // the client requests.
 static const MTLPixelFormat s_metalDepthPixelFormats[] = {
-    MTLPixelFormatInvalid, // GPUPIXELDEPTHFORMAT_NONE
-    MTLPixelFormatDepth32Float, // GPUPIXELDEPTHFORMAT_FLOAT24
-    MTLPixelFormatDepth32Float, // GPUPIXELDEPTHFORMAT_FLOAT32
+    MTLPixelFormatInvalid, // GPU_PIXEL_DEPTH_FORMAT_NONE
+    MTLPixelFormatDepth32Float, // GPU_PIXEL_DEPTH_FORMAT_FLOAT24
+    MTLPixelFormatDepth32Float, // GPU_PIXEL_DEPTH_FORMAT_FLOAT32
 };
 
 // -----------------------------------------------------------------------------
@@ -375,7 +375,7 @@ void GpuDeviceMetal::CreateOrDestroyDepthBuffer()
     }
 
     // If the client didn't request a depth buffer, then we are done.
-    if (m_deviceFormat.pixelDepthFormat == GPUPIXELDEPTHFORMAT_NONE)
+    if (m_deviceFormat.pixelDepthFormat == GPU_PIXEL_DEPTH_FORMAT_NONE)
         return;
 
     MTLPixelFormat format = s_metalDepthPixelFormats[m_deviceFormat.pixelDepthFormat];
@@ -523,7 +523,7 @@ void* GpuDeviceMetal::BufferGetContents(GpuBufferID bufferID)
 {
     ASSERT(BufferExists(bufferID));
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
-    ASSERT(buffer.accessMode == GPUBUFFER_ACCESS_DYNAMIC);
+    ASSERT(buffer.accessMode == GPU_BUFFER_ACCESS_DYNAMIC);
     return [buffer.buffer contents];
 }
 
@@ -531,7 +531,7 @@ void GpuDeviceMetal::BufferFlushRange(GpuBufferID bufferID, int start, int lengt
 {
     ASSERT(BufferExists(bufferID));
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
-    ASSERT(buffer.accessMode == GPUBUFFER_ACCESS_DYNAMIC);
+    ASSERT(buffer.accessMode == GPU_BUFFER_ACCESS_DYNAMIC);
     [buffer.buffer didModifyRange:NSMakeRange(start, length)];
 }
 

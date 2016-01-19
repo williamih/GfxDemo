@@ -48,8 +48,8 @@ ModelInstance::ModelInstance(const ModelInstanceCreateContext& ctx)
     , m_cbuffer(0)
 {
     GpuDevice* dev = ctx.model->GetGpuDevice();
-    m_cbuffer = dev->BufferCreate(GPUBUFFERTYPE_CONSTANT,
-                                  GPUBUFFER_ACCESS_DYNAMIC,
+    m_cbuffer = dev->BufferCreate(GPU_BUFFER_TYPE_CONSTANT,
+                                  GPU_BUFFER_ACCESS_DYNAMIC,
                                   NULL,
                                   sizeof(ModelInstanceCBuffer));
 
@@ -62,11 +62,11 @@ ModelInstance::ModelInstance(const ModelInstanceCreateContext& ctx)
     writer.SetCBuffer(0, ctx.sceneCBuffer);
     writer.SetCBuffer(1, m_cbuffer);
     writer.SetIndexBuffer(ctx.model->GetIndexBuf());
-    writer.SetDrawCallIndexed(GPUPRIMITIVE_TRIANGLES,
+    writer.SetDrawCallIndexed(GPU_PRIMITIVE_TRIANGLES,
                               0,
                               ctx.model->GetIndexCount(),
                               0,
-                              GPUINDEXTYPE_U32);
+                              GPU_INDEX_U32);
     writer.End();
 }
 

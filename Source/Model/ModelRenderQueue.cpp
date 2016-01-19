@@ -41,15 +41,15 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
     , m_inputLayout(0)
     , m_pipelineStateObj(0)
 {
-    m_sceneCBuffer = device->BufferCreate(GPUBUFFERTYPE_CONSTANT,
-                                          GPUBUFFER_ACCESS_DYNAMIC,
+    m_sceneCBuffer = device->BufferCreate(GPU_BUFFER_TYPE_CONSTANT,
+                                          GPU_BUFFER_ACCESS_DYNAMIC,
                                           NULL,
                                           sizeof(ModelSceneCBuffer));
     m_shaderProgram = LoadShaderProgram(device, "Assets/Shaders/Model_MTL.shd");
 
     GpuVertexAttribute attribs[] = {
-        {GPUVERTEXATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, position), 0},
-        {GPUVERTEXATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, normal), 0},
+        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, position), 0},
+        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, normal), 0},
     };
     unsigned stride = sizeof(ModelAsset::Vertex);
     m_inputLayout = device->InputLayoutCreate(sizeof attribs / sizeof attribs[0],

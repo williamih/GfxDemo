@@ -21,16 +21,16 @@ struct GpuDrawItem {
     GpuPrimitiveType GetPrimitiveType() const
     {
         switch (flags & 0x7) {
-            case 0: return GPUPRIMITIVE_TRIANGLES;
-            default: return GPUPRIMITIVE_TRIANGLES;
+            case 0: return GPU_PRIMITIVE_TRIANGLES;
+            default: return GPU_PRIMITIVE_TRIANGLES;
         }
     }
 
     GpuIndexType GetIndexType() const
     {
         if (flags & 0x8)
-            return GPUINDEXTYPE_U32;
-        return GPUINDEXTYPE_U16;
+            return GPU_INDEX_U32;
+        return GPU_INDEX_U16;
     }
 
     bool IsIndexed() const
@@ -41,7 +41,7 @@ struct GpuDrawItem {
     void SetPrimitiveType(GpuPrimitiveType type)
     {
         switch (type) {
-            case GPUPRIMITIVE_TRIANGLES:
+            case GPU_PRIMITIVE_TRIANGLES:
                 flags &= ~(0x7);
                 break;
             default: break;
@@ -51,10 +51,10 @@ struct GpuDrawItem {
     void SetIndexType(GpuIndexType type)
     {
         switch (type) {
-            case GPUINDEXTYPE_U16:
+            case GPU_INDEX_U16:
                 flags &= ~(0x8);
                 break;
-            case GPUINDEXTYPE_U32:
+            case GPU_INDEX_U32:
                 flags |= 0x8;
                 break;
             default:

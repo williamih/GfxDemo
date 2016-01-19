@@ -33,8 +33,8 @@ Application::Application()
     m_window = OsWindow::Create(800.0f, 600.0f, pf);
 
     GpuDeviceFormat deviceFormat;
-    deviceFormat.pixelColorFormat = GPUPIXELCOLORFORMAT_RGBA8888;
-    deviceFormat.pixelDepthFormat = GPUPIXELDEPTHFORMAT_FLOAT32;
+    deviceFormat.pixelColorFormat = GPU_PIXEL_COLOR_FORMAT_RGBA8888;
+    deviceFormat.pixelDepthFormat = GPU_PIXEL_DEPTH_FORMAT_FLOAT32;
     deviceFormat.resolutionX = 1600;
     deviceFormat.resolutionY = 1200;
     deviceFormat.flags = GpuDeviceFormat::FLAG_SCALE_RES_WITH_WINDOW_SIZE;

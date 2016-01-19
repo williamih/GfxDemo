@@ -38,8 +38,8 @@ ModelAsset::ModelAsset(GpuDevice* device, u8* data, int size)
         vertices[i].FixEndian();
     }
     m_vertexBuf = device->BufferCreate(
-        GPUBUFFERTYPE_VERTEX,
-        GPUBUFFER_ACCESS_STATIC,
+        GPU_BUFFER_TYPE_VERTEX,
+        GPU_BUFFER_ACCESS_STATIC,
         vertices,
         nVertices * sizeof(Vertex)
     );
@@ -49,8 +49,8 @@ ModelAsset::ModelAsset(GpuDevice* device, u8* data, int size)
         indices[i] = EndianSwapLE32(indices[i]);
     }
     m_indexBuf = device->BufferCreate(
-        GPUBUFFERTYPE_INDEX,
-        GPUBUFFER_ACCESS_STATIC,
+        GPU_BUFFER_TYPE_INDEX,
+        GPU_BUFFER_ACCESS_STATIC,
         indices,
         nIndices * sizeof(u32)
     );
