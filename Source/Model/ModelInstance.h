@@ -12,6 +12,8 @@ struct ModelInstanceCreateContext {
     std::shared_ptr<ModelAsset> model;
     GpuPipelineStateID pipelineObject;
     GpuBufferID sceneCBuffer;
+    GpuTextureID defaultTexture;
+    GpuSamplerID samplerNonMipmapped;
 };
 
 class ModelInstance {

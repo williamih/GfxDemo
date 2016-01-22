@@ -14,6 +14,8 @@ static u16 GetRawIndex(u32 resourceID)
 GpuDrawItemWriterDesc::GpuDrawItemWriterDesc()
     : m_nCBuffers(0)
     , m_nVertexBuffers(0)
+    , m_nTextures(0)
+    , m_nSamplers(0)
 {}
 
 void GpuDrawItemWriterDesc::SetNumCBuffers(int n)
@@ -28,12 +30,26 @@ void GpuDrawItemWriterDesc::SetNumVertexBuffers(int n)
     m_nVertexBuffers = n;
 }
 
+void GpuDrawItemWriterDesc::SetNumTextures(int n)
+{
+    ASSERT(n > 0 && n <= 255);
+    m_nTextures = n;
+}
+
+void GpuDrawItemWriterDesc::SetNumSamplers(int n)
+{
+    ASSERT(n > 0 && n <= 255);
+    m_nSamplers = n;
+}
+
 size_t GpuDrawItemWriter::SizeInBytes(const GpuDrawItemWriterDesc& desc)
 {
     size_t size = sizeof(GpuDrawItem);
     size += desc.m_nVertexBuffers * sizeof(u32);
     size += desc.m_nVertexBuffers * sizeof(u16);
     size += desc.m_nCBuffers * sizeof(u16);
+    size += desc.m_nTextures * sizeof(u16);
+    size += desc.m_nSamplers * sizeof(u16);
     return size;
 }
 
@@ -53,6 +69,8 @@ void GpuDrawItemWriter::Begin(GpuDevice* device,
     ASSERT(!m_drawItem && "Must call End() before calling Begin() again");
     ASSERT(desc.m_nVertexBuffers > 0 && desc.m_nVertexBuffers <= 255);
     ASSERT(desc.m_nCBuffers >= 0 && desc.m_nCBuffers <= 255);
+    ASSERT(desc.m_nTextures >= 0 && desc.m_nTextures <= 255);
+    ASSERT(desc.m_nSamplers >= 0 && desc.m_nSamplers <= 255);
 
     m_device = device;
 
@@ -66,11 +84,17 @@ void GpuDrawItemWriter::Begin(GpuDevice* device,
     m_drawItem->indexBufferIdx = 0xFFFF;
     m_drawItem->nVertexBuffers = (u8)desc.m_nVertexBuffers;
     m_drawItem->nCBuffers = (u8)desc.m_nCBuffers;
+    m_drawItem->nTextures = (u8)desc.m_nTextures;
+    m_drawItem->nSamplers = (u8)desc.m_nSamplers;
+    m_drawItem->_pad = 0;
     m_drawItem->first = 0;
     m_drawItem->count = 0;
     m_drawItem->indexBufferOffset = 0;
+
     memset(m_drawItem->VertexBuffers(), 0xFF, desc.m_nVertexBuffers * sizeof(u16));
     memset(m_drawItem->CBuffers(), 0xFF, desc.m_nCBuffers * sizeof(u16));
+    memset(m_drawItem->Textures(), 0xFF, desc.m_nTextures * sizeof(u16));
+    memset(m_drawItem->Samplers(), 0xFF, desc.m_nSamplers * sizeof(u16));
 }
 
 GpuDrawItem* GpuDrawItemWriter::End()
@@ -114,6 +138,24 @@ void GpuDrawItemWriter::ValidateCBuffers()
     }
 }
 
+void GpuDrawItemWriter::ValidateTextures()
+{
+    u16* textures = m_drawItem->Textures();
+    for (int i = 0; i < m_desc.m_nTextures; ++i) {
+        if (textures[i] == 0xFFFF)
+            FATAL("GpuDrawItemWriter: texture (index %d) not set", i);
+    }
+}
+
+void GpuDrawItemWriter::ValidateSamplers()
+{
+    u16* samplers = m_drawItem->Samplers();
+    for (int i = 0; i < m_desc.m_nSamplers; ++i) {
+        if (samplers[i] == 0xFFFF)
+            FATAL("GpuDrawItemWriter: sampler (index %d) not set", i);
+    }
+}
+
 void GpuDrawItemWriter::SetPipelineState(GpuPipelineStateID state)
 {
     ASSERT(m_device->PipelineStateExists(state));
@@ -139,6 +181,20 @@ void GpuDrawItemWriter::SetCBuffer(int index, GpuBufferID buffer)
     ASSERT(index >= 0 && index < m_desc.m_nCBuffers);
     ASSERT(m_device->BufferExists(buffer));
     m_drawItem->CBuffers()[index] = GetRawIndex(buffer);
+}
+
+void GpuDrawItemWriter::SetTexture(int index, GpuTextureID texture)
+{
+    ASSERT(index >= 0 && index < m_desc.m_nTextures);
+    ASSERT(m_device->TextureExists(texture));
+    m_drawItem->Textures()[index] = GetRawIndex(texture);
+}
+
+void GpuDrawItemWriter::SetSampler(int index, GpuSamplerID sampler)
+{
+    ASSERT(index >= 0 && index < m_desc.m_nSamplers);
+    ASSERT(m_device->SamplerExists(sampler));
+    m_drawItem->Samplers()[index] = GetRawIndex(sampler);
 }
 
 void GpuDrawItemWriter::SetDrawCall(GpuPrimitiveType primType, int first, int count)

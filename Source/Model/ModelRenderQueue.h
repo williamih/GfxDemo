@@ -38,6 +38,8 @@ private:
     GpuDevice* m_device;
     GpuBufferID m_sceneCBuffer;
     GpuShaderProgramID m_shaderProgram;
+    GpuTextureID m_defaultTexture;
+    GpuSamplerID m_sampler;
     GpuInputLayoutID m_inputLayout;
     GpuPipelineStateID m_pipelineStateObj;
 };

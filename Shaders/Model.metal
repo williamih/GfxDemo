@@ -5,11 +5,13 @@ using namespace metal;
 struct Vertex {
     float3 position [[attribute(0)]];
     float3 normal [[attribute(1)]];
+    float2 uv [[attribute(2)]];
 };
 
 struct ProjectedVertex {
     float4 position [[position]];
     float3 normal;
+    float2 uv;
     float3 dirToViewer;
 };
 
@@ -43,19 +45,24 @@ vertex ProjectedVertex VertexMain(Vertex vert [[stage_in]],
     ProjectedVertex outVert;
     outVert.position = sceneData.viewProjTransform * worldPos;
     outVert.normal = instanceData.normalTransform * vert.normal;
+    outVert.uv = vert.uv;
     outVert.dirToViewer = sceneData.cameraPos.xyz - worldPos.xyz;
     return outVert;
 }
 
 fragment float4 PixelMain(ProjectedVertex input [[stage_in]],
                           constant SceneData& sceneData [[buffer(0)]],
-                          constant InstanceData& instanceData [[buffer(1)]])
+                          constant InstanceData& instanceData [[buffer(1)]],
+                          sampler theSampler [[sampler(0)]],
+                          texture2d<float> diffuseTex [[texture(0)]])
 {
     float3 n = normalize(input.normal);
     float3 l = sceneData.dirToLight.xyz;
     float3 v = normalize(input.dirToViewer);
 
     float3 cDiff = instanceData.diffuseColor.rgb;
+    cDiff *= diffuseTex.sample(theSampler, input.uv).rgb;
+
     float3 cSpec = instanceData.specularColorAndGlossiness.rgb;
     float glossiness = instanceData.specularColorAndGlossiness.a;
     float3 EL_over_pi = sceneData.irradiance_over_pi.xyz;

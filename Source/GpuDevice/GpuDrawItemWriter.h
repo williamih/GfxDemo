@@ -10,11 +10,15 @@ public:
 
     void SetNumCBuffers(int n);
     void SetNumVertexBuffers(int n);
+    void SetNumTextures(int n);
+    void SetNumSamplers(int n);
 
 private:
     friend class GpuDrawItemWriter;
     int m_nCBuffers;
     int m_nVertexBuffers;
+    int m_nTextures;
+    int m_nSamplers;
 };
 
 class GpuDrawItemWriter {
@@ -35,8 +39,12 @@ public:
 
     void SetPipelineState(GpuPipelineStateID state);
     void SetIndexBuffer(GpuBufferID buffer);
+
     void SetVertexBuffer(int index, GpuBufferID buffer, unsigned offset);
     void SetCBuffer(int index, GpuBufferID buffer);
+    void SetTexture(int index, GpuTextureID texture);
+    void SetSampler(int index, GpuSamplerID sampler);
+
     void SetDrawCall(GpuPrimitiveType primType, int first, int count);
     void SetDrawCallIndexed(GpuPrimitiveType primType,
                             int first,
@@ -50,6 +58,8 @@ private:
 
     void ValidateVertexBuffers();
     void ValidateCBuffers();
+    void ValidateTextures();
+    void ValidateSamplers();
 
     GpuDevice* m_device;
     GpuDrawItem* m_drawItem;

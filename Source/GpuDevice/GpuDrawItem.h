@@ -76,11 +76,20 @@ struct GpuDrawItem {
     u16* CBuffers() const
     { return (u16*)(VertexBuffers() + nVertexBuffers); }
 
+    u16* Textures() const
+    { return (u16*)(CBuffers() + nCBuffers); }
+
+    u16* Samplers() const
+    { return (u16*)(Textures() + nSamplers); }
+
     u16 pipelineStateIdx;
     u16 flags; // contains the primitive type and the index type
     u16 indexBufferIdx;
     u8 nVertexBuffers;
     u8 nCBuffers;
+    u8 nTextures;
+    u8 nSamplers;
+    u16 _pad;
     u32 first;
     u32 count;
     u32 indexBufferOffset;
@@ -88,6 +97,8 @@ struct GpuDrawItem {
     //   (1) vertex buffers offsets: array of size nVertexBuffers of u32
     //   (2) vertex buffer indices: array of size nVertexBuffers of u16
     //   (3) cbuffers indices: array of size nCBuffers of u16
+    //   (4) texture indices: array of size nTextures of u16
+    //   (5) sampler indices: array of size nSamplers of u16
 };
 
 #endif // GPUDEVICE_GPUDRAWITEM_H

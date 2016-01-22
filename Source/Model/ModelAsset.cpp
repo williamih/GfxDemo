@@ -16,6 +16,8 @@ void ModelAsset::Vertex::FixEndian()
         position[i] = EndianSwapLEFloat32(position[i]);
         normal[i] = EndianSwapLEFloat32(normal[i]);
     }
+    uv[0] = EndianSwapLEFloat32(uv[0]);
+    uv[1] = EndianSwapLEFloat32(uv[1]);
 }
 
 ModelAsset::ModelAsset(GpuDevice* device, u8* data, int size)

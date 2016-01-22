@@ -32,12 +32,59 @@ static GpuShaderProgramID LoadShaderProgram(GpuDevice* dev, const char* path)
     return program;
 }
 
+static GpuTextureID CreateDefaultWhiteTexture(GpuDevice* device)
+{
+    GpuTextureID texture = device->TextureCreate(
+        GPU_TEXTURE_2D,
+        GPU_PIXEL_FORMAT_BGRA8888,
+        1, // width
+        1, // height
+        1, // depthOrArrayLength
+        1 // nMipmapLevels
+    );
+    const u8 texturePixels[] = {0xFF, 0xFF, 0xFF, 0xFF};
+    GpuRegion region = {0, 0, 1, 1};
+    device->TextureUpload(texture, region, 0, 4, texturePixels);
+    return texture;
+}
+
+static GpuSamplerID CreateSampler(GpuDevice* device)
+{
+    GpuSamplerDesc desc;
+    desc.uAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
+    desc.vAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
+    desc.wAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
+    desc.minFilter = GPU_SAMPLER_FILTER_LINEAR;
+    desc.magFilter = GPU_SAMPLER_FILTER_LINEAR;
+    desc.mipFilter = GPU_SAMPLER_MIPFILTER_NOT_MIPMAPPED;
+    desc.maxAnisotropy = 1;
+    return device->SamplerCreate(desc);
+}
+
+static GpuInputLayoutID CreateInputLayout(GpuDevice* device)
+{
+    GpuVertexAttribute attribs[] = {
+        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, position), 0},
+        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, normal), 0},
+        {GPU_VERTEX_ATTRIB_FLOAT2, offsetof(ModelAsset::Vertex, uv), 0},
+    };
+    unsigned stride = sizeof(ModelAsset::Vertex);
+    return device->InputLayoutCreate(
+        sizeof attribs / sizeof attribs[0],
+        attribs,
+        1,
+        &stride
+    );
+}
+
 ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
     : m_modelInstances()
     , m_drawItems()
     , m_device(device)
     , m_sceneCBuffer(0)
     , m_shaderProgram(0)
+    , m_defaultTexture(0)
+    , m_sampler(0)
     , m_inputLayout(0)
     , m_pipelineStateObj(0)
 {
@@ -47,15 +94,9 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
                                           sizeof(ModelSceneCBuffer));
     m_shaderProgram = LoadShaderProgram(device, "Assets/Shaders/Model_MTL.shd");
 
-    GpuVertexAttribute attribs[] = {
-        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, position), 0},
-        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, normal), 0},
-    };
-    unsigned stride = sizeof(ModelAsset::Vertex);
-    m_inputLayout = device->InputLayoutCreate(sizeof attribs / sizeof attribs[0],
-                                              attribs,
-                                              1,
-                                              &stride);
+    m_defaultTexture = CreateDefaultWhiteTexture(device);
+    m_sampler = CreateSampler(device);
+    m_inputLayout = CreateInputLayout(device);
 
     GpuPipelineStateDesc pipelineState;
     pipelineState.shaderProgram = m_shaderProgram;
@@ -71,6 +112,8 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
 ModelRenderQueue::~ModelRenderQueue()
 {
     m_device->PipelineStateDestroy(m_pipelineStateObj);
+    m_device->SamplerDestroy(m_sampler);
+    m_device->TextureDestroy(m_defaultTexture);
     m_device->InputLayoutDestroy(m_inputLayout);
     m_device->BufferDestroy(m_sceneCBuffer);
     m_device->ShaderProgramDestroy(m_shaderProgram);
@@ -82,6 +125,8 @@ ModelInstance* ModelRenderQueue::CreateModelInstance(std::shared_ptr<ModelAsset>
     ctx.model = model;
     ctx.pipelineObject = m_pipelineStateObj;
     ctx.sceneCBuffer = m_sceneCBuffer;
+    ctx.defaultTexture = m_defaultTexture;
+    ctx.samplerNonMipmapped = m_sampler;
     return ModelInstance::Create(ctx);
 }
 

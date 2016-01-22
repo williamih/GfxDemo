@@ -20,7 +20,38 @@ static GpuDrawItemWriterDesc CreateDrawItemWriterDesc()
     GpuDrawItemWriterDesc desc;
     desc.SetNumCBuffers(2);
     desc.SetNumVertexBuffers(1);
+    desc.SetNumTextures(1);
+    desc.SetNumSamplers(1);
     return desc;
+}
+
+static void* ModelDrawItemAlloc(size_t size, void* userdata)
+{
+    return userdata;
+}
+
+static void InternalCreateDrawItem(void* location,
+                                   const ModelInstanceCreateContext& ctx,
+                                   GpuBufferID modelCBuffer)
+{
+    GpuDevice* dev = ctx.model->GetGpuDevice();
+    GpuDrawItemWriterDesc desc = CreateDrawItemWriterDesc();
+
+    GpuDrawItemWriter writer;
+    writer.Begin(dev, desc, ModelDrawItemAlloc, location);
+    writer.SetPipelineState(ctx.pipelineObject);
+    writer.SetVertexBuffer(0, ctx.model->GetVertexBuf(), 0);
+    writer.SetCBuffer(0, ctx.sceneCBuffer);
+    writer.SetCBuffer(1, modelCBuffer);
+    writer.SetTexture(0, ctx.defaultTexture);
+    writer.SetSampler(0, ctx.samplerNonMipmapped);
+    writer.SetIndexBuffer(ctx.model->GetIndexBuf());
+    writer.SetDrawCallIndexed(GPU_PRIMITIVE_TRIANGLES,
+                              0,
+                              ctx.model->GetIndexCount(),
+                              0,
+                              GPU_INDEX_U32);
+    writer.End();
 }
 
 ModelInstance* ModelInstance::Create(const ModelInstanceCreateContext& ctx)
@@ -38,11 +69,6 @@ void ModelInstance::Destroy(ModelInstance* instance)
     free((void*)instance);
 }
 
-static void* ModelDrawItemAlloc(size_t size, void* userdata)
-{
-    return userdata;
-}
-
 ModelInstance::ModelInstance(const ModelInstanceCreateContext& ctx)
     : m_model(ctx.model)
     , m_cbuffer(0)
@@ -52,22 +78,7 @@ ModelInstance::ModelInstance(const ModelInstanceCreateContext& ctx)
                                   GPU_BUFFER_ACCESS_DYNAMIC,
                                   NULL,
                                   sizeof(ModelInstanceCBuffer));
-
-    GpuDrawItemWriterDesc desc = CreateDrawItemWriterDesc();
-
-    GpuDrawItemWriter writer;
-    writer.Begin(dev, desc, ModelDrawItemAlloc, (void*)(this + 1));
-    writer.SetPipelineState(ctx.pipelineObject);
-    writer.SetVertexBuffer(0, ctx.model->GetVertexBuf(), 0);
-    writer.SetCBuffer(0, ctx.sceneCBuffer);
-    writer.SetCBuffer(1, m_cbuffer);
-    writer.SetIndexBuffer(ctx.model->GetIndexBuf());
-    writer.SetDrawCallIndexed(GPU_PRIMITIVE_TRIANGLES,
-                              0,
-                              ctx.model->GetIndexCount(),
-                              0,
-                              GPU_INDEX_U32);
-    writer.End();
+    InternalCreateDrawItem((void*)GetDrawItem(), ctx, m_cbuffer);
 }
 
 ModelInstance::~ModelInstance()

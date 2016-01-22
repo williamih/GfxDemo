@@ -1,5 +1,15 @@
 #include "GpuDevice/GpuDevice.h"
 
+GpuSamplerDesc::GpuSamplerDesc()
+    : uAddressMode(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE)
+    , vAddressMode(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE)
+    , wAddressMode(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE)
+    , minFilter(GPU_SAMPLER_FILTER_NEAREST)
+    , magFilter(GPU_SAMPLER_FILTER_NEAREST)
+    , mipFilter(GPU_SAMPLER_MIPFILTER_NOT_MIPMAPPED)
+    , maxAnisotropy(1)
+{}
+
 GpuPipelineStateDesc::GpuPipelineStateDesc()
     : shaderProgram(0)
     , shaderStateBitfield(0)

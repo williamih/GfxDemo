@@ -67,6 +67,58 @@ static const MTLResourceOptions s_bufferAccessModeToResourceOptions[] = {
 };
 
 // -----------------------------------------------------------------------------
+// Lookup tables for textures
+// -----------------------------------------------------------------------------
+
+static const MTLPixelFormat s_metalPixelFormats[] = {
+    MTLPixelFormatBGRA8Unorm, // GPU_PIXEL_FORMAT_BGRA8888
+    MTLPixelFormatBC1_RGBA, // GPU_PIXEL_FORMAT_DXT1
+    MTLPixelFormatBC2_RGBA, // GPU_PIXEL_FORMAT_DXT3
+    MTLPixelFormatBC3_RGBA, // GPU_PIXEL_FORMAT_DXT5
+};
+
+static const MTLTextureType s_metalTextureTypes[] = {
+    MTLTextureType1D, // GPU_TEXTURE_1D
+    MTLTextureType1DArray, // GPU_TEXTURE_1D_ARRAY
+    MTLTextureType2D, // GPU_TEXTURE_2D
+    MTLTextureType2DArray, // GPU_TEXTURE_2D_ARRAY
+    MTLTextureTypeCube, // GPU_TEXTURE_CUBE
+    MTLTextureType3D, // GPU_TEXTURE_3D
+};
+
+static const bool s_textureTypeIsArray[] = {
+    false, // GPU_TEXTURE_1D
+    true, // GPU_TEXTURE_1D_ARRAY
+    false, // GPU_TEXTURE_2D
+    true, // GPU_TEXTURE_2D_ARRAY
+    false, // GPU_TEXTURE_CUBE
+    false, // GPU_TEXTURE_3D
+};
+
+// -----------------------------------------------------------------------------
+// Lookup tables for samplers
+// -----------------------------------------------------------------------------
+
+static const MTLSamplerAddressMode s_metalSamplerAddressModes[] = {
+    MTLSamplerAddressModeClampToEdge, // GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE
+    MTLSamplerAddressModeMirrorClampToEdge, // GPU_SAMPLER_ADDRESS_MIRROR_CLAMP_TO_EDGE
+    MTLSamplerAddressModeRepeat, // GPU_SAMPLER_ADDRESS_REPEAT
+    MTLSamplerAddressModeMirrorRepeat, // GPU_SAMPLER_ADDRESS_MIRROR_REPEAT
+    MTLSamplerAddressModeClampToZero, // GPU_SAMPLER_ADDRESS_CLAMP_TO_ZERO
+};
+
+static const MTLSamplerMinMagFilter s_metalSamplerMinMagFilters[] = {
+    MTLSamplerMinMagFilterNearest, // GPU_SAMPLER_FILTER_NEAREST
+    MTLSamplerMinMagFilterLinear, // GPU_SAMPLER_FILTER_LINEAR
+};
+
+static const MTLSamplerMipFilter s_metalSamplerMipFilters[] = {
+    MTLSamplerMipFilterNotMipmapped, // GPU_SAMPLER_MIPFILTER_NOT_MIPMAPPED
+    MTLSamplerMipFilterNearest, // GPU_SAMPLER_MIPFILTER_NEAREST
+    MTLSamplerMipFilterLinear, // GPU_SAMPLER_MIPFILTER_LINEAR
+};
+
+// -----------------------------------------------------------------------------
 // Lookup tables for vertex formats
 // -----------------------------------------------------------------------------
 
@@ -125,6 +177,26 @@ public:
     void BufferDestroy(GpuBufferID bufferID);
     void* BufferGetContents(GpuBufferID bufferID);
     void BufferFlushRange(GpuBufferID bufferID, int start, int length);
+
+    // Textures
+    bool TextureExists(GpuTextureID textureID) const;
+    GpuTextureID TextureCreate(GpuTextureType type,
+                               GpuPixelFormat pixelFormat,
+                               int width,
+                               int height,
+                               int depthOrArrayLength,
+                               int nMipmapLevels);
+    void TextureDestroy(GpuTextureID textureID);
+    void TextureUpload(GpuTextureID textureID,
+                       const GpuRegion& region,
+                       int mipmapLevel,
+                       int stride,
+                       const void* bytes);
+
+    // Samplers
+    bool SamplerExists(GpuSamplerID samplerID) const;
+    GpuSamplerID SamplerCreate(const GpuSamplerDesc& desc);
+    void SamplerDestroy(GpuSamplerID samplerID);
 
     // Input layouts
     bool InputLayoutExists(GpuInputLayoutID inputLayoutID) const;
@@ -261,6 +333,20 @@ private:
         MTLVertexDescriptor* descriptor;
     };
 
+    struct Texture {
+#ifdef GPUDEVICE_DEBUG_MODE
+        int dbg_refCount;
+#endif
+        id<MTLTexture> texture;
+    };
+
+    struct Sampler {
+#ifdef GPUDEVICE_DEBUG_MODE
+        int dbg_refCount;
+#endif
+        id<MTLSamplerState> samplerState;
+    };
+
     void CreateOrDestroyDepthBuffer();
     CAMetalLayer* GetCAMetalLayer() const;
 
@@ -283,9 +369,13 @@ private:
     IDLookupTable<PipelineStateObj, GpuPipelineStateID::Type, 16, 16> m_pipelineStateTable;
     IDLookupTable<RenderPassObj, GpuRenderPassID::Type, 16, 16> m_renderPassTable;
     IDLookupTable<InputLayout, GpuInputLayoutID::Type, 16, 16> m_inputLayoutTable;
+    IDLookupTable<Texture, GpuTextureID::Type, 16, 16> m_textureTable;
+    IDLookupTable<Sampler, GpuSamplerID::Type, 16, 16> m_samplerTable;
 
     int m_dbg_shaderCount;
     int m_dbg_bufferCount;
+    int m_dbg_textureCount;
+    int m_dbg_samplerCount;
     int m_dbg_psoCount;
     int m_dbg_renderPassCount;
     int m_dbg_inputLayoutCount;
@@ -318,6 +408,8 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
 
     , m_dbg_shaderCount(0)
     , m_dbg_bufferCount(0)
+    , m_dbg_textureCount(0)
+    , m_dbg_samplerCount(0)
     , m_dbg_psoCount(0)
     , m_dbg_renderPassCount(0)
     , m_dbg_inputLayoutCount(0)
@@ -348,6 +440,16 @@ GpuDeviceMetal::~GpuDeviceMetal()
         fprintf(stderr,
                 "GpuDeviceMetal: warning - %d buffer(s) not destroyed\n",
                 m_dbg_bufferCount);
+    }
+    if (m_dbg_textureCount != 0) {
+        fprintf(stderr,
+                "GpuDeviceMetal: warning - %d textures(s) not destroyed\n",
+                m_dbg_textureCount);
+    }
+    if (m_dbg_samplerCount != 0) {
+        fprintf(stderr,
+                "GpuDeviceMetal: warning - %d sampler(s) not destroyed\n",
+                m_dbg_samplerCount);
     }
     if (m_dbg_psoCount != 0) {
         fprintf(stderr,
@@ -533,6 +635,150 @@ void GpuDeviceMetal::BufferFlushRange(GpuBufferID bufferID, int start, int lengt
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
     ASSERT(buffer.accessMode == GPU_BUFFER_ACCESS_DYNAMIC);
     [buffer.buffer didModifyRange:NSMakeRange(start, length)];
+}
+
+bool GpuDeviceMetal::TextureExists(GpuTextureID textureID) const
+{
+    return m_textureTable.Has(textureID);
+}
+
+GpuTextureID GpuDeviceMetal::TextureCreate(GpuTextureType type,
+                                           GpuPixelFormat pixelFormat,
+                                           int width,
+                                           int height,
+                                           int depthOrArrayLength,
+                                           int nMipmapLevels)
+{
+    ASSERT((s_textureTypeIsArray[type] ||
+            (type == GPU_TEXTURE_3D) ||
+            (depthOrArrayLength == 1)) &&
+           "A non-3D, non-array texture must have depthOrArrayLength == 1");
+    ASSERT(width > 0);
+    ASSERT(height > 0);
+    ASSERT(depthOrArrayLength > 0);
+    ASSERT(nMipmapLevels > 0);
+
+    GpuTextureID textureID(m_textureTable.Add());
+    Texture& tex = m_textureTable.Lookup(textureID);
+#ifdef GPUDEVICE_DEBUG_MODE
+    tex.dbg_refCount = 0;
+#endif
+
+    MTLTextureDescriptor* desc = [[[MTLTextureDescriptor alloc] init] autorelease];
+    desc.textureType = s_metalTextureTypes[type];
+    desc.pixelFormat = s_metalPixelFormats[pixelFormat];
+    desc.width = width;
+    desc.height = height;
+    desc.depth = (type == GPU_TEXTURE_3D) ? depthOrArrayLength : 1;
+    desc.mipmapLevelCount = nMipmapLevels;
+    desc.sampleCount = 1;
+    desc.arrayLength = s_textureTypeIsArray[type] ? depthOrArrayLength : 1;
+    desc.resourceOptions = MTLResourceStorageModeManaged | MTLResourceOptionCPUCacheModeDefault;
+    desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+    desc.storageMode = MTLStorageModeManaged;
+    desc.usage = MTLTextureUsageShaderRead;
+
+    tex.texture = [m_device newTextureWithDescriptor:desc];
+
+    ++m_dbg_textureCount;
+
+    return textureID;
+}
+
+void GpuDeviceMetal::TextureDestroy(GpuTextureID textureID)
+{
+    ASSERT(TextureExists(textureID));
+    Texture& tex = m_textureTable.Lookup(textureID);
+
+#ifdef GPUDEVICE_DEBUG_MODE
+    if (tex.dbg_refCount != 0) {
+        FATAL("Can't destroy texture as it still has %d draw "
+              "item(s) referencing it", tex.dbg_refCount);
+    }
+#endif
+
+    [tex.texture release];
+
+    m_textureTable.Remove(textureID);
+
+    --m_dbg_textureCount;
+}
+
+void GpuDeviceMetal::TextureUpload(GpuTextureID textureID,
+                                   const GpuRegion& region,
+                                   int mipmapLevel,
+                                   int stride,
+                                   const void* bytes)
+{
+    ASSERT(TextureExists(textureID));
+    Texture& tex = m_textureTable.Lookup(textureID);
+
+    MTLRegion mtlRegion;
+    mtlRegion.origin.x = region.x;
+    mtlRegion.origin.y = region.y;
+    mtlRegion.origin.z = 0;
+    mtlRegion.size.width = region.width;
+    mtlRegion.size.height = region.height;
+    mtlRegion.size.depth = 1;
+
+    [tex.texture replaceRegion:mtlRegion
+                   mipmapLevel:mipmapLevel
+                     withBytes:bytes
+                   bytesPerRow:stride];
+}
+
+bool GpuDeviceMetal::SamplerExists(GpuSamplerID samplerID) const
+{
+    return m_samplerTable.Has(samplerID);
+}
+
+GpuSamplerID GpuDeviceMetal::SamplerCreate(const GpuSamplerDesc& desc)
+{
+    ASSERT(1 <= desc.maxAnisotropy && desc.maxAnisotropy <= 16);
+
+    GpuSamplerID samplerID(m_samplerTable.Add());
+    Sampler& sampler = m_samplerTable.Lookup(samplerID);
+#ifdef GPUDEVICE_DEBUG_MODE
+    sampler.dbg_refCount = 0;
+#endif
+
+    MTLSamplerDescriptor* mtlDesc = [[[MTLSamplerDescriptor alloc] init] autorelease];
+    mtlDesc.sAddressMode = s_metalSamplerAddressModes[desc.uAddressMode];
+    mtlDesc.tAddressMode = s_metalSamplerAddressModes[desc.vAddressMode];
+    mtlDesc.rAddressMode = s_metalSamplerAddressModes[desc.wAddressMode];
+    mtlDesc.minFilter = s_metalSamplerMinMagFilters[desc.minFilter];
+    mtlDesc.magFilter = s_metalSamplerMinMagFilters[desc.magFilter];
+    mtlDesc.mipFilter = s_metalSamplerMipFilters[desc.mipFilter];
+    mtlDesc.lodMinClamp = 0.0f;
+    mtlDesc.lodMaxClamp = FLT_MAX;
+    mtlDesc.maxAnisotropy = desc.maxAnisotropy;
+    mtlDesc.normalizedCoordinates = YES;
+    mtlDesc.compareFunction = MTLCompareFunctionNever;
+
+    sampler.samplerState = [m_device newSamplerStateWithDescriptor:mtlDesc];
+
+    ++m_dbg_samplerCount;
+
+    return samplerID;
+}
+
+void GpuDeviceMetal::SamplerDestroy(GpuSamplerID samplerID)
+{
+    ASSERT(SamplerExists(samplerID));
+    Sampler& sampler = m_samplerTable.Lookup(samplerID);
+
+#ifdef GPUDEVICE_DEBUG_MODE
+    if (sampler.dbg_refCount != 0) {
+        FATAL("Can't destroy sampler as it still has %d draw "
+              "item(s) referencing it", sampler.dbg_refCount);
+    }
+#endif
+
+    [sampler.samplerState release];
+
+    m_samplerTable.Remove(samplerID);
+
+    --m_dbg_samplerCount;
 }
 
 bool GpuDeviceMetal::InputLayoutExists(GpuInputLayoutID inputLayoutID) const
@@ -812,6 +1058,22 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
             [encoder setFragmentBuffer:buf offset:0 atIndex:i];
         }
 
+        // Set textures
+        const u16* textures = item->Textures();
+        for (int i = 0; i < item->nTextures; ++i) {
+            id<MTLTexture> tex = m_textureTable.LookupRaw(textures[i]).texture;
+            [encoder setVertexTexture:tex atIndex:i];
+            [encoder setFragmentTexture:tex atIndex:i];
+        }
+
+        // Set samplers
+        const u16* samplers = item->Samplers();
+        for (int i = 0; i < item->nSamplers; ++i) {
+            id<MTLSamplerState> sampler = m_samplerTable.LookupRaw(samplers[i]).samplerState;
+            [encoder setVertexSamplerState:sampler atIndex:i];
+            [encoder setFragmentSamplerState:sampler atIndex:i];
+        }
+
         // Submit the draw call
         MTLPrimitiveType primType = s_metalPrimitiveTypes[item->GetPrimitiveType()];
         if (item->IsIndexed()) {
@@ -877,6 +1139,16 @@ void GpuDeviceMetal::DrawItem_UpdateRefCounts(const GpuDrawItem* item, int incre
     for (int i = 0; i < item->nCBuffers; ++i) {
         m_bufferTable.LookupRaw(cbuffers[i]).dbg_refCount += increment;
     }
+
+    u16* textures = item->Textures();
+    for (int i = 0; i < item->nTextures; ++i) {
+        m_textureTable.LookupRaw(textures[i]).dbg_refCount += increment;
+    }
+
+    u16* samplers = item->Samplers();
+    for (int i = 0; i < item->nSamplers; ++i) {
+        m_samplerTable.LookupRaw(samplers[i]).dbg_refCount += increment;
+    }
 }
 
 void GpuDeviceMetal::RegisterDrawItem(const GpuDrawItem* item)
@@ -934,6 +1206,36 @@ void* GpuDevice::BufferGetContents(GpuBufferID bufferID)
 
 void GpuDevice::BufferFlushRange(GpuBufferID bufferID, int start, int length)
 { Cast(this)->BufferFlushRange(bufferID, start, length); }
+
+bool GpuDevice::TextureExists(GpuTextureID textureID) const
+{ return Cast(this)->TextureExists(textureID); }
+
+GpuTextureID GpuDevice::TextureCreate(GpuTextureType type,
+                                      GpuPixelFormat pixelFormat,
+                                      int width,
+                                      int height,
+                                      int depthOrArrayLength,
+                                      int nMipmapLevels)
+{ return Cast(this)->TextureCreate(type, pixelFormat, width, height, depthOrArrayLength, nMipmapLevels); }
+
+void GpuDevice::TextureDestroy(GpuTextureID textureID)
+{ return Cast(this)->TextureDestroy(textureID); }
+
+void GpuDevice::TextureUpload(GpuTextureID textureID,
+                              const GpuRegion& region,
+                              int mipmapLevel,
+                              int stride,
+                              const void* bytes)
+{ Cast(this)->TextureUpload(textureID, region, mipmapLevel, stride, bytes); }
+
+bool GpuDevice::SamplerExists(GpuSamplerID samplerID) const
+{ return Cast(this)->SamplerExists(samplerID); }
+
+GpuSamplerID GpuDevice::SamplerCreate(const GpuSamplerDesc& desc)
+{ return Cast(this)->SamplerCreate(desc); }
+
+void GpuDevice::SamplerDestroy(GpuSamplerID samplerID)
+{ Cast(this)->SamplerDestroy(samplerID); }
 
 bool GpuDevice::InputLayoutExists(GpuInputLayoutID inputLayoutID) const
 { return Cast(this)->InputLayoutExists(inputLayoutID); }

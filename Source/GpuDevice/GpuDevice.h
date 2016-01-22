@@ -40,6 +40,13 @@ struct GpuViewport {
     float zFar;
 };
 
+struct GpuRegion {
+    int x;
+    int y;
+    int width;
+    int height;
+};
+
 enum GpuPrimitiveType {
     GPU_PRIMITIVE_TRIANGLES,
 };
@@ -81,6 +88,8 @@ DECLARE_PRIMITIVE_WRAPPER(u32, GpuTextureID);
 DECLARE_PRIMITIVE_WRAPPER(u32, GpuInputLayoutID);
 DECLARE_PRIMITIVE_WRAPPER(u32, GpuPipelineStateID);
 DECLARE_PRIMITIVE_WRAPPER(u32, GpuRenderPassID);
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuTextureID);
+DECLARE_PRIMITIVE_WRAPPER(u32, GpuSamplerID);
 
 enum GpuBufferType {
     GPU_BUFFER_TYPE_VERTEX,
@@ -91,6 +100,53 @@ enum GpuBufferType {
 enum GpuBufferAccessMode {
     GPU_BUFFER_ACCESS_STATIC,
     GPU_BUFFER_ACCESS_DYNAMIC,
+};
+
+enum GpuPixelFormat {
+    GPU_PIXEL_FORMAT_BGRA8888,
+    GPU_PIXEL_FORMAT_DXT1,
+    GPU_PIXEL_FORMAT_DXT3,
+    GPU_PIXEL_FORMAT_DXT5,
+};
+
+enum GpuTextureType {
+    GPU_TEXTURE_1D,
+    GPU_TEXTURE_1D_ARRAY,
+    GPU_TEXTURE_2D,
+    GPU_TEXTURE_2D_ARRAY,
+    GPU_TEXTURE_CUBE,
+    GPU_TEXTURE_3D,
+};
+
+enum GpuSamplerAddressMode {
+    GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE,
+    GPU_SAMPLER_ADDRESS_MIRROR_CLAMP_TO_EDGE,
+    GPU_SAMPLER_ADDRESS_REPEAT,
+    GPU_SAMPLER_ADDRESS_MIRROR_REPEAT,
+    GPU_SAMPLER_ADDRESS_CLAMP_TO_ZERO,
+};
+
+enum GpuSamplerFilterMode {
+    GPU_SAMPLER_FILTER_NEAREST,
+    GPU_SAMPLER_FILTER_LINEAR,
+};
+
+enum GpuSamplerMipFilter {
+    GPU_SAMPLER_MIPFILTER_NOT_MIPMAPPED,
+    GPU_SAMPLER_MIPFILTER_NEAREST,
+    GPU_SAMPLER_MIPFILTER_LINEAR,
+};
+
+struct GpuSamplerDesc {
+    GpuSamplerDesc();
+
+    GpuSamplerAddressMode uAddressMode;
+    GpuSamplerAddressMode vAddressMode;
+    GpuSamplerAddressMode wAddressMode;
+    GpuSamplerFilterMode minFilter;
+    GpuSamplerFilterMode magFilter;
+    GpuSamplerMipFilter mipFilter;
+    int maxAnisotropy;
 };
 
 struct GpuPipelineStateDesc {
@@ -197,6 +253,26 @@ public:
     void BufferDestroy(GpuBufferID bufferID);
     void* BufferGetContents(GpuBufferID bufferID);
     void BufferFlushRange(GpuBufferID bufferID, int start, int length);
+
+    // Textures
+    bool TextureExists(GpuTextureID textureID) const;
+    GpuTextureID TextureCreate(GpuTextureType type,
+                               GpuPixelFormat pixelFormat,
+                               int width,
+                               int height,
+                               int depthOrArrayLength,
+                               int nMipmapLevels);
+    void TextureDestroy(GpuTextureID textureID);
+    void TextureUpload(GpuTextureID textureID,
+                       const GpuRegion& region,
+                       int mipmapLevel,
+                       int stride,
+                       const void* bytes);
+
+    // Samplers
+    bool SamplerExists(GpuSamplerID samplerID) const;
+    GpuSamplerID SamplerCreate(const GpuSamplerDesc& desc);
+    void SamplerDestroy(GpuSamplerID samplerID);
 
     // Input layouts
     bool InputLayoutExists(GpuInputLayoutID inputLayoutID) const;
