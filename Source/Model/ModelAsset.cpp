@@ -85,3 +85,12 @@ GpuBufferID ModelAsset::GetIndexBuf() const
 {
     return m_indexBuf;
 }
+
+ModelAssetFactory::ModelAssetFactory(GpuDevice* device)
+    : m_device(device)
+{}
+
+ModelAsset* ModelAssetFactory::operator()(u8* data, int size) const
+{
+    return new ModelAsset(m_device, data, size);
+}

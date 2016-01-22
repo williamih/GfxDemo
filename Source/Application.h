@@ -3,7 +3,7 @@
 
 #include <memory>
 #include "GpuDevice/GpuDevice.h"
-#include "Model/ModelCache.h"
+#include "Asset/AssetCache.h"
 #include "Model/ModelRenderQueue.h"
 #include "Model/ModelInstance.h"
 
@@ -21,7 +21,7 @@ private:
     OsWindow* m_window;
     GpuDevice* m_gpuDevice;
     GpuRenderPassID m_renderPass;
-    ModelCache* m_modelCache;
+    AssetCache<ModelAsset>* m_modelCache;
     ModelRenderQueue* m_modelRenderQueue;
     ModelInstance* m_modelInstance;
     float m_angle;

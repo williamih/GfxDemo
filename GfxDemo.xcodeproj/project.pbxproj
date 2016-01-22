@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		7A0020FB1BF8239000A0B82F /* MacApplication.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A0020F91BF8239000A0B82F /* MacApplication.mm */; };
 		7A10CE8D1C006FF200A6816F /* ModelAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE851C006FF200A6816F /* ModelAsset.cpp */; };
-		7A10CE8E1C006FF200A6816F /* ModelCache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE871C006FF200A6816F /* ModelCache.cpp */; };
 		7A10CE8F1C006FF200A6816F /* ModelInstance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE891C006FF200A6816F /* ModelInstance.cpp */; };
 		7A10CE901C006FF200A6816F /* ModelRenderQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE8B1C006FF200A6816F /* ModelRenderQueue.cpp */; };
 		7A10CEA11C0070C000A6816F /* Matrix33.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE971C0070C000A6816F /* Matrix33.cpp */; };
@@ -37,10 +36,9 @@
 /* Begin PBXFileReference section */
 		7A0020F91BF8239000A0B82F /* MacApplication.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MacApplication.mm; sourceTree = "<group>"; };
 		7A0020FA1BF8239000A0B82F /* MacApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacApplication.h; sourceTree = "<group>"; };
+		7A0FA8761C52D46F00EAC474 /* AssetCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssetCache.h; sourceTree = "<group>"; };
 		7A10CE851C006FF200A6816F /* ModelAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelAsset.cpp; sourceTree = "<group>"; };
 		7A10CE861C006FF200A6816F /* ModelAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelAsset.h; sourceTree = "<group>"; };
-		7A10CE871C006FF200A6816F /* ModelCache.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelCache.cpp; sourceTree = "<group>"; };
-		7A10CE881C006FF200A6816F /* ModelCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelCache.h; sourceTree = "<group>"; };
 		7A10CE891C006FF200A6816F /* ModelInstance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelInstance.cpp; sourceTree = "<group>"; };
 		7A10CE8A1C006FF200A6816F /* ModelInstance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelInstance.h; sourceTree = "<group>"; };
 		7A10CE8B1C006FF200A6816F /* ModelRenderQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelRenderQueue.cpp; sourceTree = "<group>"; };
@@ -111,13 +109,19 @@
 			path = Mac;
 			sourceTree = "<group>";
 		};
+		7A0FA8751C52D46F00EAC474 /* Asset */ = {
+			isa = PBXGroup;
+			children = (
+				7A0FA8761C52D46F00EAC474 /* AssetCache.h */,
+			);
+			path = Asset;
+			sourceTree = "<group>";
+		};
 		7A10CE841C006FF200A6816F /* Model */ = {
 			isa = PBXGroup;
 			children = (
 				7A10CE861C006FF200A6816F /* ModelAsset.h */,
 				7A10CE851C006FF200A6816F /* ModelAsset.cpp */,
-				7A10CE881C006FF200A6816F /* ModelCache.h */,
-				7A10CE871C006FF200A6816F /* ModelCache.cpp */,
 				7A10CE8A1C006FF200A6816F /* ModelInstance.h */,
 				7A10CE891C006FF200A6816F /* ModelInstance.cpp */,
 				7A10CE8C1C006FF200A6816F /* ModelRenderQueue.h */,
@@ -214,6 +218,7 @@
 				CA5FF6811A4B8FBB004ADF7F /* File.cpp */,
 				7AEAF2001BF81DA400620EB0 /* Main.cpp */,
 				7A10CE841C006FF200A6816F /* Model */,
+				7A0FA8751C52D46F00EAC474 /* Asset */,
 				7A10CE961C0070C000A6816F /* Math */,
 				7A0020F81BF8238100A0B82F /* Mac */,
 				7A4492001BF1E42800444DFC /* GpuDevice */,
@@ -306,7 +311,6 @@
 				CA0732C81A43A62300770DE8 /* OsWindowMac.mm in Sources */,
 				7A10CEA21C0070C000A6816F /* Matrix44.cpp in Sources */,
 				7A10CEA41C0070C000A6816F /* Vector3.cpp in Sources */,
-				7A10CE8E1C006FF200A6816F /* ModelCache.cpp in Sources */,
 				7A4492051BF1E46700444DFC /* GpuDeviceMetal.mm in Sources */,
 				7AB95A051C25225600A71282 /* GpuMathUtils.cpp in Sources */,
 				7AEB7B3C1C37538A00EA12EA /* GpuShaderLoad.cpp in Sources */,

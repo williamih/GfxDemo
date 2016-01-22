@@ -31,4 +31,13 @@ private:
     GpuBufferID m_indexBuf;
 };
 
+class ModelAssetFactory {
+public:
+    explicit ModelAssetFactory(GpuDevice* device);
+
+    ModelAsset* operator()(u8* data, int size) const;
+private:
+    GpuDevice* m_device;
+};
+
 #endif // MODEL_MODELASSET_H

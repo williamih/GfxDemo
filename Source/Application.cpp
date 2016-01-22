@@ -1,11 +1,15 @@
 #include "Application.h"
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <math.h>
-#include "OsWindow.h"
-#include "File.h"
+
 #include "Math/Vector3.h"
 #include "GpuDevice/GpuDrawItemWriter.h"
+#include "Model/ModelAsset.h"
+
+#include "OsWindow.h"
+#include "File.h"
 
 static void OnWindowResize(const OsEvent& event, void* userdata)
 {
@@ -49,9 +53,10 @@ Application::Application()
     renderPass.clearDepth = 1.0f;
     m_renderPass = m_gpuDevice->RenderPassCreate(renderPass);
 
-    m_modelCache = new ModelCache(m_gpuDevice);
+    m_modelCache = new AssetCache<ModelAsset>();
     m_modelRenderQueue = new ModelRenderQueue(m_gpuDevice);
-    std::shared_ptr<ModelAsset> model(m_modelCache->FindOrLoad("Assets/Models/Teapot.mdl"));
+    ModelAssetFactory factory(m_gpuDevice);
+    std::shared_ptr<ModelAsset> model(m_modelCache->FindOrLoad("Assets/Models/Teapot.mdl", factory));
     m_modelInstance = m_modelRenderQueue->CreateModelInstance(model);
 
     m_window->RegisterEvent(OSEVENT_PAINT, OnPaint, (void*)this);
