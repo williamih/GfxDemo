@@ -47,23 +47,24 @@ void GpuShaderLoad::ReadShaderFile(const char* data,
     if (length < sizeof(GpuShaderLoad::Header))
         FATAL("Shader file doesn't contain a full header");
 
-    GpuShaderLoad::Header* header = (GpuShaderLoad::Header*)data;
-    header->FixEndian();
-    if (header->fourCC != FOURCC('S', 'H', 'D', 'R'))
+    Header header;
+    memcpy(&header, data, sizeof header);
+    header.FixEndian();
+    if (header.fourCC != FOURCC('S', 'H', 'D', 'R'))
         FATAL("Shader file has incorrect FourCC");
-    if (header->languageFourCC != targetLanguageFourCC)
+    if (header.languageFourCC != targetLanguageFourCC)
         FATAL("Shader file is for another shader language than the one requested");
 
-    const u8* ptr = (const u8*)(header + 1);
-    u32 nPermutations = header->nPermutations;
-    for (u32 i = 0; i < nPermutations; ++i) {
-        GpuShaderLoad::PermutationHeader* permuteHeader = (GpuShaderLoad::PermutationHeader*)ptr;
-        permuteHeader->FixEndian();
-        const char* shaderCode = (const char*)(permuteHeader + 1);
+    const u8* ptr = (const u8*)(data + sizeof(Header));
+    for (u32 i = 0; i < header.nPermutations; ++i) {
+        PermutationHeader permuteHeader;
+        memcpy(&permuteHeader, ptr, sizeof permuteHeader);
+        permuteHeader.FixEndian();
+        const char* shaderCode = (const char*)(ptr + sizeof(PermutationHeader));
 
         callback(
             READACTION_NEW_PERMUTATION,
-            permuteHeader->permuteMask,
+            permuteHeader.permuteMask,
             NULL,
             0,
             userdata
@@ -71,20 +72,20 @@ void GpuShaderLoad::ReadShaderFile(const char* data,
 
         callback(
             READACTION_PROVIDE_VS_CODE,
-            permuteHeader->permuteMask,
+            permuteHeader.permuteMask,
             shaderCode,
-            permuteHeader->vsLength,
+            permuteHeader.vsLength,
             userdata
         );
-        shaderCode += permuteHeader->vsLength;
+        shaderCode += permuteHeader.vsLength;
         callback(
             READACTION_PROVIDE_PS_CODE,
-            permuteHeader->permuteMask,
+            permuteHeader.permuteMask,
             shaderCode,
-            permuteHeader->psLength,
+            permuteHeader.psLength,
             userdata
         );
 
-        ptr = (const u8*)permuteHeader + permuteHeader->ofsNextPermutation;
+        ptr += permuteHeader.ofsNextPermutation;
     }
 }
