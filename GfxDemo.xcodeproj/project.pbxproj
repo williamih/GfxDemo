@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7A0020FB1BF8239000A0B82F /* MacApplication.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A0020F91BF8239000A0B82F /* MacApplication.mm */; };
+		7A0CF61A1C54C17200C7952C /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A0CF6191C54C17200C7952C /* Carbon.framework */; };
 		7A10CE8D1C006FF200A6816F /* ModelAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE851C006FF200A6816F /* ModelAsset.cpp */; };
 		7A10CE8F1C006FF200A6816F /* ModelInstance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE891C006FF200A6816F /* ModelInstance.cpp */; };
 		7A10CE901C006FF200A6816F /* ModelRenderQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE8B1C006FF200A6816F /* ModelRenderQueue.cpp */; };
@@ -36,6 +37,7 @@
 /* Begin PBXFileReference section */
 		7A0020F91BF8239000A0B82F /* MacApplication.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MacApplication.mm; sourceTree = "<group>"; };
 		7A0020FA1BF8239000A0B82F /* MacApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacApplication.h; sourceTree = "<group>"; };
+		7A0CF6191C54C17200C7952C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		7A0FA8761C52D46F00EAC474 /* AssetCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssetCache.h; sourceTree = "<group>"; };
 		7A10CE851C006FF200A6816F /* ModelAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelAsset.cpp; sourceTree = "<group>"; };
 		7A10CE861C006FF200A6816F /* ModelAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelAsset.h; sourceTree = "<group>"; };
@@ -91,6 +93,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A0CF61A1C54C17200C7952C /* Carbon.framework in Frameworks */,
 				7AEAF2051BF81E9300620EB0 /* QuartzCore.framework in Frameworks */,
 				7AEAF2031BF81E7E00620EB0 /* Cocoa.framework in Frameworks */,
 				7A4492071BF1E63500444DFC /* Metal.framework in Frameworks */,
@@ -186,6 +189,7 @@
 		CA00850D1A43A21800E2A102 = {
 			isa = PBXGroup;
 			children = (
+				7A0CF6191C54C17200C7952C /* Carbon.framework */,
 				7AEAF2021BF81E7E00620EB0 /* Cocoa.framework */,
 				7AEAF2041BF81E9300620EB0 /* QuartzCore.framework */,
 				7A4492061BF1E63500444DFC /* Metal.framework */,

@@ -5,6 +5,7 @@
 #include <queue>
 
 #import <Cocoa/Cocoa.h>
+#import <Carbon/Carbon.h>
 #import <QuartzCore/QuartzCore.h>
 
 #include "Core/Macros.h"
@@ -64,6 +65,144 @@ static OsWindow* Cast(OsWindowMacImpl* w) { return (OsWindow*)w; }
 // OsWindowMacView class
 // -----------------------------------------------------------------------------
 
+@interface NSEvent (OsWindowMacAdditions)
+
+- (NSString *)charactersIgnoringModifiersIncludingShift;
+
+@end
+
+@implementation NSEvent (OsWindowMacAdditions)
+
+// Modified from code by John Stiles at
+// http://lists.apple.com/archives/cocoa-dev/2008/Apr/msg01582.html.
+- (NSString *)charactersIgnoringModifiersIncludingShift {
+    // First, try -charactersIgnoringModifiers and look for keys which UCKeyTranslate translates
+    // differently than AppKit.
+    NSString *c = [self charactersIgnoringModifiers];
+    if ([c length] == 1) {
+        unichar codepoint = [c characterAtIndex:0];
+        if ((codepoint >= 0xF700 && codepoint <= 0xF8FF) || codepoint == 0x7F) {
+            return c;
+        }
+    }
+
+    // OK, this is not a "special" key, so ask UCKeyTranslate to give us the character with no
+    // modifiers attached. Actually, that's not quite accurate--we attach the Command modifier.
+    // Command hints the OS to use Latin characters where possible, which is generally what we
+    // are after here.
+    NSString *result = @"";
+
+    TISInputSourceRef inputSourceRef = TISCopyCurrentKeyboardInputSource();
+
+    // Note: the docs say we shouldn't release this CFDataRef.
+    CFDataRef data = (CFDataRef)TISGetInputSourceProperty(
+        inputSourceRef,
+        kTISPropertyUnicodeKeyLayoutData
+    );
+
+    const UCKeyboardLayout *uchrData = NULL;
+    if (data)
+        uchrData = (const UCKeyboardLayout *)CFDataGetBytePtr(data);
+
+    if (uchrData != NULL) {
+        // Use UCKeyTranslate.
+        UniChar buf[256];
+        UniCharCount actualStringLength;
+        UInt32 deadKeyState = 0;
+        OSStatus err = UCKeyTranslate(
+            uchrData,
+            [self keyCode],
+            kUCKeyActionDown,
+            // forcing the Command key to "on" hints the OS to show Latin characters where possible
+            cmdKey >> 8,
+            LMGetKbdType(),
+            kUCKeyTranslateNoDeadKeysMask,
+            &deadKeyState,
+            sizeof buf / sizeof buf[0],
+            &actualStringLength,
+            buf
+        );
+        if (err != noErr)
+            return @"";
+
+        result = [NSString stringWithCharacters:buf length:actualStringLength];
+
+    }
+
+    CFRelease(inputSourceRef);
+
+    return result;
+}
+
+@end
+
+static OsKeyCode CharacterToKeyCode(unichar c)
+{
+    switch (c) {
+        case NSLeftArrowFunctionKey: return OSKEY_LEFT_ARROW;
+        case NSRightArrowFunctionKey: return OSKEY_RIGHT_ARROW;
+        case NSUpArrowFunctionKey: return OSKEY_UP_ARROW;
+        case NSDownArrowFunctionKey: return OSKEY_DOWN_ARROW;
+        case NSDeleteFunctionKey: return OSKEY_DELETE;
+        case 27: return OSKEY_ESCAPE;
+        case NSEnterCharacter:
+        case NSNewlineCharacter:
+        case NSCarriageReturnCharacter: return OSKEY_ENTER;
+        case ' ': return OSKEY_SPACE;
+        case '[': return OSKEY_LBRACKET;
+        case ']': return OSKEY_RBRACKET;
+        case '/': return OSKEY_SLASH;
+        case '.': return OSKEY_PERIOD;
+        case ',': return OSKEY_COMMA;
+        case '\'': return OSKEY_QUOTE;
+        case '=': return OSKEY_EQUAL;
+        case ';': return OSKEY_SEMICOLON;
+        case '-': return OSKEY_MINUS;
+        case '0': return OSKEY_NUM0;
+        case '1': return OSKEY_NUM1;
+        case '2': return OSKEY_NUM2;
+        case '3': return OSKEY_NUM3;
+        case '4': return OSKEY_NUM4;
+        case '5': return OSKEY_NUM5;
+        case '6': return OSKEY_NUM6;
+        case '7': return OSKEY_NUM7;
+        case '8': return OSKEY_NUM8;
+        case '9': return OSKEY_NUM9;
+        case 'a': return OSKEY_A;
+        case 'b': return OSKEY_B;
+        case 'c': return OSKEY_C;
+        case 'd': return OSKEY_D;
+        case 'e': return OSKEY_E;
+        case 'f': return OSKEY_F;
+        case 'g': return OSKEY_G;
+        case 'h': return OSKEY_H;
+        case 'i': return OSKEY_I;
+        case 'j': return OSKEY_J;
+        case 'k': return OSKEY_K;
+        case 'l': return OSKEY_L;
+        case 'm': return OSKEY_M;
+        case 'n': return OSKEY_N;
+        case 'o': return OSKEY_O;
+        case 'p': return OSKEY_P;
+        case 'q': return OSKEY_Q;
+        case 'r': return OSKEY_R;
+        case 's': return OSKEY_S;
+        case 't': return OSKEY_T;
+        case 'u': return OSKEY_U;
+        case 'v': return OSKEY_V;
+        case 'w': return OSKEY_W;
+        case 'x': return OSKEY_X;
+        case 'y': return OSKEY_Y;
+        case 'z': return OSKEY_Z;
+
+        default: return OSKEY_LAST;
+    }
+}
+
+// -----------------------------------------------------------------------------
+// OsWindowMacView class
+// -----------------------------------------------------------------------------
+
 @interface OsWindowMacView : NSView
 
 @property (assign) OsWindowMacImpl *impl;
@@ -87,6 +226,39 @@ static OsWindow* Cast(OsWindowMacImpl* w) { return (OsWindow*)w; }
         event.type = OSEVENT_WINDOW_RESIZE;
         self.impl->EnqueueEvent(event);
     }
+}
+
+- (BOOL)acceptsFirstResponder {
+    return YES;
+}
+
+- (void)enqueueKeyEvent:(NSEvent *)theEvent type:(OsEventType)type {
+    NSString *str = [theEvent charactersIgnoringModifiersIncludingShift];
+    NSEventModifierFlags modifierFlags = [theEvent modifierFlags];
+
+    OsEvent e;
+    e.type = type;
+    e.key.code = CharacterToKeyCode([str characterAtIndex:0]);
+    if (e.key.code == OSKEY_LAST)
+        return;
+    e.key.modifierFlags = 0;
+    if (modifierFlags & NSAlternateKeyMask)
+        e.key.modifierFlags |= OsKeyEvent::FLAG_ALT;
+    if (modifierFlags & NSControlKeyMask)
+        e.key.modifierFlags |= OsKeyEvent::FLAG_CONTROL;
+    if (modifierFlags & NSShiftKeyMask)
+        e.key.modifierFlags |= OsKeyEvent::FLAG_SHIFT;
+
+    impl->EnqueueEvent(e);
+}
+
+- (void)keyDown:(NSEvent *)theEvent {
+    OsEventType type = [theEvent isARepeat] ? OSEVENT_KEY_DOWN_REPEAT : OSEVENT_KEY_DOWN;
+    [self enqueueKeyEvent:theEvent type:type];
+}
+
+- (void)keyUp:(NSEvent *)theEvent {
+    [self enqueueKeyEvent:theEvent type:OSEVENT_KEY_UP];
 }
 
 @end
