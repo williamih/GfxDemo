@@ -136,6 +136,7 @@ public:
             m_objects.push_back(o);
         } else {
             theID |= (ID)m_freeList;
+            m_objects[m_freeList].theID = theID;
             m_freeList = m_objects[m_freeList].u.next;
         }
         return theID;
