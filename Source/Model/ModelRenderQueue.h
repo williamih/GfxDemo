@@ -5,9 +5,11 @@
 #include "Math/Vector3.h"
 #include "Math/Matrix44.h"
 #include "GpuDevice/GpuDevice.h"
+#include "Asset/AssetCache.h"
 
 class ModelAsset;
 class ModelInstance;
+class ShaderAsset;
 
 class ModelRenderQueue {
 public:
@@ -19,7 +21,7 @@ public:
         Vector3 ambientRadiance;
     };
 
-    explicit ModelRenderQueue(GpuDevice* device);
+    ModelRenderQueue(GpuDevice* device, AssetCache<ShaderAsset>& shaderCache);
     ~ModelRenderQueue();
 
     ModelInstance* CreateModelInstance(std::shared_ptr<ModelAsset> model);
@@ -33,11 +35,15 @@ private:
     ModelRenderQueue(const ModelRenderQueue&);
     ModelRenderQueue& operator=(const ModelRenderQueue&);
 
-    std::vector<ModelInstance*> m_modelInstances;
+    void RefreshPipelineStateObject();
+
     std::vector<const GpuDrawItem*> m_drawItems;
+#ifdef ASSET_REFRESH
+    std::vector<ModelInstance*> m_modelInstances;
+#endif
     GpuDevice* m_device;
+    std::shared_ptr<ShaderAsset> m_shaderAsset;
     GpuBufferID m_sceneCBuffer;
-    GpuShaderProgramID m_shaderProgram;
     GpuTextureID m_defaultTexture;
     GpuSamplerID m_sampler;
     GpuInputLayoutID m_inputLayout;

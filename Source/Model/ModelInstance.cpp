@@ -31,35 +31,37 @@ static void* ModelDrawItemAlloc(size_t size, void* userdata)
 }
 
 static void InternalCreateDrawItem(void* location,
+                                   ModelAsset* model,
                                    const ModelInstanceCreateContext& ctx,
                                    GpuBufferID modelCBuffer)
 {
-    GpuDevice* dev = ctx.model->GetGpuDevice();
+    GpuDevice* dev = model->GetGpuDevice();
     GpuDrawItemWriterDesc desc = CreateDrawItemWriterDesc();
 
     GpuDrawItemWriter writer;
     writer.Begin(dev, desc, ModelDrawItemAlloc, location);
     writer.SetPipelineState(ctx.pipelineObject);
-    writer.SetVertexBuffer(0, ctx.model->GetVertexBuf(), 0);
+    writer.SetVertexBuffer(0, model->GetVertexBuf(), 0);
     writer.SetCBuffer(0, ctx.sceneCBuffer);
     writer.SetCBuffer(1, modelCBuffer);
     writer.SetTexture(0, ctx.defaultTexture);
     writer.SetSampler(0, ctx.samplerNonMipmapped);
-    writer.SetIndexBuffer(ctx.model->GetIndexBuf());
+    writer.SetIndexBuffer(model->GetIndexBuf());
     writer.SetDrawCallIndexed(GPU_PRIMITIVE_TRIANGLES,
                               0,
-                              ctx.model->GetIndexCount(),
+                              model->GetIndexCount(),
                               0,
                               GPU_INDEX_U32);
     writer.End();
 }
 
-ModelInstance* ModelInstance::Create(const ModelInstanceCreateContext& ctx)
+ModelInstance* ModelInstance::Create(std::shared_ptr<ModelAsset> model,
+                                     const ModelInstanceCreateContext& ctx)
 {
     GpuDrawItemWriterDesc desc = CreateDrawItemWriterDesc();
     size_t size = sizeof(ModelInstance) + GpuDrawItemWriter::SizeInBytes(desc);
     u8* buf = (u8*)malloc(size);
-    ModelInstance* instance = new (buf) ModelInstance(ctx);
+    ModelInstance* instance = new (buf) ModelInstance(model, ctx);
     return instance;
 }
 
@@ -69,16 +71,17 @@ void ModelInstance::Destroy(ModelInstance* instance)
     free((void*)instance);
 }
 
-ModelInstance::ModelInstance(const ModelInstanceCreateContext& ctx)
-    : m_model(ctx.model)
+ModelInstance::ModelInstance(std::shared_ptr<ModelAsset> model,
+                             const ModelInstanceCreateContext& ctx)
+    : m_model(model)
     , m_cbuffer(0)
 {
-    GpuDevice* dev = ctx.model->GetGpuDevice();
+    GpuDevice* dev = model->GetGpuDevice();
     m_cbuffer = dev->BufferCreate(GPU_BUFFER_TYPE_CONSTANT,
                                   GPU_BUFFER_ACCESS_DYNAMIC,
                                   NULL,
                                   sizeof(ModelInstanceCBuffer));
-    InternalCreateDrawItem((void*)GetDrawItem(), ctx, m_cbuffer);
+    InternalCreateDrawItem((void*)GetDrawItem(), m_model.get(), ctx, m_cbuffer);
 }
 
 ModelInstance::~ModelInstance()
@@ -100,6 +103,12 @@ ModelAsset* ModelInstance::GetModelAsset() const
 GpuBufferID ModelInstance::GetCBuffer() const
 {
     return m_cbuffer;
+}
+
+void ModelInstance::RefreshDrawItem(const ModelInstanceCreateContext& ctx)
+{
+    GPUDEVICE_UNREGISTER_DRAWITEM(m_model->GetGpuDevice(), GetDrawItem());
+    InternalCreateDrawItem((void*)GetDrawItem(), m_model.get(), ctx, m_cbuffer);
 }
 
 void ModelInstance::Update(const Matrix44& worldTransform,

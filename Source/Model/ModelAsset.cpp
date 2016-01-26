@@ -90,7 +90,14 @@ ModelAssetFactory::ModelAssetFactory(GpuDevice* device)
     : m_device(device)
 {}
 
-ModelAsset* ModelAssetFactory::operator()(u8* data, int size) const
+ModelAsset* ModelAssetFactory::Create(u8* data, int size)
 {
     return new ModelAsset(m_device, data, size);
 }
+
+#ifdef ASSET_REFRESH
+void ModelAssetFactory::Refresh(ModelAsset* asset, u8* data, int size)
+{
+    ASSERT(!"ModelAssetFactory::Refresh() not implemented");
+}
+#endif

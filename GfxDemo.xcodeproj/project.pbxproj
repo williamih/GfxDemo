@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		7A0020FB1BF8239000A0B82F /* MacApplication.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A0020F91BF8239000A0B82F /* MacApplication.mm */; };
 		7A0CF61A1C54C17200C7952C /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A0CF6191C54C17200C7952C /* Carbon.framework */; };
+		7A106EA71C56F767003B9E09 /* ShaderAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A106EA51C56F767003B9E09 /* ShaderAsset.cpp */; };
 		7A10CE8D1C006FF200A6816F /* ModelAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE851C006FF200A6816F /* ModelAsset.cpp */; };
 		7A10CE8F1C006FF200A6816F /* ModelInstance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE891C006FF200A6816F /* ModelInstance.cpp */; };
 		7A10CE901C006FF200A6816F /* ModelRenderQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE8B1C006FF200A6816F /* ModelRenderQueue.cpp */; };
@@ -18,10 +19,12 @@
 		7A10CEA41C0070C000A6816F /* Vector3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE9D1C0070C000A6816F /* Vector3.cpp */; };
 		7A10CEA51C0070C000A6816F /* Vector4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE9F1C0070C000A6816F /* Vector4.cpp */; };
 		7A15D2C41BF9728E000DD053 /* Assets in Resources */ = {isa = PBXBuildFile; fileRef = 7A15D2C31BF9728E000DD053 /* Assets */; };
+		7A1EEFC41C54515600D68F49 /* GpuDeferredDeletionQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A1EEFC21C54515600D68F49 /* GpuDeferredDeletionQueue.cpp */; };
 		7A208EB61C013423002B4459 /* GpuDrawItemWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */; };
 		7A4492031BF1E44100444DFC /* GpuDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492011BF1E44100444DFC /* GpuDevice.cpp */; };
 		7A4492051BF1E46700444DFC /* GpuDeviceMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */; };
 		7A4492071BF1E63500444DFC /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A4492061BF1E63500444DFC /* Metal.framework */; };
+		7AA0669D1C5449C3006278C8 /* Asset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AA0669C1C5449C3006278C8 /* Asset.cpp */; };
 		7AB95A051C25225600A71282 /* GpuMathUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AB95A031C25225600A71282 /* GpuMathUtils.cpp */; };
 		7AC5DFCA1B8AF1C700FC65B1 /* Application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */; };
 		7AEAF2011BF81DA400620EB0 /* Main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AEAF2001BF81DA400620EB0 /* Main.cpp */; };
@@ -39,6 +42,8 @@
 		7A0020FA1BF8239000A0B82F /* MacApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacApplication.h; sourceTree = "<group>"; };
 		7A0CF6191C54C17200C7952C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		7A0FA8761C52D46F00EAC474 /* AssetCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssetCache.h; sourceTree = "<group>"; };
+		7A106EA51C56F767003B9E09 /* ShaderAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ShaderAsset.cpp; sourceTree = "<group>"; };
+		7A106EA61C56F767003B9E09 /* ShaderAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderAsset.h; sourceTree = "<group>"; };
 		7A10CE851C006FF200A6816F /* ModelAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelAsset.cpp; sourceTree = "<group>"; };
 		7A10CE861C006FF200A6816F /* ModelAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelAsset.h; sourceTree = "<group>"; };
 		7A10CE891C006FF200A6816F /* ModelInstance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelInstance.cpp; sourceTree = "<group>"; };
@@ -57,6 +62,8 @@
 		7A10CE9F1C0070C000A6816F /* Vector4.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vector4.cpp; sourceTree = "<group>"; };
 		7A10CEA01C0070C000A6816F /* Vector4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Vector4.h; sourceTree = "<group>"; };
 		7A15D2C31BF9728E000DD053 /* Assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets; sourceTree = "<group>"; };
+		7A1EEFC21C54515600D68F49 /* GpuDeferredDeletionQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDeferredDeletionQueue.cpp; sourceTree = "<group>"; };
+		7A1EEFC31C54515600D68F49 /* GpuDeferredDeletionQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDeferredDeletionQueue.h; sourceTree = "<group>"; };
 		7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemWriter.cpp; sourceTree = "<group>"; };
 		7A208EB51C013423002B4459 /* GpuDrawItemWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemWriter.h; sourceTree = "<group>"; };
 		7A208EB71C014263002B4459 /* GpuDrawItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GpuDrawItem.h; sourceTree = "<group>"; };
@@ -65,6 +72,8 @@
 		7A4492021BF1E44100444DFC /* GpuDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDevice.h; sourceTree = "<group>"; };
 		7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GpuDeviceMetal.mm; sourceTree = "<group>"; };
 		7A4492061BF1E63500444DFC /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		7AA0669B1C544657006278C8 /* Asset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Asset.h; sourceTree = "<group>"; };
+		7AA0669C1C5449C3006278C8 /* Asset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Asset.cpp; sourceTree = "<group>"; };
 		7AB95A031C25225600A71282 /* GpuMathUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuMathUtils.cpp; sourceTree = "<group>"; };
 		7AB95A041C25225600A71282 /* GpuMathUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuMathUtils.h; sourceTree = "<group>"; };
 		7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Application.cpp; sourceTree = "<group>"; };
@@ -116,8 +125,19 @@
 			isa = PBXGroup;
 			children = (
 				7A0FA8761C52D46F00EAC474 /* AssetCache.h */,
+				7AA0669B1C544657006278C8 /* Asset.h */,
+				7AA0669C1C5449C3006278C8 /* Asset.cpp */,
 			);
 			path = Asset;
+			sourceTree = "<group>";
+		};
+		7A106EA41C56F767003B9E09 /* Shader */ = {
+			isa = PBXGroup;
+			children = (
+				7A106EA61C56F767003B9E09 /* ShaderAsset.h */,
+				7A106EA51C56F767003B9E09 /* ShaderAsset.cpp */,
+			);
+			path = Shader;
 			sourceTree = "<group>";
 		};
 		7A10CE841C006FF200A6816F /* Model */ = {
@@ -172,6 +192,8 @@
 				7A38309F1C3879250073769C /* GpuShaderPermutations.h */,
 				7AEB7B3B1C37538A00EA12EA /* GpuShaderLoad.h */,
 				7AEB7B3A1C37538A00EA12EA /* GpuShaderLoad.cpp */,
+				7A1EEFC31C54515600D68F49 /* GpuDeferredDeletionQueue.h */,
+				7A1EEFC21C54515600D68F49 /* GpuDeferredDeletionQueue.cpp */,
 			);
 			path = GpuDevice;
 			sourceTree = "<group>";
@@ -222,6 +244,7 @@
 				CA5FF6811A4B8FBB004ADF7F /* File.cpp */,
 				7AEAF2001BF81DA400620EB0 /* Main.cpp */,
 				7A10CE841C006FF200A6816F /* Model */,
+				7A106EA41C56F767003B9E09 /* Shader */,
 				7A0FA8751C52D46F00EAC474 /* Asset */,
 				7A10CE961C0070C000A6816F /* Math */,
 				7A0020F81BF8238100A0B82F /* Mac */,
@@ -310,6 +333,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A10CE8F1C006FF200A6816F /* ModelInstance.cpp in Sources */,
+				7A1EEFC41C54515600D68F49 /* GpuDeferredDeletionQueue.cpp in Sources */,
 				7A0020FB1BF8239000A0B82F /* MacApplication.mm in Sources */,
 				7AEB7B391C373E6600EA12EA /* Model.metal in Sources */,
 				CA0732C81A43A62300770DE8 /* OsWindowMac.mm in Sources */,
@@ -322,12 +346,14 @@
 				7A10CEA11C0070C000A6816F /* Matrix33.cpp in Sources */,
 				7A10CEA31C0070C000A6816F /* Quaternion.cpp in Sources */,
 				7AEAF2011BF81DA400620EB0 /* Main.cpp in Sources */,
+				7A106EA71C56F767003B9E09 /* ShaderAsset.cpp in Sources */,
 				7AC5DFCA1B8AF1C700FC65B1 /* Application.cpp in Sources */,
 				7A10CEA51C0070C000A6816F /* Vector4.cpp in Sources */,
 				CA5FF6831A4B8FBB004ADF7F /* File.cpp in Sources */,
 				7A4492031BF1E44100444DFC /* GpuDevice.cpp in Sources */,
 				7A208EB61C013423002B4459 /* GpuDrawItemWriter.cpp in Sources */,
 				7A10CE8D1C006FF200A6816F /* ModelAsset.cpp in Sources */,
+				7AA0669D1C5449C3006278C8 /* Asset.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -432,6 +458,7 @@
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-DGPUDEVICE_DEBUG_MODE",
+					"-DASSET_REFRESH",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "My-Company.GfxDemo";
 				PRODUCT_NAME = GfxDemo;
@@ -450,6 +477,7 @@
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-DGPUDEVICE_DEBUG_MODE",
+					"-DASSET_REFRESH",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "My-Company.GfxDemo";
 				PRODUCT_NAME = GfxDemo;

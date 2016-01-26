@@ -123,6 +123,11 @@ public:
         return m_objects[rawIndex].u.value;
     }
 
+    ID IDFromRawIndex(ID rawIndex) const
+    {
+        return m_objects[rawIndex].theID;
+    }
+
     ID Add()
     {
         ASSERT(m_nextInnerID < INNER_ID_MASK);

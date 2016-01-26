@@ -7,6 +7,9 @@
 #include "Math/Matrix44.h"
 
 #include "GpuDevice/GpuMathUtils.h"
+#include "GpuDevice/GpuDeferredDeletionQueue.h"
+
+#include "Shader/ShaderAsset.h"
 
 #include "Model/ModelAsset.h"
 #include "Model/ModelInstance.h"
@@ -20,17 +23,6 @@ struct ModelSceneCBuffer {
     float irradiance_over_pi[4];
     float ambientRadiance[4];
 };
-
-static GpuShaderProgramID LoadShaderProgram(GpuDevice* dev, const char* path)
-{
-    std::vector<char> data;
-    if (!FileReadFile(path, data))
-        FATAL("Failed to read shader %s", path);
-    // subtract 1 because we don't want to include the null terminator
-    size_t length = data.size() - 1;
-    GpuShaderProgramID program = dev->ShaderProgramCreate(&data[0], length);
-    return program;
-}
 
 static GpuTextureID CreateDefaultWhiteTexture(GpuDevice* device)
 {
@@ -77,36 +69,32 @@ static GpuInputLayoutID CreateInputLayout(GpuDevice* device)
     );
 }
 
-ModelRenderQueue::ModelRenderQueue(GpuDevice* device)
-    : m_modelInstances()
-    , m_drawItems()
+ModelRenderQueue::ModelRenderQueue(GpuDevice* device,
+                                   AssetCache<ShaderAsset>& shaderCache)
+    : m_drawItems()
+#ifdef ASSET_REFRESH
+    , m_modelInstances()
+#endif
     , m_device(device)
+    , m_shaderAsset()
     , m_sceneCBuffer(0)
-    , m_shaderProgram(0)
     , m_defaultTexture(0)
     , m_sampler(0)
     , m_inputLayout(0)
     , m_pipelineStateObj(0)
 {
+    m_shaderAsset = shaderCache.FindOrLoad("Assets/Shaders/Model_MTL.shd");
+
     m_sceneCBuffer = device->BufferCreate(GPU_BUFFER_TYPE_CONSTANT,
                                           GPU_BUFFER_ACCESS_DYNAMIC,
                                           NULL,
                                           sizeof(ModelSceneCBuffer));
-    m_shaderProgram = LoadShaderProgram(device, "Assets/Shaders/Model_MTL.shd");
 
     m_defaultTexture = CreateDefaultWhiteTexture(device);
     m_sampler = CreateSampler(device);
     m_inputLayout = CreateInputLayout(device);
 
-    GpuPipelineStateDesc pipelineState;
-    pipelineState.shaderProgram = m_shaderProgram;
-    pipelineState.shaderStateBitfield = 0;
-    pipelineState.inputLayout = m_inputLayout;
-    pipelineState.depthCompare = GPU_COMPARE_LESS_EQUAL;
-    pipelineState.depthWritesEnabled = true;
-    pipelineState.cullMode = GPU_CULL_BACK;
-    pipelineState.frontFaceWinding = GPU_WINDING_COUNTER_CLOCKWISE;
-    m_pipelineStateObj = device->PipelineStateCreate(pipelineState);
+    RefreshPipelineStateObject();
 }
 
 ModelRenderQueue::~ModelRenderQueue()
@@ -116,29 +104,63 @@ ModelRenderQueue::~ModelRenderQueue()
     m_device->TextureDestroy(m_defaultTexture);
     m_device->InputLayoutDestroy(m_inputLayout);
     m_device->BufferDestroy(m_sceneCBuffer);
-    m_device->ShaderProgramDestroy(m_shaderProgram);
+}
+
+void ModelRenderQueue::RefreshPipelineStateObject()
+{
+    GpuPipelineStateDesc pipelineState;
+    pipelineState.shaderProgram = m_shaderAsset->GetGpuShaderProgramID();
+    pipelineState.shaderStateBitfield = 0;
+    pipelineState.inputLayout = m_inputLayout;
+    pipelineState.depthCompare = GPU_COMPARE_LESS_EQUAL;
+    pipelineState.depthWritesEnabled = true;
+    pipelineState.cullMode = GPU_CULL_BACK;
+    pipelineState.frontFaceWinding = GPU_WINDING_COUNTER_CLOCKWISE;
+
+    GpuPipelineStateID newPipelineState = m_device->PipelineStateCreate(pipelineState);
+
+#ifdef ASSET_REFRESH
+    for (size_t i = 0; i < m_modelInstances.size(); ++i) {
+        ModelInstanceCreateContext ctx;
+        ctx.pipelineObject = newPipelineState;
+        ctx.sceneCBuffer = m_sceneCBuffer;
+        ctx.defaultTexture = m_defaultTexture;
+        ctx.samplerNonMipmapped = m_sampler;
+        m_modelInstances[i]->RefreshDrawItem(ctx);
+    }
+#endif
+
+    if (m_pipelineStateObj != 0)
+        m_device->PipelineStateDestroy(m_pipelineStateObj);
+    m_pipelineStateObj = newPipelineState;
 }
 
 ModelInstance* ModelRenderQueue::CreateModelInstance(std::shared_ptr<ModelAsset> model)
 {
     ModelInstanceCreateContext ctx;
-    ctx.model = model;
     ctx.pipelineObject = m_pipelineStateObj;
     ctx.sceneCBuffer = m_sceneCBuffer;
     ctx.defaultTexture = m_defaultTexture;
     ctx.samplerNonMipmapped = m_sampler;
-    return ModelInstance::Create(ctx);
+    ModelInstance* instance = ModelInstance::Create(model, ctx);
+#ifdef ASSET_REFRESH
+    m_modelInstances.push_back(instance);
+#endif
+    return instance;
 }
 
 void ModelRenderQueue::Clear()
 {
-    m_modelInstances.clear();
     m_drawItems.clear();
+
+#ifdef ASSET_REFRESH
+    if (m_shaderAsset->WasJustRefreshed())
+        RefreshPipelineStateObject();
+#endif
 }
 
 void ModelRenderQueue::Add(ModelInstance* instance)
 {
-    m_modelInstances.push_back(instance);
     m_drawItems.push_back(instance->GetDrawItem());
 }
 

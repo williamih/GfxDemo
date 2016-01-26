@@ -3,6 +3,7 @@
 
 #include "Core/Types.h"
 #include "GpuDevice/GpuDevice.h"
+#include "Asset/Asset.h"
 
 class ModelAsset {
 public:
@@ -31,11 +32,15 @@ private:
     GpuBufferID m_indexBuf;
 };
 
-class ModelAssetFactory {
+class ModelAssetFactory : public AssetFactory<ModelAsset> {
 public:
     explicit ModelAssetFactory(GpuDevice* device);
 
-    ModelAsset* operator()(u8* data, int size) const;
+    virtual ModelAsset* Create(u8* data, int size);
+
+#ifdef ASSET_REFRESH
+    virtual void Refresh(ModelAsset* asset, u8* data, int size);
+#endif
 private:
     GpuDevice* m_device;
 };

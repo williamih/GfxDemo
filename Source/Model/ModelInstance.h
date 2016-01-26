@@ -9,7 +9,6 @@ class Matrix44;
 class Vector3;
 
 struct ModelInstanceCreateContext {
-    std::shared_ptr<ModelAsset> model;
     GpuPipelineStateID pipelineObject;
     GpuBufferID sceneCBuffer;
     GpuTextureID defaultTexture;
@@ -18,19 +17,23 @@ struct ModelInstanceCreateContext {
 
 class ModelInstance {
 public:
-    static ModelInstance* Create(const ModelInstanceCreateContext& ctx);
+    static ModelInstance* Create(std::shared_ptr<ModelAsset> model,
+                                 const ModelInstanceCreateContext& ctx);
     static void Destroy(ModelInstance* instance);
 
     const GpuDrawItem* GetDrawItem() const;
     ModelAsset* GetModelAsset() const;
     GpuBufferID GetCBuffer() const;
 
+    void RefreshDrawItem(const ModelInstanceCreateContext& ctx);
+
     void Update(const Matrix44& worldTransform,
                 const Vector3& diffuseColor,
                 const Vector3& specularColor,
                 float glossiness);
 private:
-    ModelInstance(const ModelInstanceCreateContext& ctx);
+    ModelInstance(std::shared_ptr<ModelAsset> model,
+                  const ModelInstanceCreateContext& ctx);
     ~ModelInstance();
     ModelInstance(const ModelInstance&);
     ModelInstance& operator=(const ModelInstance&);

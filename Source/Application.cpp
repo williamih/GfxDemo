@@ -6,6 +6,8 @@
 
 #include "Math/Vector3.h"
 #include "GpuDevice/GpuDrawItemWriter.h"
+#include "GpuDevice/GpuDeferredDeletionQueue.h"
+#include "Shader/ShaderAsset.h"
 #include "Model/ModelAsset.h"
 
 #include "OsWindow.h"
@@ -21,11 +23,23 @@ static void OnPaint(const OsEvent& event, void* userdata)
     ((Application*)userdata)->Frame();
 }
 
+static void OnKeyDown(const OsEvent& event, void* userdata)
+{
+    if (event.key.code == OSKEY_R)
+        ((Application*)userdata)->RefreshModelShader();
+}
+
 Application::Application()
     : m_window(NULL)
     , m_gpuDevice(NULL)
     , m_renderPass(0)
+#ifdef ASSET_REFRESH
+    , m_gpuDeferredDeletionQueue(NULL)
+#endif
+    , m_shaderAssetFactory(NULL)
+    , m_modelAssetFactory(NULL)
     , m_modelCache(NULL)
+    , m_shaderCache(NULL)
     , m_modelRenderQueue(NULL)
     , m_modelInstance(NULL)
     , m_angle(0.0f)
@@ -53,21 +67,39 @@ Application::Application()
     renderPass.clearDepth = 1.0f;
     m_renderPass = m_gpuDevice->RenderPassCreate(renderPass);
 
-    m_modelCache = new AssetCache<ModelAsset>();
-    m_modelRenderQueue = new ModelRenderQueue(m_gpuDevice);
-    ModelAssetFactory factory(m_gpuDevice);
-    std::shared_ptr<ModelAsset> model(m_modelCache->FindOrLoad("Assets/Models/Teapot.mdl", factory));
+#ifdef ASSET_REFRESH
+    m_gpuDeferredDeletionQueue = new GpuDeferredDeletionQueue;
+#endif
+    m_shaderAssetFactory = new ShaderAssetFactory(
+        m_gpuDevice
+#ifdef ASSET_REFRESH
+        , *m_gpuDeferredDeletionQueue
+#endif
+    );
+    m_modelAssetFactory = new ModelAssetFactory(m_gpuDevice);
+    m_modelCache = new AssetCache<ModelAsset>(*m_modelAssetFactory);
+    m_shaderCache = new AssetCache<ShaderAsset>(*m_shaderAssetFactory);
+
+    m_modelRenderQueue = new ModelRenderQueue(m_gpuDevice, *m_shaderCache);
+    std::shared_ptr<ModelAsset> model(m_modelCache->FindOrLoad("Assets/Models/Teapot.mdl"));
     m_modelInstance = m_modelRenderQueue->CreateModelInstance(model);
 
     m_window->RegisterEvent(OSEVENT_PAINT, OnPaint, (void*)this);
     m_window->RegisterEvent(OSEVENT_WINDOW_RESIZE, OnWindowResize, (void*)m_gpuDevice);
+    m_window->RegisterEvent(OSEVENT_KEY_DOWN, OnKeyDown, (void*)this);
 }
 
 Application::~Application()
 {
     ModelInstance::Destroy(m_modelInstance);
     delete m_modelRenderQueue;
+    delete m_shaderCache;
     delete m_modelCache;
+    delete m_modelAssetFactory;
+    delete m_shaderAssetFactory;
+#ifdef ASSET_REFRESH
+    delete m_gpuDeferredDeletionQueue;
+#endif
     m_gpuDevice->RenderPassDestroy(m_renderPass);
     GpuDevice::Destroy(m_gpuDevice);
     OsWindow::Destroy(m_window);
@@ -129,5 +161,18 @@ void Application::Frame()
     m_modelRenderQueue->Add(m_modelInstance);
     m_modelRenderQueue->Draw(info, viewport, m_renderPass);
 
+#ifdef ASSET_REFRESH
+    m_gpuDeferredDeletionQueue->Update(m_gpuDevice);
+    m_shaderCache->UpdateRefreshSystem();
+#endif
     m_gpuDevice->ScenePresent();
+}
+
+void Application::RefreshModelShader()
+{
+#ifdef ASSET_REFRESH
+    m_shaderCache->Refresh("Assets/Shaders/Model_MTL.shd");
+#else
+    printf("Asset refresh system is disabled\n");
+#endif
 }
