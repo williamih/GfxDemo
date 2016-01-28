@@ -15,7 +15,7 @@ public:
         void FixEndian();
     };
 
-    ModelAsset(GpuDevice* device, u8* data, int size);
+    ModelAsset(GpuDevice* device, u8* data, u32 size);
     ~ModelAsset();
 
     GpuDevice* GetGpuDevice() const;
@@ -36,10 +36,12 @@ class ModelAssetFactory : public AssetFactory<ModelAsset> {
 public:
     explicit ModelAssetFactory(GpuDevice* device);
 
-    virtual ModelAsset* Create(u8* data, int size);
+    virtual void* Allocate(u32 size);
+
+    virtual ModelAsset* Create(u8* data, u32 size, const char* path);
 
 #ifdef ASSET_REFRESH
-    virtual void Refresh(ModelAsset* asset, u8* data, int size);
+    virtual void Refresh(ModelAsset* asset, u8* data, u32 size, const char* path);
 #endif
 private:
     GpuDevice* m_device;

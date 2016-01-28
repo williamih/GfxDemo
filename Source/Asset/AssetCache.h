@@ -1,14 +1,15 @@
 #ifndef ASSET_ASSETCACHE_H
 #define ASSET_ASSETCACHE_H
 
+#include <vector>
 #include <string>
 #include <memory>
 #include <unordered_map>
 
 #include "Core/Macros.h"
 #include "Core/Types.h"
+#include "Core/File.h"
 #include "Asset/Asset.h"
-#include "File.h"
 
 template<class T>
 class AssetCache {
@@ -29,11 +30,11 @@ public:
         if (iter != m_map.end())
             return iter->second;
 
-        std::vector<char> fileData;
-        if (!FileReadFile(path, fileData))
-            FATAL("Failed to load asset %s.", path);
+        u8* data;
+        u32 size;
+        FileReadFile(path, &data, &size, Alloc, &m_factory);
 
-        std::shared_ptr<T> asset(m_factory.Create((u8*)&fileData[0], (int)fileData.size()));
+        std::shared_ptr<T> asset(m_factory.Create(data, size, path));
 
         m_map[strPath] = asset;
 #ifdef ASSET_REFRESH
@@ -51,12 +52,12 @@ public:
         auto iter = m_map.find(strPath);
         ASSERT(iter != m_map.end());
 
-        std::vector<char> fileData;
-        if (!FileReadFile(path, fileData))
-            FATAL("Failed to refresh asset %s.", path);
+        u8* data;
+        u32 size;
+        FileReadFile(path, &data, &size, Alloc, &m_factory);
 
         std::shared_ptr<T> asset = iter->second;
-        m_factory.Refresh(asset.get(), (u8*)&fileData[0], (int)fileData.size());
+        m_factory.Refresh(asset.get(), data, size, path);
     }
 #endif
 
@@ -71,6 +72,11 @@ public:
 private:
     AssetCache(const AssetCache&);
     AssetCache& operator=(const AssetCache&);
+
+    static void* Alloc(u32 size, void* userdata)
+    {
+        return ((AssetFactory<T>*)userdata)->Allocate(size);
+    }
 
     AssetFactory<T>& m_factory;
     std::unordered_map<std::string, std::shared_ptr<T>> m_map;

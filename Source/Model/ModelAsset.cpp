@@ -20,7 +20,7 @@ void ModelAsset::Vertex::FixEndian()
     uv[1] = EndianSwapLEFloat32(uv[1]);
 }
 
-ModelAsset::ModelAsset(GpuDevice* device, u8* data, int size)
+ModelAsset::ModelAsset(GpuDevice* device, u8* data, u32 size)
     : m_device(device)
     , m_nIndices(0)
     , m_vertexBuf(0)
@@ -90,14 +90,22 @@ ModelAssetFactory::ModelAssetFactory(GpuDevice* device)
     : m_device(device)
 {}
 
-ModelAsset* ModelAssetFactory::Create(u8* data, int size)
+void* ModelAssetFactory::Allocate(u32 size)
 {
-    return new ModelAsset(m_device, data, size);
+    return malloc(size);
+}
+
+ModelAsset* ModelAssetFactory::Create(u8* data, u32 size, const char* path)
+{
+    ModelAsset* asset = new ModelAsset(m_device, data, size);
+    free(data);
+    return asset;
 }
 
 #ifdef ASSET_REFRESH
-void ModelAssetFactory::Refresh(ModelAsset* asset, u8* data, int size)
+void ModelAssetFactory::Refresh(ModelAsset* asset, u8* data, u32 size, const char* path)
 {
+    free(data);
     ASSERT(!"ModelAssetFactory::Refresh() not implemented");
 }
 #endif

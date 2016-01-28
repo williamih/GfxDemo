@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "Core/File.h"
+
 #include "Math/Vector3.h"
 #include "GpuDevice/GpuDrawItemWriter.h"
 #include "GpuDevice/GpuDeferredDeletionQueue.h"
@@ -11,7 +13,6 @@
 #include "Model/ModelAsset.h"
 
 #include "OsWindow.h"
-#include "File.h"
 
 static void OnWindowResize(const OsEvent& event, void* userdata)
 {

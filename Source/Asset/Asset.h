@@ -34,9 +34,14 @@ class AssetFactory {
 public:
     virtual ~AssetFactory() {}
 
-    virtual T* Create(u8* data, int size) = 0;
+    virtual void* Allocate(u32 size) = 0;
+
+    // The AssetFactory takes ownership of the data pointer, and is responsible
+    // for handling its (either immediate or eventual) deletion.
+    // The data is always allocated via the factory's Allocate() function.
+    virtual T* Create(u8* data, u32 size, const char* path) = 0;
 #ifdef ASSET_REFRESH
-    virtual void Refresh(T* asset, u8* data, int size) = 0;
+    virtual void Refresh(T* asset, u8* data, u32 size, const char* path) = 0;
 #endif
 };
 
