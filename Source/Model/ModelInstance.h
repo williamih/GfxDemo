@@ -12,7 +12,7 @@ struct ModelInstanceCreateContext {
     GpuPipelineStateID pipelineObject;
     GpuBufferID sceneCBuffer;
     GpuTextureID defaultTexture;
-    GpuSamplerID samplerNonMipmapped;
+    GpuSamplerID sampler;
 };
 
 class ModelInstance {

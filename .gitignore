@@ -1,4 +1,5 @@
 .DS_Store
-Assets/*
+Assets/Models/*
+Assets/Shaders/*
 xcuserdata
 project.xcworkspace

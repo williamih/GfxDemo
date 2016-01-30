@@ -1,13 +1,51 @@
 #include "Model/ModelAsset.h"
+
 #include <string.h>
+
 #include "Core/Macros.h"
 #include "Core/Endian.h"
+
+#include "Asset/AssetCache.h"
+
+#include "Texture/TextureAsset.h"
 
 struct ModelHeader {
     char code[4];
     u32 version;
     u32 nVertices;
+    u32 ofsVertices;
     u32 nIndices;
+    u32 ofsIndices;
+    u32 nTextures;
+    u32 ofsTextures;
+    u32 diffuseTextureIndex;
+
+    void FixEndian()
+    {
+        version = EndianSwapLE32(version);
+        nVertices = EndianSwapLE32(nVertices);
+        ofsVertices = EndianSwapLE32(ofsVertices);
+        nIndices = EndianSwapLE32(nIndices);
+        ofsIndices = EndianSwapLE32(ofsIndices);
+        nTextures = EndianSwapLE32(nTextures);
+        ofsTextures = EndianSwapLE32(ofsTextures);
+        diffuseTextureIndex = EndianSwapLE32(diffuseTextureIndex);
+    }
+};
+
+struct ModelTextureInfo {
+    u32 type;
+    u32 flags;
+    u32 lenFilename;
+    u32 ofsFilename;
+
+    void FixEndian()
+    {
+        type = EndianSwapLE32(type);
+        flags = EndianSwapLE32(flags);
+        lenFilename = EndianSwapLE32(lenFilename);
+        ofsFilename = EndianSwapLE32(ofsFilename);
+    }
 };
 
 void ModelAsset::Vertex::FixEndian()
@@ -20,22 +58,28 @@ void ModelAsset::Vertex::FixEndian()
     uv[1] = EndianSwapLEFloat32(uv[1]);
 }
 
-ModelAsset::ModelAsset(GpuDevice* device, u8* data, u32 size)
+ModelAsset::ModelAsset(GpuDevice* device,
+                       AssetCache<TextureAsset>& textureCache,
+                       u8* data,
+                       u32 size)
     : m_device(device)
     , m_nIndices(0)
     , m_vertexBuf(0)
     , m_indexBuf(0)
+    , m_diffuseTex()
 {
     ASSERT(device);
 
     ModelHeader* header = (ModelHeader*)data;
     if (memcmp(header->code, "MODL", 4) != 0)
         FATAL("Model has incorrect header code");
+    header->FixEndian();
 
-    u32 nVertices = EndianSwapLE32(header->nVertices);
-    u32 nIndices = EndianSwapLE32(header->nIndices);
+    u32 nVertices = header->nVertices;
+    u32 nIndices = header->nIndices;
+    u32 nTextures = header->nTextures;
 
-    Vertex* vertices = (Vertex*)(data + sizeof(ModelHeader));
+    Vertex* vertices = (Vertex*)(data + header->ofsVertices);
     for (u32 i = 0; i < nVertices; ++i) {
         vertices[i].FixEndian();
     }
@@ -46,7 +90,7 @@ ModelAsset::ModelAsset(GpuDevice* device, u8* data, u32 size)
         nVertices * sizeof(Vertex)
     );
 
-    u32* indices = (u32*)(vertices + nVertices);
+    u32* indices = (u32*)(data + header->ofsIndices);
     for (u32 i = 0; i < nIndices; ++i) {
         indices[i] = EndianSwapLE32(indices[i]);
     }
@@ -56,6 +100,16 @@ ModelAsset::ModelAsset(GpuDevice* device, u8* data, u32 size)
         indices,
         nIndices * sizeof(u32)
     );
+
+    ModelTextureInfo* textures = (ModelTextureInfo*)(data + header->ofsTextures);
+    for (u32 i = 0; i < nTextures; ++i) {
+        textures[i].FixEndian();
+    }
+    if (header->diffuseTextureIndex != 0xFFFFFFFF) {
+        const ModelTextureInfo& texInfo = textures[header->diffuseTextureIndex];
+        const char* path = (const char*)(data + texInfo.ofsFilename);
+        m_diffuseTex = textureCache.FindOrLoad(path);
+    }
 
     m_nIndices = nIndices;
 }
@@ -86,8 +140,15 @@ GpuBufferID ModelAsset::GetIndexBuf() const
     return m_indexBuf;
 }
 
-ModelAssetFactory::ModelAssetFactory(GpuDevice* device)
+TextureAsset* ModelAsset::GetDiffuseTex() const
+{
+    return m_diffuseTex.get();
+}
+
+ModelAssetFactory::ModelAssetFactory(GpuDevice* device,
+                                     AssetCache<TextureAsset>& textureCache)
     : m_device(device)
+    , m_textureCache(textureCache)
 {}
 
 void* ModelAssetFactory::Allocate(u32 size)
@@ -97,7 +158,7 @@ void* ModelAssetFactory::Allocate(u32 size)
 
 ModelAsset* ModelAssetFactory::Create(u8* data, u32 size, const char* path)
 {
-    ModelAsset* asset = new ModelAsset(m_device, data, size);
+    ModelAsset* asset = new ModelAsset(m_device, m_textureCache, data, size);
     free(data);
     return asset;
 }

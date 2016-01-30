@@ -2,16 +2,21 @@
 #define APPLICATION_H
 
 #include <memory>
+
 #include "GpuDevice/GpuDevice.h"
+#include "GpuDevice/GpuDeferredDeletionQueue.h"
+
 #include "Asset/AssetCache.h"
-#include "Model/ModelRenderQueue.h"
+
+#include "Shader/ShaderAsset.h"
+
+#include "Texture/TextureAsset.h"
+
+#include "Model/ModelAsset.h"
 #include "Model/ModelInstance.h"
+#include "Model/ModelRenderQueue.h"
 
 class OsWindow;
-class ShaderAsset;
-class ShaderAssetFactory;
-class ModelAssetFactory;
-class GpuDeferredDeletionQueue;
 
 class Application {
 public:
@@ -23,18 +28,32 @@ private:
     Application(const Application&);
     Application& operator=(const Application&);
 
-    OsWindow* m_window;
-    GpuDevice* m_gpuDevice;
+    static OsWindow* CreateWindow();
+    static GpuDevice* CreateGpuDevice(OsWindow& window);
+    static ModelInstance* CreateModelInstance(ModelRenderQueue& queue,
+                                              AssetCache<ModelAsset>& cache,
+                                              const char* path);
+
+    std::unique_ptr<OsWindow, void (*)(OsWindow*)> m_window;
+    std::unique_ptr<GpuDevice, void (*)(GpuDevice*)> m_gpuDevice;
     GpuRenderPassID m_renderPass;
+
 #ifdef ASSET_REFRESH
-    GpuDeferredDeletionQueue* m_gpuDeferredDeletionQueue;
+    GpuDeferredDeletionQueue m_gpuDeferredDeletionQueue;
 #endif
-    ShaderAssetFactory* m_shaderAssetFactory;
-    ModelAssetFactory* m_modelAssetFactory;
-    AssetCache<ModelAsset>* m_modelCache;
-    AssetCache<ShaderAsset>* m_shaderCache;
-    ModelRenderQueue* m_modelRenderQueue;
-    ModelInstance* m_modelInstance;
+
+    ShaderAssetFactory m_shaderAssetFactory;
+    AssetCache<ShaderAsset> m_shaderCache;
+
+    TextureAssetFactory m_textureAssetFactory;
+    AssetCache<TextureAsset> m_textureCache;
+
+    ModelAssetFactory m_modelAssetFactory;
+    AssetCache<ModelAsset> m_modelCache;
+
+    ModelRenderQueue m_modelRenderQueue;
+    std::unique_ptr<ModelInstance, void (*)(ModelInstance*)> m_teapot;
+    std::unique_ptr<ModelInstance, void (*)(ModelInstance*)> m_floor;
     float m_angle;
 };
 

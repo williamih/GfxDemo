@@ -7,9 +7,14 @@
 #include "Core/File.h"
 
 #include "Math/Vector3.h"
+
 #include "GpuDevice/GpuDrawItemWriter.h"
 #include "GpuDevice/GpuDeferredDeletionQueue.h"
+
 #include "Shader/ShaderAsset.h"
+
+#include "Texture/TextureAsset.h"
+
 #include "Model/ModelAsset.h"
 
 #include "OsWindow.h"
@@ -30,35 +35,67 @@ static void OnKeyDown(const OsEvent& event, void* userdata)
         ((Application*)userdata)->RefreshModelShader();
 }
 
-Application::Application()
-    : m_window(NULL)
-    , m_gpuDevice(NULL)
-    , m_renderPass(0)
-#ifdef ASSET_REFRESH
-    , m_gpuDeferredDeletionQueue(NULL)
-#endif
-    , m_shaderAssetFactory(NULL)
-    , m_modelAssetFactory(NULL)
-    , m_modelCache(NULL)
-    , m_shaderCache(NULL)
-    , m_modelRenderQueue(NULL)
-    , m_modelInstance(NULL)
-    , m_angle(0.0f)
+OsWindow* Application::CreateWindow()
 {
     OsWindowPixelFormat pf;
     pf.colorBits = 32;
     pf.depthBits = 32;
 
-    m_window = OsWindow::Create(800.0f, 600.0f, pf);
+    return OsWindow::Create(800.0f, 600.0f, pf);
+}
 
+GpuDevice* Application::CreateGpuDevice(OsWindow& window)
+{
     GpuDeviceFormat deviceFormat;
     deviceFormat.pixelColorFormat = GPU_PIXEL_COLOR_FORMAT_RGBA8888;
     deviceFormat.pixelDepthFormat = GPU_PIXEL_DEPTH_FORMAT_FLOAT32;
     deviceFormat.resolutionX = 1600;
     deviceFormat.resolutionY = 1200;
     deviceFormat.flags = GpuDeviceFormat::FLAG_SCALE_RES_WITH_WINDOW_SIZE;
-    m_gpuDevice = GpuDevice::Create(deviceFormat, m_window->GetNSView());
+    return GpuDevice::Create(deviceFormat, window.GetNSView());
+}
 
+ModelInstance* Application::CreateModelInstance(ModelRenderQueue& queue,
+                                                AssetCache<ModelAsset>& cache,
+                                                const char* path)
+{
+    std::shared_ptr<ModelAsset> model(cache.FindOrLoad(path));
+    return queue.CreateModelInstance(model);
+}
+
+Application::Application()
+    : m_window(CreateWindow(), &OsWindow::Destroy)
+    , m_gpuDevice(CreateGpuDevice(*m_window), &GpuDevice::Destroy)
+    , m_renderPass(0)
+
+#ifdef ASSET_REFRESH
+    , m_gpuDeferredDeletionQueue()
+#endif
+
+    , m_shaderAssetFactory(m_gpuDevice.get()
+#ifdef ASSET_REFRESH
+                           , m_gpuDeferredDeletionQueue
+#endif
+                           )
+    , m_shaderCache(m_shaderAssetFactory)
+
+    , m_textureAssetFactory(m_gpuDevice.get()
+#ifdef ASSET_REFRESH
+                            , m_gpuDeferredDeletionQueue
+#endif
+                            )
+    , m_textureCache(m_textureAssetFactory)
+
+    , m_modelAssetFactory(m_gpuDevice.get(), m_textureCache)
+    , m_modelCache(m_modelAssetFactory)
+
+    , m_modelRenderQueue(m_gpuDevice.get(), m_shaderCache)
+    , m_teapot(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Teapot.mdl"),
+               &ModelInstance::Destroy)
+    , m_floor(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Floor.mdl"),
+              &ModelInstance::Destroy)
+    , m_angle(0.0f)
+{
     GpuRenderPassDesc renderPass;
     renderPass.flags |= GpuRenderPassDesc::FLAG_PERFORM_CLEAR;
     renderPass.clearR = 0.0f;
@@ -68,42 +105,27 @@ Application::Application()
     renderPass.clearDepth = 1.0f;
     m_renderPass = m_gpuDevice->RenderPassCreate(renderPass);
 
-#ifdef ASSET_REFRESH
-    m_gpuDeferredDeletionQueue = new GpuDeferredDeletionQueue;
-#endif
-    m_shaderAssetFactory = new ShaderAssetFactory(
-        m_gpuDevice
-#ifdef ASSET_REFRESH
-        , *m_gpuDeferredDeletionQueue
-#endif
-    );
-    m_modelAssetFactory = new ModelAssetFactory(m_gpuDevice);
-    m_modelCache = new AssetCache<ModelAsset>(*m_modelAssetFactory);
-    m_shaderCache = new AssetCache<ShaderAsset>(*m_shaderAssetFactory);
+    m_modelRenderQueue.SetMaxAnisotropy(16);
 
-    m_modelRenderQueue = new ModelRenderQueue(m_gpuDevice, *m_shaderCache);
-    std::shared_ptr<ModelAsset> model(m_modelCache->FindOrLoad("Assets/Models/Teapot.mdl"));
-    m_modelInstance = m_modelRenderQueue->CreateModelInstance(model);
+    Matrix44 floorTransform(1.0f, 0.0f, 0.0f, 0.0f,
+                            0.0f, 1.0f, 0.0f, -1.5f,
+                            0.0f, 0.0f, 1.0f, 0.0f,
+                            0.0f, 0.0f, 0.0f, 1.0f);
+    m_floor->Update(
+        floorTransform,
+        Vector3(1.0f, 1.0f, 1.0f),
+        Vector3(0.0f, 0.0f, 0.0f),
+        1.0f
+    );
 
     m_window->RegisterEvent(OSEVENT_PAINT, OnPaint, (void*)this);
-    m_window->RegisterEvent(OSEVENT_WINDOW_RESIZE, OnWindowResize, (void*)m_gpuDevice);
+    m_window->RegisterEvent(OSEVENT_WINDOW_RESIZE, OnWindowResize, (void*)m_gpuDevice.get());
     m_window->RegisterEvent(OSEVENT_KEY_DOWN, OnKeyDown, (void*)this);
 }
 
 Application::~Application()
 {
-    ModelInstance::Destroy(m_modelInstance);
-    delete m_modelRenderQueue;
-    delete m_shaderCache;
-    delete m_modelCache;
-    delete m_modelAssetFactory;
-    delete m_shaderAssetFactory;
-#ifdef ASSET_REFRESH
-    delete m_gpuDeferredDeletionQueue;
-#endif
     m_gpuDevice->RenderPassDestroy(m_renderPass);
-    GpuDevice::Destroy(m_gpuDevice);
-    OsWindow::Destroy(m_window);
 }
 
 static Matrix44 CreatePerspectiveMatrix(float aspect, float fovY, float zNear, float zFar)
@@ -131,7 +153,7 @@ void Application::Frame()
     const Vector3 diffuseColor(0.0f, 0.5f, 0.5f);
     const Vector3 specularColor(0.3f, 0.3f, 0.3f);
     const float glossiness = 50.0f;
-    m_modelInstance->Update(matrix, diffuseColor, specularColor, glossiness);
+    m_teapot->Update(matrix, diffuseColor, specularColor, glossiness);
 
     GpuViewport viewport;
     viewport.x = 0;
@@ -141,7 +163,7 @@ void Application::Frame()
     viewport.zNear = 0.0f;
     viewport.zFar = 1.0f;
 
-    Matrix44 proj = CreatePerspectiveMatrix(4.0f/3.0f, 75.0f, 0.1f, 10.0f);
+    Matrix44 proj = CreatePerspectiveMatrix(4.0f/3.0f, 75.0f, 0.1f, 20.0f);
     Matrix44 view(1.0f, 0.0f, 0.0f, 0.0f,
                   0.0f, cosf(VIEW_ANGLE), -sinf(VIEW_ANGLE), 0.0f,
                   0.0f, sinf(VIEW_ANGLE), cosf(VIEW_ANGLE), -3.7f,
@@ -158,13 +180,14 @@ void Application::Frame()
     info.irradiance = Vector3(1.0f, 1.0f, 1.0f);
     info.ambientRadiance = Vector3(0.3f, 0.3f, 0.3f);
 
-    m_modelRenderQueue->Clear();
-    m_modelRenderQueue->Add(m_modelInstance);
-    m_modelRenderQueue->Draw(info, viewport, m_renderPass);
+    m_modelRenderQueue.Clear();
+    m_modelRenderQueue.Add(m_teapot.get());
+    m_modelRenderQueue.Add(m_floor.get());
+    m_modelRenderQueue.Draw(info, viewport, m_renderPass);
 
 #ifdef ASSET_REFRESH
-    m_gpuDeferredDeletionQueue->Update(m_gpuDevice);
-    m_shaderCache->UpdateRefreshSystem();
+    m_gpuDeferredDeletionQueue.Update(m_gpuDevice.get());
+    m_shaderCache.UpdateRefreshSystem();
 #endif
     m_gpuDevice->ScenePresent();
 }
@@ -172,7 +195,7 @@ void Application::Frame()
 void Application::RefreshModelShader()
 {
 #ifdef ASSET_REFRESH
-    m_shaderCache->Refresh("Assets/Shaders/Model_MTL.shd");
+    m_shaderCache.Refresh("Assets/Shaders/Model_MTL.shd");
 #else
     printf("Asset refresh system is disabled\n");
 #endif

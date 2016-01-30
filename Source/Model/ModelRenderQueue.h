@@ -26,6 +26,8 @@ public:
 
     ModelInstance* CreateModelInstance(std::shared_ptr<ModelAsset> model);
 
+    void SetMaxAnisotropy(int maxAnisotropy);
+
     void Clear();
     void Add(ModelInstance* instance);
     void Draw(const SceneInfo& sceneInfo,
@@ -38,9 +40,7 @@ private:
     void RefreshPipelineStateObject();
 
     std::vector<const GpuDrawItem*> m_drawItems;
-#ifdef ASSET_REFRESH
     std::vector<ModelInstance*> m_modelInstances;
-#endif
     GpuDevice* m_device;
     std::shared_ptr<ShaderAsset> m_shaderAsset;
     GpuBufferID m_sceneCBuffer;

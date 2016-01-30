@@ -6,6 +6,8 @@
 #include "GpuDevice/GpuDrawItemWriter.h"
 #include "GpuDevice/GpuMathUtils.h"
 
+#include "Texture/TextureAsset.h"
+
 #include "Model/ModelAsset.h"
 
 struct ModelInstanceCBuffer {
@@ -35,6 +37,10 @@ static void InternalCreateDrawItem(void* location,
                                    const ModelInstanceCreateContext& ctx,
                                    GpuBufferID modelCBuffer)
 {
+    GpuTextureID diffuseTex = ctx.defaultTexture;
+    if (model->GetDiffuseTex())
+        diffuseTex = model->GetDiffuseTex()->GetGpuTextureID();
+
     GpuDevice* dev = model->GetGpuDevice();
     GpuDrawItemWriterDesc desc = CreateDrawItemWriterDesc();
 
@@ -44,8 +50,8 @@ static void InternalCreateDrawItem(void* location,
     writer.SetVertexBuffer(0, model->GetVertexBuf(), 0);
     writer.SetCBuffer(0, ctx.sceneCBuffer);
     writer.SetCBuffer(1, modelCBuffer);
-    writer.SetTexture(0, ctx.defaultTexture);
-    writer.SetSampler(0, ctx.samplerNonMipmapped);
+    writer.SetTexture(0, diffuseTex);
+    writer.SetSampler(0, ctx.sampler);
     writer.SetIndexBuffer(model->GetIndexBuf());
     writer.SetDrawCallIndexed(GPU_PRIMITIVE_TRIANGLES,
                               0,

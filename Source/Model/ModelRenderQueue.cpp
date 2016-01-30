@@ -40,16 +40,16 @@ static GpuTextureID CreateDefaultWhiteTexture(GpuDevice* device)
     return texture;
 }
 
-static GpuSamplerID CreateSampler(GpuDevice* device)
+static GpuSamplerID CreateSampler(GpuDevice* device, int maxAnisotropy)
 {
     GpuSamplerDesc desc;
-    desc.uAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
-    desc.vAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
+    desc.uAddressMode = GPU_SAMPLER_ADDRESS_REPEAT;
+    desc.vAddressMode = GPU_SAMPLER_ADDRESS_REPEAT;
     desc.wAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
     desc.minFilter = GPU_SAMPLER_FILTER_LINEAR;
     desc.magFilter = GPU_SAMPLER_FILTER_LINEAR;
-    desc.mipFilter = GPU_SAMPLER_MIPFILTER_NOT_MIPMAPPED;
-    desc.maxAnisotropy = 1;
+    desc.mipFilter = GPU_SAMPLER_MIPFILTER_LINEAR;
+    desc.maxAnisotropy = maxAnisotropy;
     return device->SamplerCreate(desc);
 }
 
@@ -72,9 +72,7 @@ static GpuInputLayoutID CreateInputLayout(GpuDevice* device)
 ModelRenderQueue::ModelRenderQueue(GpuDevice* device,
                                    AssetCache<ShaderAsset>& shaderCache)
     : m_drawItems()
-#ifdef ASSET_REFRESH
     , m_modelInstances()
-#endif
     , m_device(device)
     , m_shaderAsset()
     , m_sceneCBuffer(0)
@@ -91,7 +89,7 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device,
                                           sizeof(ModelSceneCBuffer));
 
     m_defaultTexture = CreateDefaultWhiteTexture(device);
-    m_sampler = CreateSampler(device);
+    m_sampler = CreateSampler(device, 1);
     m_inputLayout = CreateInputLayout(device);
 
     RefreshPipelineStateObject();
@@ -119,16 +117,14 @@ void ModelRenderQueue::RefreshPipelineStateObject()
 
     GpuPipelineStateID newPipelineState = m_device->PipelineStateCreate(pipelineState);
 
-#ifdef ASSET_REFRESH
     for (size_t i = 0; i < m_modelInstances.size(); ++i) {
         ModelInstanceCreateContext ctx;
         ctx.pipelineObject = newPipelineState;
         ctx.sceneCBuffer = m_sceneCBuffer;
         ctx.defaultTexture = m_defaultTexture;
-        ctx.samplerNonMipmapped = m_sampler;
+        ctx.sampler = m_sampler;
         m_modelInstances[i]->RefreshDrawItem(ctx);
     }
-#endif
 
     if (m_pipelineStateObj != 0)
         m_device->PipelineStateDestroy(m_pipelineStateObj);
@@ -141,12 +137,25 @@ ModelInstance* ModelRenderQueue::CreateModelInstance(std::shared_ptr<ModelAsset>
     ctx.pipelineObject = m_pipelineStateObj;
     ctx.sceneCBuffer = m_sceneCBuffer;
     ctx.defaultTexture = m_defaultTexture;
-    ctx.samplerNonMipmapped = m_sampler;
+    ctx.sampler = m_sampler;
     ModelInstance* instance = ModelInstance::Create(model, ctx);
-#ifdef ASSET_REFRESH
     m_modelInstances.push_back(instance);
-#endif
     return instance;
+}
+
+void ModelRenderQueue::SetMaxAnisotropy(int maxAnisotropy)
+{
+    GpuSamplerID sampler = CreateSampler(m_device, maxAnisotropy);
+    for (size_t i = 0; i < m_modelInstances.size(); ++i) {
+        ModelInstanceCreateContext ctx;
+        ctx.pipelineObject = m_pipelineStateObj;
+        ctx.sceneCBuffer = m_sceneCBuffer;
+        ctx.defaultTexture = m_defaultTexture;
+        ctx.sampler = sampler;
+        m_modelInstances[i]->RefreshDrawItem(ctx);
+    }
+    m_device->SamplerDestroy(m_sampler);
+    m_sampler = sampler;
 }
 
 void ModelRenderQueue::Clear()
