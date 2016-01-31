@@ -1,6 +1,7 @@
 #include "Texture/TextureAsset.h"
 
 #include "Core/Macros.h"
+#include "Core/FileLoader.h"
 
 #include "GpuDevice/GpuDeferredDeletionQueue.h"
 
@@ -90,7 +91,7 @@ TextureAssetFactory::TextureAssetFactory(GpuDevice* device
 #endif
 {}
 
-void* TextureAssetFactory::Allocate(u32 size)
+static void* Alloc(u32 size, void* userdata)
 {
     return malloc(size);
 }
@@ -100,15 +101,21 @@ static void Destroy(void* ptr, void* userdata)
     free(ptr);
 }
 
-TextureAsset* TextureAssetFactory::Create(u8* data, u32 size, const char* path)
+TextureAsset* TextureAssetFactory::Create(const char* path, FileLoader& loader)
 {
+    u8* data;
+    u32 size;
+    loader.Load(path, &data, &size, Alloc, NULL);
     DDSFile file(data, size, path, &Destroy, NULL);
     return new TextureAsset(m_device, file);
 }
 
 #ifdef ASSET_REFRESH
-void TextureAssetFactory::Refresh(TextureAsset* asset, u8* data, u32 size, const char* path)
+void TextureAssetFactory::Refresh(TextureAsset* asset, const char* path, FileLoader& loader)
 {
+    u8* data;
+    u32 size;
+    loader.Load(path, &data, &size, Alloc, NULL);
     DDSFile file(data, size, path, &Destroy, NULL);
     asset->Refresh(m_deletionQ, file);
 }

@@ -34,12 +34,10 @@ public:
     explicit TextureAssetFactory(GpuDevice* device);
 #endif
 
-    virtual void* Allocate(u32 size);
-
-    virtual TextureAsset* Create(u8* data, u32 size, const char* path);
+    virtual TextureAsset* Create(const char* path, FileLoader& loader);
 
 #ifdef ASSET_REFRESH
-    virtual void Refresh(TextureAsset* asset, u8* data, u32 size, const char* path);
+    virtual void Refresh(TextureAsset* asset, const char* path, FileLoader& loader);
 #endif
 
 private:

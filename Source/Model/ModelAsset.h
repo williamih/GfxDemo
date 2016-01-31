@@ -48,12 +48,10 @@ class ModelAssetFactory : public AssetFactory<ModelAsset> {
 public:
     ModelAssetFactory(GpuDevice* device, AssetCache<TextureAsset>& textureCache);
 
-    virtual void* Allocate(u32 size);
-
-    virtual ModelAsset* Create(u8* data, u32 size, const char* path);
+    virtual ModelAsset* Create(const char* path, FileLoader& loader);
 
 #ifdef ASSET_REFRESH
-    virtual void Refresh(ModelAsset* asset, u8* data, u32 size, const char* path);
+    virtual void Refresh(ModelAsset* asset, const char* path, FileLoader& loader);
 #endif
 private:
     GpuDevice* m_device;

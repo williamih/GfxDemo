@@ -31,11 +31,7 @@ public:
         if (iter != m_map.end())
             return iter->second;
 
-        u8* data;
-        u32 size;
-        m_loader.Load(path, &data, &size, Alloc, &m_factory);
-
-        std::shared_ptr<T> asset(m_factory.Create(data, size, path));
+        std::shared_ptr<T> asset(m_factory.Create(path, m_loader));
 
         m_map[strPath] = asset;
 #ifdef ASSET_REFRESH
@@ -53,12 +49,8 @@ public:
         auto iter = m_map.find(strPath);
         ASSERT(iter != m_map.end());
 
-        u8* data;
-        u32 size;
-        m_loader.Load(path, &data, &size, Alloc, &m_factory);
-
         std::shared_ptr<T> asset = iter->second;
-        m_factory.Refresh(asset.get(), data, size, path);
+        m_factory.Refresh(asset.get(), path, m_loader);
     }
 #endif
 
@@ -73,11 +65,6 @@ public:
 private:
     AssetCache(const AssetCache&);
     AssetCache& operator=(const AssetCache&);
-
-    static void* Alloc(u32 size, void* userdata)
-    {
-        return ((AssetFactory<T>*)userdata)->Allocate(size);
-    }
 
     FileLoader& m_loader;
     AssetFactory<T>& m_factory;

@@ -3,6 +3,8 @@
 
 #include "Core/Types.h"
 
+class FileLoader;
+
 class Asset {
 public:
 #ifdef ASSET_REFRESH
@@ -34,14 +36,9 @@ class AssetFactory {
 public:
     virtual ~AssetFactory() {}
 
-    virtual void* Allocate(u32 size) = 0;
-
-    // The AssetFactory takes ownership of the data pointer, and is responsible
-    // for handling its (either immediate or eventual) deletion.
-    // The data is always allocated via the factory's Allocate() function.
-    virtual T* Create(u8* data, u32 size, const char* path) = 0;
+    virtual T* Create(const char* path, FileLoader& loader) = 0;
 #ifdef ASSET_REFRESH
-    virtual void Refresh(T* asset, u8* data, u32 size, const char* path) = 0;
+    virtual void Refresh(T* asset, const char* path, FileLoader& loader) = 0;
 #endif
 };
 

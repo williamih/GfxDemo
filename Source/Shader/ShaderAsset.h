@@ -33,12 +33,10 @@ public:
     explicit ShaderAssetFactory(GpuDevice* device);
 #endif
 
-    virtual void* Allocate(u32 size);
-
-    virtual ShaderAsset* Create(u8* data, u32 size, const char* path);
+    virtual ShaderAsset* Create(const char* path, FileLoader& loader);
 
 #ifdef ASSET_REFRESH
-    virtual void Refresh(ShaderAsset* asset, u8* data, u32 size, const char* path);
+    virtual void Refresh(ShaderAsset* asset, const char* path, FileLoader& loader);
 #endif
 
 private:

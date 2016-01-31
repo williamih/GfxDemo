@@ -4,6 +4,7 @@
 
 #include "Core/Macros.h"
 #include "Core/Endian.h"
+#include "Core/FileLoader.h"
 
 #include "Asset/AssetCache.h"
 
@@ -151,22 +152,24 @@ ModelAssetFactory::ModelAssetFactory(GpuDevice* device,
     , m_textureCache(textureCache)
 {}
 
-void* ModelAssetFactory::Allocate(u32 size)
+void* Alloc(u32 size, void* userdata)
 {
     return malloc(size);
 }
 
-ModelAsset* ModelAssetFactory::Create(u8* data, u32 size, const char* path)
+ModelAsset* ModelAssetFactory::Create(const char* path, FileLoader& loader)
 {
+    u8* data;
+    u32 size;
+    loader.Load(path, &data, &size, Alloc, NULL);
     ModelAsset* asset = new ModelAsset(m_device, m_textureCache, data, size);
     free(data);
     return asset;
 }
 
 #ifdef ASSET_REFRESH
-void ModelAssetFactory::Refresh(ModelAsset* asset, u8* data, u32 size, const char* path)
+void ModelAssetFactory::Refresh(ModelAsset* asset, const char* path, FileLoader& loader)
 {
-    free(data);
     ASSERT(!"ModelAssetFactory::Refresh() not implemented");
 }
 #endif

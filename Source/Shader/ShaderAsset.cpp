@@ -1,5 +1,8 @@
 #include "Shader/ShaderAsset.h"
+
 #include <stdlib.h>
+
+#include "Core/FileLoader.h"
 
 #include "GpuDevice/GpuDeferredDeletionQueue.h"
 
@@ -41,21 +44,27 @@ ShaderAssetFactory::ShaderAssetFactory(GpuDevice* device
 #endif
 {}
 
-void* ShaderAssetFactory::Allocate(u32 size)
+static void* Alloc(u32 size, void* userdata)
 {
     return malloc(size);
 }
 
-ShaderAsset* ShaderAssetFactory::Create(u8* data, u32 size, const char* path)
+ShaderAsset* ShaderAssetFactory::Create(const char* path, FileLoader& loader)
 {
+    u8* data;
+    u32 size;
+    loader.Load(path, &data, &size, Alloc, NULL);
     ShaderAsset* asset = new ShaderAsset(m_device, (const char*)data, (size_t)size);
     free(data);
     return asset;
 }
 
 #ifdef ASSET_REFRESH
-void ShaderAssetFactory::Refresh(ShaderAsset* asset, u8* data, u32 size, const char* path)
+void ShaderAssetFactory::Refresh(ShaderAsset* asset, const char* path, FileLoader& loader)
 {
+    u8* data;
+    u32 size;
+    loader.Load(path, &data, &size, Alloc, NULL);
     asset->Refresh(m_deletionQ, (const char*)data, (size_t)size - 1);
     free(data);
 }
