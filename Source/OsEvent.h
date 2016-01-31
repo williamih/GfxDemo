@@ -73,7 +73,7 @@ enum OsEventType {
     OSEVENT_CHAR,
     OSEVENT_MOUSE_BUTTON_DOWN,
     OSEVENT_MOUSE_BUTTON_UP,
-    OSEVENT_MOUSE_MOVE,
+    OSEVENT_MOUSE_DRAG,
     OSEVENT_MOUSE_WHEEL,
 };
 
@@ -96,11 +96,20 @@ struct OsMouseButtonEvent {
     OsMouseButton button;
     int x;
     int y;
+    float normalizedX;
+    float normalizedY;
 };
 
-struct OsMouseMoveEvent {
+struct OsMouseDragEvent {
+    OsMouseButton button;
     int x;
     int y;
+    float normalizedX;
+    float normalizedY;
+    int deltaX;
+    int deltaY;
+    float normalizedDeltaX;
+    float normalizedDeltaY;
 };
 
 struct OsMouseWheelEvent {
@@ -115,7 +124,7 @@ struct OsEvent {
         OsKeyEvent key;
         OsCharEvent character;
         OsMouseButtonEvent mouseButton;
-        OsMouseMoveEvent mouseMove;
+        OsMouseDragEvent mouseDrag;
         OsMouseWheelEvent mouseWheel;
     };
 };

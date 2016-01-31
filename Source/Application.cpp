@@ -29,12 +29,6 @@ static void OnPaint(const OsEvent& event, void* userdata)
     ((Application*)userdata)->Frame();
 }
 
-static void OnKeyDown(const OsEvent& event, void* userdata)
-{
-    if (event.key.code == OSKEY_R)
-        ((Application*)userdata)->RefreshModelShader();
-}
-
 OsWindow* Application::CreateWindow()
 {
     OsWindowPixelFormat pf;
@@ -95,6 +89,7 @@ Application::Application()
     , m_floor(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Floor.mdl"),
               &ModelInstance::Destroy)
     , m_angle(0.0f)
+    , m_camera()
 {
     GpuRenderPassDesc renderPass;
     renderPass.flags |= GpuRenderPassDesc::FLAG_PERFORM_CLEAR;
@@ -118,9 +113,13 @@ Application::Application()
         1.0f
     );
 
+    m_camera.SetPositionAndTarget(Vector3(0.0f, 2.5f, 3.87f), Vector3(0.0f, 2.0f, 3.0f));
+
     m_window->RegisterEvent(OSEVENT_PAINT, OnPaint, (void*)this);
     m_window->RegisterEvent(OSEVENT_WINDOW_RESIZE, OnWindowResize, (void*)m_gpuDevice.get());
-    m_window->RegisterEvent(OSEVENT_KEY_DOWN, OnKeyDown, (void*)this);
+    m_window->RegisterEvent(OSEVENT_KEY_DOWN, &Application::OnKeyDown, (void*)this);
+    m_window->RegisterEvent(OSEVENT_KEY_UP, &Application::OnKeyUp, (void*)this);
+    m_window->RegisterEvent(OSEVENT_MOUSE_DRAG, &Application::OnMouseDragged, (void*)this);
 }
 
 Application::~Application()
@@ -128,20 +127,10 @@ Application::~Application()
     m_gpuDevice->RenderPassDestroy(m_renderPass);
 }
 
-static Matrix44 CreatePerspectiveMatrix(float aspect, float fovY, float zNear, float zFar)
-{
-    float tanHalfFovY = tanf(fovY * (3.141592654f / 360.0f));
-    float top = tanHalfFovY * zNear;
-    float bot = -top;
-    float right = top * aspect;
-    float left = -right;
-    return GpuDevice::TransformCreatePerspective(left, right, bot, top, zNear, zFar);
-}
-
-const float VIEW_ANGLE = 30.0f * (3.141592654f / 180.0f);
-
 void Application::Frame()
 {
+    m_camera.Update(1.0f / 60.0f);
+
     m_angle += 0.01f;
     float sinAngle = sinf(m_angle);
     float cosAngle = cosf(m_angle);
@@ -163,19 +152,11 @@ void Application::Frame()
     viewport.zNear = 0.0f;
     viewport.zFar = 1.0f;
 
-    Matrix44 proj = CreatePerspectiveMatrix(4.0f/3.0f, 75.0f, 0.1f, 20.0f);
-    Matrix44 view(1.0f, 0.0f, 0.0f, 0.0f,
-                  0.0f, cosf(VIEW_ANGLE), -sinf(VIEW_ANGLE), 0.0f,
-                  0.0f, sinf(VIEW_ANGLE), cosf(VIEW_ANGLE), -3.7f,
-                  0.0f, 0.0f, 0.0f, 1.0f);
-    Matrix44 viewProj = proj * view;
-    Vector3 cameraPos(0.0f, 0.0f, 3.0f);
-
     m_gpuDevice->SceneBegin();
 
     ModelRenderQueue::SceneInfo info;
-    info.viewProjTransform = viewProj;
-    info.cameraPos = cameraPos;
+    info.viewProjTransform = m_camera.ProjTransform() * m_camera.ViewTransform();
+    info.cameraPos = m_camera.Position();
     info.dirToLight = Vector3(0.0f, 1.0f, 0.0f);
     info.irradiance = Vector3(1.0f, 1.0f, 1.0f);
     info.ambientRadiance = Vector3(0.3f, 0.3f, 0.3f);
@@ -190,6 +171,50 @@ void Application::Frame()
     m_shaderCache.UpdateRefreshSystem();
 #endif
     m_gpuDevice->ScenePresent();
+}
+
+void Application::OnKeyDown(const OsEvent& event, void* userdata)
+{
+    if (event.key.code == OSKEY_R)
+        ((Application*)userdata)->RefreshModelShader();
+    else if (event.key.code == OSKEY_W || event.key.code == OSKEY_UP_ARROW)
+        ((Application*)userdata)->m_camera.MoveForwardStart();
+    else if (event.key.code == OSKEY_S || event.key.code == OSKEY_DOWN_ARROW)
+        ((Application*)userdata)->m_camera.MoveBackwardStart();
+    else if (event.key.code == OSKEY_SPACE)
+        ((Application*)userdata)->m_camera.AscendStart();
+    else if (event.key.code == OSKEY_X)
+        ((Application*)userdata)->m_camera.DescendStart();
+    else if (event.key.code == OSKEY_A || event.key.code == OSKEY_LEFT_ARROW)
+        ((Application*)userdata)->m_camera.TurnLeftStart();
+    else if (event.key.code == OSKEY_D || event.key.code == OSKEY_RIGHT_ARROW)
+        ((Application*)userdata)->m_camera.TurnRightStart();
+}
+
+void Application::OnKeyUp(const OsEvent& event, void* userdata)
+{
+    if (event.key.code == OSKEY_R)
+        ((Application*)userdata)->RefreshModelShader();
+    else if (event.key.code == OSKEY_W || event.key.code == OSKEY_UP_ARROW)
+        ((Application*)userdata)->m_camera.MoveForwardStop();
+    else if (event.key.code == OSKEY_S || event.key.code == OSKEY_DOWN_ARROW)
+        ((Application*)userdata)->m_camera.MoveBackwardStop();
+    else if (event.key.code == OSKEY_SPACE)
+        ((Application*)userdata)->m_camera.AscendStop();
+    else if (event.key.code == OSKEY_X)
+        ((Application*)userdata)->m_camera.DescendStop();
+    else if (event.key.code == OSKEY_A || event.key.code == OSKEY_LEFT_ARROW)
+        ((Application*)userdata)->m_camera.TurnLeftStop();
+    else if (event.key.code == OSKEY_D || event.key.code == OSKEY_RIGHT_ARROW)
+        ((Application*)userdata)->m_camera.TurnRightStop();
+}
+
+void Application::OnMouseDragged(const OsEvent& event, void* userdata)
+{
+    ((Application*)userdata)->m_camera.HandleMouseDrag(
+        event.mouseDrag.normalizedDeltaX,
+        event.mouseDrag.normalizedDeltaY
+    );
 }
 
 void Application::RefreshModelShader()

@@ -16,14 +16,16 @@
 #include "Model/ModelInstance.h"
 #include "Model/ModelRenderQueue.h"
 
+#include "Scene/Camera.h"
+
 class OsWindow;
+class OsEvent;
 
 class Application {
 public:
     Application();
     ~Application();
     void Frame();
-    void RefreshModelShader();
 private:
     Application(const Application&);
     Application& operator=(const Application&);
@@ -33,6 +35,12 @@ private:
     static ModelInstance* CreateModelInstance(ModelRenderQueue& queue,
                                               AssetCache<ModelAsset>& cache,
                                               const char* path);
+
+    static void OnKeyDown(const OsEvent& event, void* userdata);
+    static void OnKeyUp(const OsEvent& event, void* userdata);
+    static void OnMouseDragged(const OsEvent& event, void* userdata);
+
+    void RefreshModelShader();
 
     std::unique_ptr<OsWindow, void (*)(OsWindow*)> m_window;
     std::unique_ptr<GpuDevice, void (*)(GpuDevice*)> m_gpuDevice;
@@ -55,6 +63,7 @@ private:
     std::unique_ptr<ModelInstance, void (*)(ModelInstance*)> m_teapot;
     std::unique_ptr<ModelInstance, void (*)(ModelInstance*)> m_floor;
     float m_angle;
+    Camera m_camera;
 };
 
 #endif // APPLICATION_H

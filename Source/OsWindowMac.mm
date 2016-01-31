@@ -261,6 +261,64 @@ static OsKeyCode CharacterToKeyCode(unichar c)
     [self enqueueKeyEvent:theEvent type:OSEVENT_KEY_UP];
 }
 
+- (void)enqueueMouseButtonEvent:(NSEvent *)theEvent type:(OsEventType)type button:(OsMouseButton)button {
+    NSPoint point = [self convertPoint:[theEvent locationInWindow] fromView:nil];
+
+    OsEvent event;
+    event.type = type;
+    event.mouseButton.button = button;
+    event.mouseButton.x = (int)point.x;
+    event.mouseButton.y = (int)point.y;
+    event.mouseButton.normalizedX = (float)(point.x / [self bounds].size.width);
+    event.mouseButton.normalizedY = (float)(point.y / [self bounds].size.height);
+
+    impl->EnqueueEvent(event);
+}
+
+- (void)mouseDown:(NSEvent *)theEvent {
+    [self enqueueMouseButtonEvent:theEvent type:OSEVENT_MOUSE_BUTTON_DOWN button:OSMOUSE_BUTTON_LEFT];
+}
+
+- (void)rightMouseDown:(NSEvent *)theEvent {
+    [self enqueueMouseButtonEvent:theEvent type:OSEVENT_MOUSE_BUTTON_DOWN button:OSMOUSE_BUTTON_RIGHT];
+}
+
+- (void)mouseUp:(NSEvent *)theEvent {
+    [self enqueueMouseButtonEvent:theEvent type:OSEVENT_MOUSE_BUTTON_UP button:OSMOUSE_BUTTON_LEFT];
+}
+
+- (void)rightMouseUp:(NSEvent *)theEvent {
+    [self enqueueMouseButtonEvent:theEvent type:OSEVENT_MOUSE_BUTTON_UP button:OSMOUSE_BUTTON_RIGHT];
+}
+
+- (void)enqueueMouseDraggedEvent:(NSEvent *)theEvent button:(OsMouseButton)button {
+    NSPoint point = [self convertPoint:[theEvent locationInWindow] fromView:nil];
+    CGFloat deltaX = [theEvent deltaX];
+    CGFloat deltaY = -[theEvent deltaY];
+
+    OsEvent event;
+    event.type = OSEVENT_MOUSE_DRAG;
+    event.mouseDrag.button = button;
+    event.mouseDrag.x = (int)point.x;
+    event.mouseDrag.y = (int)point.y;
+    event.mouseDrag.normalizedX = (float)(point.x / [self bounds].size.width);
+    event.mouseDrag.normalizedY = (float)(point.y / [self bounds].size.height);
+    event.mouseDrag.deltaX = (int)deltaX;
+    event.mouseDrag.deltaY = (int)deltaY;
+    event.mouseDrag.normalizedDeltaX = (float)(deltaX / [self bounds].size.width);
+    event.mouseDrag.normalizedDeltaY = (float)(deltaY / [self bounds].size.height);
+
+    impl->EnqueueEvent(event);
+}
+
+- (void)mouseDragged:(NSEvent *)theEvent {
+    [self enqueueMouseDraggedEvent:theEvent button:OSMOUSE_BUTTON_LEFT];
+}
+
+- (void)rightMouseDragged:(NSEvent *)theEvent {
+    [self enqueueMouseDraggedEvent:theEvent button:OSMOUSE_BUTTON_RIGHT];
+}
+
 @end
 
 // -----------------------------------------------------------------------------

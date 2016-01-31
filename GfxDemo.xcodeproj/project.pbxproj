@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7A0020FB1BF8239000A0B82F /* MacApplication.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A0020F91BF8239000A0B82F /* MacApplication.mm */; };
+		7A060A0A1C5C43F200DDE30A /* Camera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A060A081C5C43F200DDE30A /* Camera.cpp */; };
 		7A0CF61A1C54C17200C7952C /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A0CF6191C54C17200C7952C /* Carbon.framework */; };
 		7A106EA71C56F767003B9E09 /* ShaderAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A106EA51C56F767003B9E09 /* ShaderAsset.cpp */; };
 		7A10CE8D1C006FF200A6816F /* ModelAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE851C006FF200A6816F /* ModelAsset.cpp */; };
@@ -42,6 +43,8 @@
 /* Begin PBXFileReference section */
 		7A0020F91BF8239000A0B82F /* MacApplication.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MacApplication.mm; sourceTree = "<group>"; };
 		7A0020FA1BF8239000A0B82F /* MacApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacApplication.h; sourceTree = "<group>"; };
+		7A060A081C5C43F200DDE30A /* Camera.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Camera.cpp; sourceTree = "<group>"; };
+		7A060A091C5C43F200DDE30A /* Camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Camera.h; sourceTree = "<group>"; };
 		7A0CF6191C54C17200C7952C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		7A0FA8761C52D46F00EAC474 /* AssetCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssetCache.h; sourceTree = "<group>"; };
 		7A106EA51C56F767003B9E09 /* ShaderAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ShaderAsset.cpp; sourceTree = "<group>"; };
@@ -125,6 +128,15 @@
 				7A0020F91BF8239000A0B82F /* MacApplication.mm */,
 			);
 			path = Mac;
+			sourceTree = "<group>";
+		};
+		7A060A071C5C43E900DDE30A /* Scene */ = {
+			isa = PBXGroup;
+			children = (
+				7A060A091C5C43F200DDE30A /* Camera.h */,
+				7A060A081C5C43F200DDE30A /* Camera.cpp */,
+			);
+			path = Scene;
 			sourceTree = "<group>";
 		};
 		7A0FA8751C52D46F00EAC474 /* Asset */ = {
@@ -260,6 +272,7 @@
 				CA0732C51A43A54B00770DE8 /* OsWindow.h */,
 				CA0732C71A43A62300770DE8 /* OsWindowMac.mm */,
 				7AEAF2001BF81DA400620EB0 /* Main.cpp */,
+				7A060A071C5C43E900DDE30A /* Scene */,
 				7A10CE841C006FF200A6816F /* Model */,
 				7AF6B8BD1C574C28004C16C6 /* Texture */,
 				7A106EA41C56F767003B9E09 /* Shader */,
@@ -352,6 +365,7 @@
 			files = (
 				7AF6B8C31C574C28004C16C6 /* TextureAsset.cpp in Sources */,
 				7A10CE8F1C006FF200A6816F /* ModelInstance.cpp in Sources */,
+				7A060A0A1C5C43F200DDE30A /* Camera.cpp in Sources */,
 				7A1EEFC41C54515600D68F49 /* GpuDeferredDeletionQueue.cpp in Sources */,
 				7A0020FB1BF8239000A0B82F /* MacApplication.mm in Sources */,
 				7AEB7B391C373E6600EA12EA /* Model.metal in Sources */,
