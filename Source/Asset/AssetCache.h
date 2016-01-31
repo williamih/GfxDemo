@@ -8,14 +8,15 @@
 
 #include "Core/Macros.h"
 #include "Core/Types.h"
-#include "Core/File.h"
+#include "Core/FileLoader.h"
 #include "Asset/Asset.h"
 
 template<class T>
 class AssetCache {
 public:
-    explicit AssetCache(AssetFactory<T>& factory)
-        : m_factory(factory)
+    AssetCache(FileLoader& loader, AssetFactory<T>& factory)
+        : m_loader(loader)
+        , m_factory(factory)
         , m_map()
 #ifdef ASSET_REFRESH
         , m_assets()
@@ -32,7 +33,7 @@ public:
 
         u8* data;
         u32 size;
-        FileReadFile(path, &data, &size, Alloc, &m_factory);
+        m_loader.Load(path, &data, &size, Alloc, &m_factory);
 
         std::shared_ptr<T> asset(m_factory.Create(data, size, path));
 
@@ -54,7 +55,7 @@ public:
 
         u8* data;
         u32 size;
-        FileReadFile(path, &data, &size, Alloc, &m_factory);
+        m_loader.Load(path, &data, &size, Alloc, &m_factory);
 
         std::shared_ptr<T> asset = iter->second;
         m_factory.Refresh(asset.get(), data, size, path);
@@ -78,6 +79,7 @@ private:
         return ((AssetFactory<T>*)userdata)->Allocate(size);
     }
 
+    FileLoader& m_loader;
     AssetFactory<T>& m_factory;
     std::unordered_map<std::string, std::shared_ptr<T>> m_map;
 #ifdef ASSET_REFRESH

@@ -1,9 +1,9 @@
-#include "Core/File.h"
+#include "Core/FileLoader.h"
 #include <stdio.h>
 #include "Core/Macros.h"
 
-void FileReadFile(const char* path, u8** data, u32* size,
-                  void* (*allocate)(u32 size, void* userdata), void* userdata)
+void FileLoader::Load(const char* path, u8** data, u32* size,
+                      void* (*allocate)(u32 size, void* userdata), void* userdata)
 {
     FILE* file;
     long length;

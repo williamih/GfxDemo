@@ -3,6 +3,8 @@
 
 #include <memory>
 
+#include "Core/FileLoader.h"
+
 #include "GpuDevice/GpuDevice.h"
 #include "GpuDevice/GpuDeferredDeletionQueue.h"
 
@@ -49,6 +51,8 @@ private:
 #ifdef ASSET_REFRESH
     GpuDeferredDeletionQueue m_gpuDeferredDeletionQueue;
 #endif
+
+    FileLoader m_fileLoader;
 
     ShaderAssetFactory m_shaderAssetFactory;
     AssetCache<ShaderAsset> m_shaderCache;

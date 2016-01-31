@@ -28,7 +28,7 @@
 		7AA0669D1C5449C3006278C8 /* Asset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AA0669C1C5449C3006278C8 /* Asset.cpp */; };
 		7AB95A051C25225600A71282 /* GpuMathUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AB95A031C25225600A71282 /* GpuMathUtils.cpp */; };
 		7AC5DFCA1B8AF1C700FC65B1 /* Application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */; };
-		7AD002021C5A123500AD3F39 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AD002001C5A123500AD3F39 /* File.cpp */; };
+		7AD002021C5A123500AD3F39 /* FileLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AD002001C5A123500AD3F39 /* FileLoader.cpp */; };
 		7AEAF2011BF81DA400620EB0 /* Main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AEAF2001BF81DA400620EB0 /* Main.cpp */; };
 		7AEAF2031BF81E7E00620EB0 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AEAF2021BF81E7E00620EB0 /* Cocoa.framework */; };
 		7AEAF2051BF81E9300620EB0 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AEAF2041BF81E9300620EB0 /* QuartzCore.framework */; };
@@ -83,8 +83,8 @@
 		7AB95A041C25225600A71282 /* GpuMathUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuMathUtils.h; sourceTree = "<group>"; };
 		7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Application.cpp; sourceTree = "<group>"; };
 		7AC5DFC91B8AF1C700FC65B1 /* Application.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Application.h; sourceTree = "<group>"; };
-		7AD002001C5A123500AD3F39 /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = File.cpp; sourceTree = "<group>"; };
-		7AD002011C5A123500AD3F39 /* File.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = File.h; sourceTree = "<group>"; };
+		7AD002001C5A123500AD3F39 /* FileLoader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FileLoader.cpp; sourceTree = "<group>"; };
+		7AD002011C5A123500AD3F39 /* FileLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FileLoader.h; sourceTree = "<group>"; };
 		7AEAF1FF1BF814B900620EB0 /* OsEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OsEvent.h; sourceTree = "<group>"; };
 		7AEAF2001BF81DA400620EB0 /* Main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Main.cpp; sourceTree = "<group>"; };
 		7AEAF2021BF81E7E00620EB0 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
@@ -233,8 +233,8 @@
 				7AF7AB0E1C00158400B44E92 /* Macros.h */,
 				7AF7AB0F1C00158400B44E92 /* Types.h */,
 				7A10CE951C0070B700A6816F /* Endian.h */,
-				7AD002011C5A123500AD3F39 /* File.h */,
-				7AD002001C5A123500AD3F39 /* File.cpp */,
+				7AD002011C5A123500AD3F39 /* FileLoader.h */,
+				7AD002001C5A123500AD3F39 /* FileLoader.cpp */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -374,7 +374,7 @@
 				7A10CEA41C0070C000A6816F /* Vector3.cpp in Sources */,
 				7A4492051BF1E46700444DFC /* GpuDeviceMetal.mm in Sources */,
 				7AB95A051C25225600A71282 /* GpuMathUtils.cpp in Sources */,
-				7AD002021C5A123500AD3F39 /* File.cpp in Sources */,
+				7AD002021C5A123500AD3F39 /* FileLoader.cpp in Sources */,
 				7AEB7B3C1C37538A00EA12EA /* GpuShaderLoad.cpp in Sources */,
 				7A10CE901C006FF200A6816F /* ModelRenderQueue.cpp in Sources */,
 				7A10CEA11C0070C000A6816F /* Matrix33.cpp in Sources */,

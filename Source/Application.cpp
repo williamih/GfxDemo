@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "Core/File.h"
-
 #include "Math/Vector3.h"
 
 #include "GpuDevice/GpuDrawItemWriter.h"
@@ -66,22 +64,24 @@ Application::Application()
     , m_gpuDeferredDeletionQueue()
 #endif
 
+    , m_fileLoader()
+
     , m_shaderAssetFactory(m_gpuDevice.get()
 #ifdef ASSET_REFRESH
                            , m_gpuDeferredDeletionQueue
 #endif
                            )
-    , m_shaderCache(m_shaderAssetFactory)
+    , m_shaderCache(m_fileLoader, m_shaderAssetFactory)
 
     , m_textureAssetFactory(m_gpuDevice.get()
 #ifdef ASSET_REFRESH
                             , m_gpuDeferredDeletionQueue
 #endif
                             )
-    , m_textureCache(m_textureAssetFactory)
+    , m_textureCache(m_fileLoader, m_textureAssetFactory)
 
     , m_modelAssetFactory(m_gpuDevice.get(), m_textureCache)
-    , m_modelCache(m_modelAssetFactory)
+    , m_modelCache(m_fileLoader, m_modelAssetFactory)
 
     , m_modelRenderQueue(m_gpuDevice.get(), m_shaderCache)
     , m_teapot(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Teapot.mdl"),

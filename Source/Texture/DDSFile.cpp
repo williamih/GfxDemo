@@ -6,8 +6,6 @@
 #include "Core/Macros.h"
 #include "Core/Endian.h"
 
-#include "File.h"
-
 struct DDSPixelFormat {
     u32 dwSize;
     u32 dwFlags;
