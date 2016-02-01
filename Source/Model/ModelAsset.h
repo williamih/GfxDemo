@@ -48,7 +48,7 @@ class ModelAssetFactory : public AssetFactory<ModelAsset> {
 public:
     ModelAssetFactory(GpuDevice* device, AssetCache<TextureAsset>& textureCache);
 
-    virtual ModelAsset* Create(const char* path, FileLoader& loader);
+    virtual std::shared_ptr<ModelAsset> Create(const char* path, FileLoader& loader);
 
 #ifdef ASSET_REFRESH
     virtual void Refresh(ModelAsset* asset, const char* path, FileLoader& loader);

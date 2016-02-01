@@ -157,12 +157,12 @@ void* Alloc(u32 size, void* userdata)
     return malloc(size);
 }
 
-ModelAsset* ModelAssetFactory::Create(const char* path, FileLoader& loader)
+std::shared_ptr<ModelAsset> ModelAssetFactory::Create(const char* path, FileLoader& loader)
 {
     u8* data;
     u32 size;
     loader.Load(path, &data, &size, Alloc, NULL);
-    ModelAsset* asset = new ModelAsset(m_device, m_textureCache, data, size);
+    std::shared_ptr<ModelAsset> asset(new ModelAsset(m_device, m_textureCache, data, size));
     free(data);
     return asset;
 }

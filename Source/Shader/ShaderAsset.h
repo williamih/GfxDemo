@@ -33,7 +33,7 @@ public:
     explicit ShaderAssetFactory(GpuDevice* device);
 #endif
 
-    virtual ShaderAsset* Create(const char* path, FileLoader& loader);
+    virtual std::shared_ptr<ShaderAsset> Create(const char* path, FileLoader& loader);
 
 #ifdef ASSET_REFRESH
     virtual void Refresh(ShaderAsset* asset, const char* path, FileLoader& loader);

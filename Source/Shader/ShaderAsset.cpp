@@ -49,12 +49,12 @@ static void* Alloc(u32 size, void* userdata)
     return malloc(size);
 }
 
-ShaderAsset* ShaderAssetFactory::Create(const char* path, FileLoader& loader)
+std::shared_ptr<ShaderAsset> ShaderAssetFactory::Create(const char* path, FileLoader& loader)
 {
     u8* data;
     u32 size;
     loader.Load(path, &data, &size, Alloc, NULL);
-    ShaderAsset* asset = new ShaderAsset(m_device, (const char*)data, (size_t)size);
+    std::shared_ptr<ShaderAsset> asset(new ShaderAsset(m_device, (const char*)data, (size_t)size));
     free(data);
     return asset;
 }

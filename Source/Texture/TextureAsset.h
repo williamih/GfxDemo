@@ -34,7 +34,7 @@ public:
     explicit TextureAssetFactory(GpuDevice* device);
 #endif
 
-    virtual TextureAsset* Create(const char* path, FileLoader& loader);
+    virtual std::shared_ptr<TextureAsset> Create(const char* path, FileLoader& loader);
 
 #ifdef ASSET_REFRESH
     virtual void Refresh(TextureAsset* asset, const char* path, FileLoader& loader);

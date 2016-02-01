@@ -1,6 +1,7 @@
 #ifndef ASSET_ASSET_H
 #define ASSET_ASSET_H
 
+#include <memory>
 #include "Core/Types.h"
 
 class FileLoader;
@@ -36,7 +37,7 @@ class AssetFactory {
 public:
     virtual ~AssetFactory() {}
 
-    virtual T* Create(const char* path, FileLoader& loader) = 0;
+    virtual std::shared_ptr<T> Create(const char* path, FileLoader& loader) = 0;
 #ifdef ASSET_REFRESH
     virtual void Refresh(T* asset, const char* path, FileLoader& loader) = 0;
 #endif
