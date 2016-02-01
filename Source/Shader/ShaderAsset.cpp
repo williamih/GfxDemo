@@ -65,7 +65,7 @@ void ShaderAssetFactory::Refresh(ShaderAsset* asset, const char* path, FileLoade
     u8* data;
     u32 size;
     loader.Load(path, &data, &size, Alloc, NULL);
-    asset->Refresh(m_deletionQ, (const char*)data, (size_t)size - 1);
+    asset->Refresh(m_deletionQ, (const char*)data, (size_t)size);
     free(data);
 }
 #endif
