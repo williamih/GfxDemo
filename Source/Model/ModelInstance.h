@@ -3,12 +3,14 @@
 
 #include <memory>
 #include "GpuDevice/GpuDevice.h"
+#include "GpuDevice/GpuDrawItemPool.h"
 
-class ModelAsset;
 class Matrix44;
 class Vector3;
+class ModelAsset;
 
 struct ModelInstanceCreateContext {
+    GpuDrawItemPool* drawItemPool;
     GpuPipelineStateID pipelineObject;
     GpuBufferID sceneCBuffer;
     GpuTextureID defaultTexture;
@@ -17,29 +19,28 @@ struct ModelInstanceCreateContext {
 
 class ModelInstance {
 public:
-    static ModelInstance* Create(std::shared_ptr<ModelAsset> model,
-                                 const ModelInstanceCreateContext& ctx);
-    static void Destroy(ModelInstance* instance);
+    ModelInstance(std::shared_ptr<ModelAsset> model,
+                  const ModelInstanceCreateContext& ctx);
+    ~ModelInstance();
 
-    const GpuDrawItem* GetDrawItem() const;
     ModelAsset* GetModelAsset() const;
     GpuBufferID GetCBuffer() const;
 
     void RefreshDrawItem(const ModelInstanceCreateContext& ctx);
+    void AddDrawItemsToList(std::vector<const GpuDrawItem*>& items);
 
     void Update(const Matrix44& worldTransform,
                 const Vector3& diffuseColor,
                 const Vector3& specularColor,
                 float glossiness);
 private:
-    ModelInstance(std::shared_ptr<ModelAsset> model,
-                  const ModelInstanceCreateContext& ctx);
-    ~ModelInstance();
     ModelInstance(const ModelInstance&);
     ModelInstance& operator=(const ModelInstance&);
 
+    GpuDrawItemPool& m_drawItemPool;
     std::shared_ptr<ModelAsset> m_model;
     GpuBufferID m_cbuffer;
+    GpuDrawItemPoolIndex m_drawItemIndex;
 };
 
 #endif // MODEL_MODELINSTANCE_H

@@ -17,35 +17,17 @@ struct ModelInstanceCBuffer {
     float specularColorAndGlossiness[4];
 };
 
-static GpuDrawItemWriterDesc CreateDrawItemWriterDesc()
-{
-    GpuDrawItemWriterDesc desc;
-    desc.SetNumCBuffers(2);
-    desc.SetNumVertexBuffers(1);
-    desc.SetNumTextures(1);
-    desc.SetNumSamplers(1);
-    return desc;
-}
-
-static void* ModelDrawItemAlloc(size_t size, void* userdata)
-{
-    return userdata;
-}
-
-static void InternalCreateDrawItem(void* location,
-                                   ModelAsset* model,
-                                   const ModelInstanceCreateContext& ctx,
-                                   GpuBufferID modelCBuffer)
+static GpuDrawItemPoolIndex InternalCreateDrawItem(GpuDrawItemPool& drawItemPool,
+                                                   ModelAsset* model,
+                                                   const ModelInstanceCreateContext& ctx,
+                                                   GpuBufferID modelCBuffer)
 {
     GpuTextureID diffuseTex = ctx.defaultTexture;
     if (model->GetDiffuseTex())
         diffuseTex = model->GetDiffuseTex()->GetGpuTextureID();
 
-    GpuDevice* dev = model->GetGpuDevice();
-    GpuDrawItemWriterDesc desc = CreateDrawItemWriterDesc();
-
     GpuDrawItemWriter writer;
-    writer.Begin(dev, desc, ModelDrawItemAlloc, location);
+    GpuDrawItemPoolIndex index = drawItemPool.BeginDrawItem(writer);
     writer.SetPipelineState(ctx.pipelineObject);
     writer.SetVertexBuffer(0, model->GetVertexBuf(), 0);
     writer.SetCBuffer(0, ctx.sceneCBuffer);
@@ -59,46 +41,35 @@ static void InternalCreateDrawItem(void* location,
                               0,
                               GPU_INDEX_U32);
     writer.End();
-}
 
-ModelInstance* ModelInstance::Create(std::shared_ptr<ModelAsset> model,
-                                     const ModelInstanceCreateContext& ctx)
-{
-    GpuDrawItemWriterDesc desc = CreateDrawItemWriterDesc();
-    size_t size = sizeof(ModelInstance) + GpuDrawItemWriter::SizeInBytes(desc);
-    u8* buf = (u8*)malloc(size);
-    ModelInstance* instance = new (buf) ModelInstance(model, ctx);
-    return instance;
-}
-
-void ModelInstance::Destroy(ModelInstance* instance)
-{
-    instance->~ModelInstance();
-    free((void*)instance);
+    return index;
 }
 
 ModelInstance::ModelInstance(std::shared_ptr<ModelAsset> model,
                              const ModelInstanceCreateContext& ctx)
-    : m_model(model)
+    : m_drawItemPool(*ctx.drawItemPool)
+    , m_model(model)
     , m_cbuffer(0)
+    , m_drawItemIndex(0xFFFFFFFF)
 {
     GpuDevice* dev = model->GetGpuDevice();
     m_cbuffer = dev->BufferCreate(GPU_BUFFER_TYPE_CONSTANT,
                                   GPU_BUFFER_ACCESS_DYNAMIC,
                                   NULL,
                                   sizeof(ModelInstanceCBuffer));
-    InternalCreateDrawItem((void*)GetDrawItem(), m_model.get(), ctx, m_cbuffer);
+
+    m_drawItemIndex = InternalCreateDrawItem(
+        *ctx.drawItemPool,
+        m_model.get(),
+        ctx,
+        m_cbuffer
+    );
 }
 
 ModelInstance::~ModelInstance()
 {
-    GPUDEVICE_UNREGISTER_DRAWITEM(m_model->GetGpuDevice(), GetDrawItem());
+    m_drawItemPool.DeleteDrawItem(m_drawItemIndex);
     m_model->GetGpuDevice()->BufferDestroy(m_cbuffer);
-}
-
-const GpuDrawItem* ModelInstance::GetDrawItem() const
-{
-    return (const GpuDrawItem*)(this + 1);
 }
 
 ModelAsset* ModelInstance::GetModelAsset() const
@@ -113,8 +84,18 @@ GpuBufferID ModelInstance::GetCBuffer() const
 
 void ModelInstance::RefreshDrawItem(const ModelInstanceCreateContext& ctx)
 {
-    GPUDEVICE_UNREGISTER_DRAWITEM(m_model->GetGpuDevice(), GetDrawItem());
-    InternalCreateDrawItem((void*)GetDrawItem(), m_model.get(), ctx, m_cbuffer);
+    m_drawItemPool.DeleteDrawItem(m_drawItemIndex);
+    m_drawItemIndex = InternalCreateDrawItem(
+        m_drawItemPool,
+        m_model.get(),
+        ctx,
+        m_cbuffer
+    );
+}
+
+void ModelInstance::AddDrawItemsToList(std::vector<const GpuDrawItem*>& items)
+{
+    items.push_back(m_drawItemPool.GetDrawItem(m_drawItemIndex));
 }
 
 void ModelInstance::Update(const Matrix44& worldTransform,

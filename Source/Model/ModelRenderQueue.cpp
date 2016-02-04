@@ -68,11 +68,22 @@ static GpuInputLayoutID CreateInputLayout(GpuDevice* device)
     );
 }
 
+static GpuDrawItemWriterDesc CreateDrawItemWriterDesc()
+{
+    GpuDrawItemWriterDesc desc;
+    desc.SetNumCBuffers(2);
+    desc.SetNumVertexBuffers(1);
+    desc.SetNumTextures(1);
+    desc.SetNumSamplers(1);
+    return desc;
+}
+
 ModelRenderQueue::ModelRenderQueue(GpuDevice* device,
                                    AssetCache<ShaderAsset>& shaderCache)
     : m_drawItems()
     , m_modelInstances()
     , m_device(device)
+    , m_drawItemPool(m_device, CreateDrawItemWriterDesc())
     , m_shaderAsset()
     , m_sceneCBuffer(0)
     , m_defaultTexture(0)
@@ -118,6 +129,7 @@ void ModelRenderQueue::RefreshPipelineStateObject()
 
     for (size_t i = 0; i < m_modelInstances.size(); ++i) {
         ModelInstanceCreateContext ctx;
+        ctx.drawItemPool = &m_drawItemPool;
         ctx.pipelineObject = newPipelineState;
         ctx.sceneCBuffer = m_sceneCBuffer;
         ctx.defaultTexture = m_defaultTexture;
@@ -133,11 +145,12 @@ void ModelRenderQueue::RefreshPipelineStateObject()
 ModelInstance* ModelRenderQueue::CreateModelInstance(std::shared_ptr<ModelAsset> model)
 {
     ModelInstanceCreateContext ctx;
+    ctx.drawItemPool = &m_drawItemPool;
     ctx.pipelineObject = m_pipelineStateObj;
     ctx.sceneCBuffer = m_sceneCBuffer;
     ctx.defaultTexture = m_defaultTexture;
     ctx.sampler = m_sampler;
-    ModelInstance* instance = ModelInstance::Create(model, ctx);
+    ModelInstance* instance = new ModelInstance(model, ctx);
     m_modelInstances.push_back(instance);
     return instance;
 }
@@ -147,6 +160,7 @@ void ModelRenderQueue::SetMaxAnisotropy(int maxAnisotropy)
     GpuSamplerID sampler = CreateSampler(m_device, maxAnisotropy);
     for (size_t i = 0; i < m_modelInstances.size(); ++i) {
         ModelInstanceCreateContext ctx;
+        ctx.drawItemPool = &m_drawItemPool;
         ctx.pipelineObject = m_pipelineStateObj;
         ctx.sceneCBuffer = m_sceneCBuffer;
         ctx.defaultTexture = m_defaultTexture;
@@ -169,7 +183,7 @@ void ModelRenderQueue::Clear()
 
 void ModelRenderQueue::Add(ModelInstance* instance)
 {
-    m_drawItems.push_back(instance->GetDrawItem());
+    instance->AddDrawItemsToList(m_drawItems);
 }
 
 void ModelRenderQueue::Draw(const SceneInfo& sceneInfo,

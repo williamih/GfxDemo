@@ -64,8 +64,8 @@ private:
     AssetCache<ModelAsset> m_modelCache;
 
     ModelRenderQueue m_modelRenderQueue;
-    std::unique_ptr<ModelInstance, void (*)(ModelInstance*)> m_teapot;
-    std::unique_ptr<ModelInstance, void (*)(ModelInstance*)> m_floor;
+    std::unique_ptr<ModelInstance> m_teapot;
+    std::unique_ptr<ModelInstance> m_floor;
     float m_angle;
     Camera m_camera;
 };

@@ -84,10 +84,8 @@ Application::Application()
     , m_modelCache(m_fileLoader, m_modelAssetFactory)
 
     , m_modelRenderQueue(m_gpuDevice.get(), m_shaderCache)
-    , m_teapot(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Teapot.mdl"),
-               &ModelInstance::Destroy)
-    , m_floor(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Floor.mdl"),
-              &ModelInstance::Destroy)
+    , m_teapot(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Teapot.mdl"))
+    , m_floor(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Floor.mdl"))
     , m_angle(0.0f)
     , m_camera()
 {

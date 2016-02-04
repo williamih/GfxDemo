@@ -5,6 +5,7 @@
 #include "Math/Vector3.h"
 #include "Math/Matrix44.h"
 #include "GpuDevice/GpuDevice.h"
+#include "GpuDevice/GpuDrawItemPool.h"
 #include "Asset/AssetCache.h"
 
 class ModelAsset;
@@ -42,6 +43,7 @@ private:
     std::vector<const GpuDrawItem*> m_drawItems;
     std::vector<ModelInstance*> m_modelInstances;
     GpuDevice* m_device;
+    GpuDrawItemPool m_drawItemPool;
     std::shared_ptr<ShaderAsset> m_shaderAsset;
     GpuBufferID m_sceneCBuffer;
     GpuTextureID m_defaultTexture;

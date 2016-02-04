@@ -25,6 +25,7 @@
 		7A4492031BF1E44100444DFC /* GpuDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492011BF1E44100444DFC /* GpuDevice.cpp */; };
 		7A4492051BF1E46700444DFC /* GpuDeviceMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */; };
 		7A4492071BF1E63500444DFC /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A4492061BF1E63500444DFC /* Metal.framework */; };
+		7A978A671C61E1F800299AB1 /* GpuDrawItemPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A978A651C61E1F800299AB1 /* GpuDrawItemPool.cpp */; };
 		7AA0669D1C5449C3006278C8 /* Asset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AA0669C1C5449C3006278C8 /* Asset.cpp */; };
 		7AB95A051C25225600A71282 /* GpuMathUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AB95A031C25225600A71282 /* GpuMathUtils.cpp */; };
 		7AC5DFCA1B8AF1C700FC65B1 /* Application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */; };
@@ -77,6 +78,8 @@
 		7A4492021BF1E44100444DFC /* GpuDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDevice.h; sourceTree = "<group>"; };
 		7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GpuDeviceMetal.mm; sourceTree = "<group>"; };
 		7A4492061BF1E63500444DFC /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		7A978A651C61E1F800299AB1 /* GpuDrawItemPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemPool.cpp; sourceTree = "<group>"; };
+		7A978A661C61E1F800299AB1 /* GpuDrawItemPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemPool.h; sourceTree = "<group>"; };
 		7AA0669B1C544657006278C8 /* Asset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Asset.h; sourceTree = "<group>"; };
 		7AA0669C1C5449C3006278C8 /* Asset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Asset.cpp; sourceTree = "<group>"; };
 		7AB95A031C25225600A71282 /* GpuMathUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuMathUtils.cpp; sourceTree = "<group>"; };
@@ -212,6 +215,8 @@
 				7AEB7B3A1C37538A00EA12EA /* GpuShaderLoad.cpp */,
 				7A1EEFC31C54515600D68F49 /* GpuDeferredDeletionQueue.h */,
 				7A1EEFC21C54515600D68F49 /* GpuDeferredDeletionQueue.cpp */,
+				7A978A661C61E1F800299AB1 /* GpuDrawItemPool.h */,
+				7A978A651C61E1F800299AB1 /* GpuDrawItemPool.cpp */,
 			);
 			path = GpuDevice;
 			sourceTree = "<group>";
@@ -370,6 +375,7 @@
 				7A0020FB1BF8239000A0B82F /* MacApplication.mm in Sources */,
 				7AEB7B391C373E6600EA12EA /* Model.metal in Sources */,
 				CA0732C81A43A62300770DE8 /* OsWindowMac.mm in Sources */,
+				7A978A671C61E1F800299AB1 /* GpuDrawItemPool.cpp in Sources */,
 				7A10CEA21C0070C000A6816F /* Matrix44.cpp in Sources */,
 				7A10CEA41C0070C000A6816F /* Vector3.cpp in Sources */,
 				7A4492051BF1E46700444DFC /* GpuDeviceMetal.mm in Sources */,
