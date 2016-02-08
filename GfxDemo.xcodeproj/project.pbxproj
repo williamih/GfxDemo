@@ -22,6 +22,8 @@
 		7A15D2C41BF9728E000DD053 /* Assets in Resources */ = {isa = PBXBuildFile; fileRef = 7A15D2C31BF9728E000DD053 /* Assets */; };
 		7A1EEFC41C54515600D68F49 /* GpuDeferredDeletionQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A1EEFC21C54515600D68F49 /* GpuDeferredDeletionQueue.cpp */; };
 		7A208EB61C013423002B4459 /* GpuDrawItemWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */; };
+		7A20A7FE1C6952A300E82F66 /* Path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A20A7FC1C6952A300E82F66 /* Path.cpp */; };
+		7A20A8011C69543C00E82F66 /* Str.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A20A7FF1C69543C00E82F66 /* Str.cpp */; };
 		7A4492031BF1E44100444DFC /* GpuDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492011BF1E44100444DFC /* GpuDevice.cpp */; };
 		7A4492051BF1E46700444DFC /* GpuDeviceMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */; };
 		7A4492071BF1E63500444DFC /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A4492061BF1E63500444DFC /* Metal.framework */; };
@@ -73,6 +75,10 @@
 		7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemWriter.cpp; sourceTree = "<group>"; };
 		7A208EB51C013423002B4459 /* GpuDrawItemWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemWriter.h; sourceTree = "<group>"; };
 		7A208EB71C014263002B4459 /* GpuDrawItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GpuDrawItem.h; sourceTree = "<group>"; };
+		7A20A7FC1C6952A300E82F66 /* Path.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Path.cpp; sourceTree = "<group>"; };
+		7A20A7FD1C6952A300E82F66 /* Path.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Path.h; sourceTree = "<group>"; };
+		7A20A7FF1C69543C00E82F66 /* Str.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Str.cpp; sourceTree = "<group>"; };
+		7A20A8001C69543C00E82F66 /* Str.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Str.h; sourceTree = "<group>"; };
 		7A38309F1C3879250073769C /* GpuShaderPermutations.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GpuShaderPermutations.h; sourceTree = "<group>"; };
 		7A4492011BF1E44100444DFC /* GpuDevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDevice.cpp; sourceTree = "<group>"; };
 		7A4492021BF1E44100444DFC /* GpuDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDevice.h; sourceTree = "<group>"; };
@@ -240,6 +246,10 @@
 				7A10CE951C0070B700A6816F /* Endian.h */,
 				7AD002011C5A123500AD3F39 /* FileLoader.h */,
 				7AD002001C5A123500AD3F39 /* FileLoader.cpp */,
+				7A20A8001C69543C00E82F66 /* Str.h */,
+				7A20A7FF1C69543C00E82F66 /* Str.cpp */,
+				7A20A7FD1C6952A300E82F66 /* Path.h */,
+				7A20A7FC1C6952A300E82F66 /* Path.cpp */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -368,6 +378,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A20A7FE1C6952A300E82F66 /* Path.cpp in Sources */,
 				7AF6B8C31C574C28004C16C6 /* TextureAsset.cpp in Sources */,
 				7A10CE8F1C006FF200A6816F /* ModelInstance.cpp in Sources */,
 				7A060A0A1C5C43F200DDE30A /* Camera.cpp in Sources */,
@@ -384,6 +395,7 @@
 				7AEB7B3C1C37538A00EA12EA /* GpuShaderLoad.cpp in Sources */,
 				7A10CE901C006FF200A6816F /* ModelRenderQueue.cpp in Sources */,
 				7A10CEA11C0070C000A6816F /* Matrix33.cpp in Sources */,
+				7A20A8011C69543C00E82F66 /* Str.cpp in Sources */,
 				7A10CEA31C0070C000A6816F /* Quaternion.cpp in Sources */,
 				7AEAF2011BF81DA400620EB0 /* Main.cpp in Sources */,
 				7A106EA71C56F767003B9E09 /* ShaderAsset.cpp in Sources */,
