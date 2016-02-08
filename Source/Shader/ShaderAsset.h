@@ -9,7 +9,6 @@ class GpuDeferredDeletionQueue;
 class ShaderAsset : public Asset {
 public:
     ShaderAsset(GpuDevice* device, const char* data, size_t length);
-    virtual ~ShaderAsset();
 
 #ifdef ASSET_REFRESH
     void Refresh(GpuDeferredDeletionQueue& deletionQ,
@@ -20,6 +19,8 @@ public:
 private:
     ShaderAsset(const ShaderAsset&);
     ShaderAsset& operator=(const ShaderAsset&);
+
+    virtual ~ShaderAsset();
 
     GpuDevice* m_device;
     GpuShaderProgramID m_shaderProgram;
@@ -33,7 +34,7 @@ public:
     explicit ShaderAssetFactory(GpuDevice* device);
 #endif
 
-    virtual std::shared_ptr<ShaderAsset> Create(const char* path, FileLoader& loader);
+    virtual ShaderAsset* Create(const char* path, FileLoader& loader);
 
 #ifdef ASSET_REFRESH
     virtual void Refresh(ShaderAsset* asset, const char* path, FileLoader& loader);

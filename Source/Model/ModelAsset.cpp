@@ -67,7 +67,7 @@ ModelAsset::ModelAsset(GpuDevice* device,
     , m_nIndices(0)
     , m_vertexBuf(0)
     , m_indexBuf(0)
-    , m_diffuseTex()
+    , m_diffuseTex(NULL)
 {
     ASSERT(device);
 
@@ -109,7 +109,9 @@ ModelAsset::ModelAsset(GpuDevice* device,
     if (header->diffuseTextureIndex != 0xFFFFFFFF) {
         const ModelTextureInfo& texInfo = textures[header->diffuseTextureIndex];
         const char* path = (const char*)(data + texInfo.ofsFilename);
+
         m_diffuseTex = textureCache.FindOrLoad(path);
+        m_diffuseTex->AddRef();
     }
 
     m_nIndices = nIndices;
@@ -117,6 +119,8 @@ ModelAsset::ModelAsset(GpuDevice* device,
 
 ModelAsset::~ModelAsset()
 {
+    if (m_diffuseTex)
+        m_diffuseTex->Release();
     m_device->BufferDestroy(m_vertexBuf);
     m_device->BufferDestroy(m_indexBuf);
 }
@@ -143,7 +147,7 @@ GpuBufferID ModelAsset::GetIndexBuf() const
 
 TextureAsset* ModelAsset::GetDiffuseTex() const
 {
-    return m_diffuseTex.get();
+    return m_diffuseTex;
 }
 
 ModelAssetFactory::ModelAssetFactory(GpuDevice* device,
@@ -157,12 +161,12 @@ void* Alloc(u32 size, void* userdata)
     return malloc(size);
 }
 
-std::shared_ptr<ModelAsset> ModelAssetFactory::Create(const char* path, FileLoader& loader)
+ModelAsset* ModelAssetFactory::Create(const char* path, FileLoader& loader)
 {
     u8* data;
     u32 size;
     loader.Load(path, &data, &size, Alloc, NULL);
-    std::shared_ptr<ModelAsset> asset(new ModelAsset(m_device, m_textureCache, data, size));
+    ModelAsset* asset = new ModelAsset(m_device, m_textureCache, data, size);
     free(data);
     return asset;
 }

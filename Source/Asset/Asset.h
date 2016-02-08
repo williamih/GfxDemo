@@ -1,13 +1,16 @@
 #ifndef ASSET_ASSET_H
 #define ASSET_ASSET_H
 
-#include <memory>
 #include "Core/Types.h"
 
 class FileLoader;
 
 class Asset {
 public:
+    void AddRef();
+    void Release();
+    int RefCount() const;
+
 #ifdef ASSET_REFRESH
     bool WasJustRefreshed() const;
 
@@ -27,6 +30,9 @@ private:
     Asset(const Asset&);
     Asset& operator=(const Asset&);
 
+    virtual void Destroy();
+
+    int m_refCount;
 #ifdef ASSET_REFRESH
     bool m_wasJustRefreshed;
 #endif
@@ -37,7 +43,7 @@ class AssetFactory {
 public:
     virtual ~AssetFactory() {}
 
-    virtual std::shared_ptr<T> Create(const char* path, FileLoader& loader) = 0;
+    virtual T* Create(const char* path, FileLoader& loader) = 0;
 #ifdef ASSET_REFRESH
     virtual void Refresh(T* asset, const char* path, FileLoader& loader) = 0;
 #endif

@@ -25,7 +25,7 @@ public:
     ModelRenderQueue(GpuDevice* device, AssetCache<ShaderAsset>& shaderCache);
     ~ModelRenderQueue();
 
-    ModelInstance* CreateModelInstance(std::shared_ptr<ModelAsset> model);
+    ModelInstance* CreateModelInstance(ModelAsset* model);
 
     void SetMaxAnisotropy(int maxAnisotropy);
 
@@ -44,7 +44,7 @@ private:
     std::vector<ModelInstance*> m_modelInstances;
     GpuDevice* m_device;
     GpuDrawItemPool m_drawItemPool;
-    std::shared_ptr<ShaderAsset> m_shaderAsset;
+    ShaderAsset* m_shaderAsset;
     GpuBufferID m_sceneCBuffer;
     GpuTextureID m_defaultTexture;
     GpuSamplerID m_sampler;

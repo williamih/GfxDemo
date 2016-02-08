@@ -92,6 +92,7 @@ ModelRenderQueue::ModelRenderQueue(GpuDevice* device,
     , m_pipelineStateObj(0)
 {
     m_shaderAsset = shaderCache.FindOrLoad("Assets/Shaders/Model_MTL.shd");
+    m_shaderAsset->AddRef();
 
     m_sceneCBuffer = device->BufferCreate(GPU_BUFFER_TYPE_CONSTANT,
                                           GPU_BUFFER_ACCESS_DYNAMIC,
@@ -112,6 +113,8 @@ ModelRenderQueue::~ModelRenderQueue()
     m_device->TextureDestroy(m_defaultTexture);
     m_device->InputLayoutDestroy(m_inputLayout);
     m_device->BufferDestroy(m_sceneCBuffer);
+
+    m_shaderAsset->Release();
 }
 
 void ModelRenderQueue::RefreshPipelineStateObject()
@@ -142,7 +145,7 @@ void ModelRenderQueue::RefreshPipelineStateObject()
     m_pipelineStateObj = newPipelineState;
 }
 
-ModelInstance* ModelRenderQueue::CreateModelInstance(std::shared_ptr<ModelAsset> model)
+ModelInstance* ModelRenderQueue::CreateModelInstance(ModelAsset* model)
 {
     ModelInstanceCreateContext ctx;
     ctx.drawItemPool = &m_drawItemPool;

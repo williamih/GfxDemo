@@ -11,7 +11,6 @@ class DDSFile;
 class TextureAsset : public Asset {
 public:
     TextureAsset(GpuDevice* device, DDSFile& file);
-    virtual ~TextureAsset();
 
 #ifdef ASSET_REFRESH
     void Refresh(GpuDeferredDeletionQueue& deletionQ, DDSFile& file);
@@ -21,6 +20,8 @@ public:
 private:
     TextureAsset(const TextureAsset&);
     TextureAsset& operator=(const TextureAsset&);
+
+    virtual ~TextureAsset();
 
     GpuDevice* m_device;
     GpuTextureID m_texture;
@@ -34,7 +35,7 @@ public:
     explicit TextureAssetFactory(GpuDevice* device);
 #endif
 
-    virtual std::shared_ptr<TextureAsset> Create(const char* path, FileLoader& loader);
+    virtual TextureAsset* Create(const char* path, FileLoader& loader);
 
 #ifdef ASSET_REFRESH
     virtual void Refresh(TextureAsset* asset, const char* path, FileLoader& loader);

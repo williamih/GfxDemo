@@ -1,6 +1,8 @@
 #include "Model/ModelInstance.h"
 #include <stdlib.h>
 
+#include "Core/Macros.h"
+
 #include "Math/Matrix33.h"
 
 #include "GpuDevice/GpuDrawItemWriter.h"
@@ -45,13 +47,16 @@ static GpuDrawItemPoolIndex InternalCreateDrawItem(GpuDrawItemPool& drawItemPool
     return index;
 }
 
-ModelInstance::ModelInstance(std::shared_ptr<ModelAsset> model,
+ModelInstance::ModelInstance(ModelAsset* model,
                              const ModelInstanceCreateContext& ctx)
     : m_drawItemPool(*ctx.drawItemPool)
     , m_model(model)
     , m_cbuffer(0)
     , m_drawItemIndex(0xFFFFFFFF)
 {
+    ASSERT(model);
+    model->AddRef();
+
     GpuDevice* dev = model->GetGpuDevice();
     m_cbuffer = dev->BufferCreate(GPU_BUFFER_TYPE_CONSTANT,
                                   GPU_BUFFER_ACCESS_DYNAMIC,
@@ -60,7 +65,7 @@ ModelInstance::ModelInstance(std::shared_ptr<ModelAsset> model,
 
     m_drawItemIndex = InternalCreateDrawItem(
         *ctx.drawItemPool,
-        m_model.get(),
+        m_model,
         ctx,
         m_cbuffer
     );
@@ -70,11 +75,13 @@ ModelInstance::~ModelInstance()
 {
     m_drawItemPool.DeleteDrawItem(m_drawItemIndex);
     m_model->GetGpuDevice()->BufferDestroy(m_cbuffer);
+
+    m_model->Release();
 }
 
 ModelAsset* ModelInstance::GetModelAsset() const
 {
-    return m_model.get();
+    return m_model;
 }
 
 GpuBufferID ModelInstance::GetCBuffer() const
@@ -87,7 +94,7 @@ void ModelInstance::RefreshDrawItem(const ModelInstanceCreateContext& ctx)
     m_drawItemPool.DeleteDrawItem(m_drawItemIndex);
     m_drawItemIndex = InternalCreateDrawItem(
         m_drawItemPool,
-        m_model.get(),
+        m_model,
         ctx,
         m_cbuffer
     );

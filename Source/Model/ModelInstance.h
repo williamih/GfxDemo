@@ -1,7 +1,6 @@
 #ifndef MODEL_MODELINSTANCE_H
 #define MODEL_MODELINSTANCE_H
 
-#include <memory>
 #include "GpuDevice/GpuDevice.h"
 #include "GpuDevice/GpuDrawItemPool.h"
 
@@ -19,7 +18,7 @@ struct ModelInstanceCreateContext {
 
 class ModelInstance {
 public:
-    ModelInstance(std::shared_ptr<ModelAsset> model,
+    ModelInstance(ModelAsset* model,
                   const ModelInstanceCreateContext& ctx);
     ~ModelInstance();
 
@@ -38,7 +37,7 @@ private:
     ModelInstance& operator=(const ModelInstance&);
 
     GpuDrawItemPool& m_drawItemPool;
-    std::shared_ptr<ModelAsset> m_model;
+    ModelAsset* m_model;
     GpuBufferID m_cbuffer;
     GpuDrawItemPoolIndex m_drawItemIndex;
 };

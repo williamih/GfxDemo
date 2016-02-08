@@ -3,8 +3,8 @@
 
 #include <vector>
 #include <string>
-#include <memory>
 #include <unordered_map>
+#include <stdio.h>
 
 #include "Core/Macros.h"
 #include "Core/Types.h"
@@ -18,27 +18,50 @@ public:
         : m_loader(loader)
         , m_factory(factory)
         , m_map()
-#ifdef ASSET_REFRESH
-        , m_assets()
-#endif
     {}
 
-    std::shared_ptr<T> FindOrLoad(const char* path)
+    ~AssetCache()
+    {
+        PurgeUnreferencedAssets();
+        if (m_map.size() != 0)
+            printf("AssetCache: warning - %d asset(s) not destroyed\n", (int)m_map.size());
+    }
+
+    T* FindOrLoad(const char* path)
     {
         std::string strPath(path);
 
-        auto iter = m_map.find(strPath);
+        typename AssetMap::iterator iter = m_map.find(strPath);
         if (iter != m_map.end())
             return iter->second;
 
-        std::shared_ptr<T> asset(m_factory.Create(path, m_loader));
+        T* asset = m_factory.Create(path, m_loader);
+        asset->AddRef();
 
         m_map[strPath] = asset;
-#ifdef ASSET_REFRESH
-        m_assets.push_back(asset.get());
-#endif
 
         return asset;
+    }
+
+    void PurgeUnreferencedAssets()
+    {
+        // Todo: redesign the data structures used for this class so that
+        // we don't have to iterate through a hashtable (SLOW!) in this function
+        // and in UpdateRefreshSystem(). (The std::unordered_map implementation
+        // is a hashtable).
+        typename AssetMap::iterator iter = m_map.begin();
+        const typename AssetMap::iterator end = m_map.end();
+        while (iter != end) {
+            if (iter->second->RefCount() == 1) {
+                iter->second->Release();
+                typename AssetMap::iterator next = iter;
+                ++next;
+                m_map.erase(iter);
+                iter = next;
+            } else {
+                ++iter;
+            }
+        }
     }
 
 #ifdef ASSET_REFRESH
@@ -49,16 +72,18 @@ public:
         auto iter = m_map.find(strPath);
         ASSERT(iter != m_map.end());
 
-        std::shared_ptr<T> asset = iter->second;
-        m_factory.Refresh(asset.get(), path, m_loader);
+        T* asset = iter->second;
+        m_factory.Refresh(asset, path, m_loader);
     }
 #endif
 
 #ifdef ASSET_REFRESH
     void UpdateRefreshSystem()
     {
-        for (size_t i = 0; i < m_assets.size(); ++i) {
-            m_assets[i]->UpdateRefreshedStatus();
+        typename AssetMap::iterator iter = m_map.begin();
+        const typename AssetMap::iterator end = m_map.end();
+        for ( ; iter != end; ++iter) {
+            iter->second->UpdateRefreshedStatus();
         }
     }
 #endif
@@ -66,12 +91,11 @@ private:
     AssetCache(const AssetCache&);
     AssetCache& operator=(const AssetCache&);
 
+    typedef std::unordered_map<std::string, T*> AssetMap;
+
     FileLoader& m_loader;
     AssetFactory<T>& m_factory;
-    std::unordered_map<std::string, std::shared_ptr<T>> m_map;
-#ifdef ASSET_REFRESH
-    std::vector<T*> m_assets;
-#endif
+    AssetMap m_map;
 };
 
 #endif // ASSET_ASSETCACHE_H

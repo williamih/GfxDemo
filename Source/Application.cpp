@@ -51,8 +51,7 @@ ModelInstance* Application::CreateModelInstance(ModelRenderQueue& queue,
                                                 AssetCache<ModelAsset>& cache,
                                                 const char* path)
 {
-    std::shared_ptr<ModelAsset> model(cache.FindOrLoad(path));
-    return queue.CreateModelInstance(model);
+    return queue.CreateModelInstance(cache.FindOrLoad(path));
 }
 
 Application::Application()

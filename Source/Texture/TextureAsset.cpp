@@ -101,13 +101,13 @@ static void Destroy(void* ptr, void* userdata)
     free(ptr);
 }
 
-std::shared_ptr<TextureAsset> TextureAssetFactory::Create(const char* path, FileLoader& loader)
+TextureAsset* TextureAssetFactory::Create(const char* path, FileLoader& loader)
 {
     u8* data;
     u32 size;
     loader.Load(path, &data, &size, Alloc, NULL);
     DDSFile file(data, size, path, &Destroy, NULL);
-    std::shared_ptr<TextureAsset> asset(new TextureAsset(m_device, file));
+    TextureAsset* asset = new TextureAsset(m_device, file);
     return asset;
 }
 
