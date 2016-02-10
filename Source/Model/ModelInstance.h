@@ -25,7 +25,7 @@ public:
     ModelAsset* GetModelAsset() const;
     GpuBufferID GetCBuffer() const;
 
-    void RefreshDrawItem(const ModelInstanceCreateContext& ctx);
+    void RefreshDrawItems(const ModelInstanceCreateContext& ctx);
     void AddDrawItemsToList(std::vector<const GpuDrawItem*>& items);
 
     void Update(const Matrix44& worldTransform,

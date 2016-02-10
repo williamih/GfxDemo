@@ -20,16 +20,22 @@ struct ModelInstanceCBuffer {
 };
 
 static GpuDrawItemPoolIndex InternalCreateDrawItem(GpuDrawItemPool& drawItemPool,
+                                                   GpuDrawItemPoolIndex prev,
                                                    ModelAsset* model,
+                                                   u32 submeshIndex,
                                                    const ModelInstanceCreateContext& ctx,
                                                    GpuBufferID modelCBuffer)
 {
+    MDLHeader* header = (MDLHeader*)(model->GetMDLData());
+    MDLSubmesh* submeshes = (MDLSubmesh*)(model->GetMDLData() + header->ofsSubmeshes);
+    MDLSubmesh& theSubmesh = submeshes[submeshIndex];
+
     GpuTextureID diffuseTex = ctx.defaultTexture;
-    if (model->GetDiffuseTex())
-        diffuseTex = model->GetDiffuseTex()->GetGpuTextureID();
+    if (theSubmesh.diffuseTexture)
+        diffuseTex = theSubmesh.diffuseTexture->GetGpuTextureID();
 
     GpuDrawItemWriter writer;
-    GpuDrawItemPoolIndex index = drawItemPool.BeginDrawItem(writer);
+    GpuDrawItemPoolIndex index = drawItemPool.BeginDrawItem(writer, prev);
     writer.SetPipelineState(ctx.pipelineObject);
     writer.SetVertexBuffer(0, model->GetVertexBuf(), 0);
     writer.SetCBuffer(0, ctx.sceneCBuffer);
@@ -38,8 +44,8 @@ static GpuDrawItemPoolIndex InternalCreateDrawItem(GpuDrawItemPool& drawItemPool
     writer.SetSampler(0, ctx.sampler);
     writer.SetIndexBuffer(model->GetIndexBuf());
     writer.SetDrawCallIndexed(GPU_PRIMITIVE_TRIANGLES,
-                              0,
-                              model->GetIndexCount(),
+                              theSubmesh.indexStart,
+                              theSubmesh.indexCount,
                               0,
                               GPU_INDEX_U32);
     writer.End();
@@ -63,17 +69,17 @@ ModelInstance::ModelInstance(ModelAsset* model,
                                   NULL,
                                   sizeof(ModelInstanceCBuffer));
 
-    m_drawItemIndex = InternalCreateDrawItem(
-        *ctx.drawItemPool,
-        m_model,
-        ctx,
-        m_cbuffer
-    );
+    RefreshDrawItems(ctx);
 }
 
 ModelInstance::~ModelInstance()
 {
-    m_drawItemPool.DeleteDrawItem(m_drawItemIndex);
+    while (m_drawItemIndex != 0xFFFFFFFF) {
+        GpuDrawItemPoolIndex next = m_drawItemPool.Next(m_drawItemIndex);
+        m_drawItemPool.DeleteDrawItem(m_drawItemIndex);
+        m_drawItemIndex = next;
+    }
+
     m_model->GetGpuDevice()->BufferDestroy(m_cbuffer);
 
     m_model->Release();
@@ -89,20 +95,38 @@ GpuBufferID ModelInstance::GetCBuffer() const
     return m_cbuffer;
 }
 
-void ModelInstance::RefreshDrawItem(const ModelInstanceCreateContext& ctx)
+void ModelInstance::RefreshDrawItems(const ModelInstanceCreateContext& ctx)
 {
-    m_drawItemPool.DeleteDrawItem(m_drawItemIndex);
-    m_drawItemIndex = InternalCreateDrawItem(
-        m_drawItemPool,
-        m_model,
-        ctx,
-        m_cbuffer
-    );
+    while (m_drawItemIndex != 0xFFFFFFFF) {
+        GpuDrawItemPoolIndex next = m_drawItemPool.Next(m_drawItemIndex);
+        m_drawItemPool.DeleteDrawItem(m_drawItemIndex);
+        m_drawItemIndex = next;
+    }
+
+    MDLHeader* header = (MDLHeader*)m_model->GetMDLData();
+    u32 nSubmeshes = header->nSubmeshes;
+    GpuDrawItemPoolIndex poolIndex(0xFFFFFFFF);
+    for (u32 i = 0; i < nSubmeshes; ++i) {
+        poolIndex = InternalCreateDrawItem(
+            *ctx.drawItemPool,
+            poolIndex,
+            m_model,
+            i,
+            ctx,
+            m_cbuffer
+        );
+        if (m_drawItemIndex == 0xFFFFFFFF)
+            m_drawItemIndex = poolIndex;
+    }
 }
 
 void ModelInstance::AddDrawItemsToList(std::vector<const GpuDrawItem*>& items)
 {
-    items.push_back(m_drawItemPool.GetDrawItem(m_drawItemIndex));
+    GpuDrawItemPoolIndex index = m_drawItemIndex;
+    while (index != 0xFFFFFFFF) {
+        items.push_back(m_drawItemPool.GetDrawItem(index));
+        index = m_drawItemPool.Next(index);
+    }
 }
 
 void ModelInstance::Update(const Matrix44& worldTransform,

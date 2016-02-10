@@ -137,7 +137,7 @@ void ModelRenderQueue::RefreshPipelineStateObject()
         ctx.sceneCBuffer = m_sceneCBuffer;
         ctx.defaultTexture = m_defaultTexture;
         ctx.sampler = m_sampler;
-        m_modelInstances[i]->RefreshDrawItem(ctx);
+        m_modelInstances[i]->RefreshDrawItems(ctx);
     }
 
     if (m_pipelineStateObj != 0)
@@ -168,7 +168,7 @@ void ModelRenderQueue::SetMaxAnisotropy(int maxAnisotropy)
         ctx.sceneCBuffer = m_sceneCBuffer;
         ctx.defaultTexture = m_defaultTexture;
         ctx.sampler = sampler;
-        m_modelInstances[i]->RefreshDrawItem(ctx);
+        m_modelInstances[i]->RefreshDrawItems(ctx);
     }
     m_device->SamplerDestroy(m_sampler);
     m_sampler = sampler;
