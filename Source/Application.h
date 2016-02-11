@@ -37,7 +37,8 @@ private:
     static GpuDevice* CreateGpuDevice(OsWindow& window);
     static ModelInstance* CreateModelInstance(ModelScene& scene,
                                               AssetCache<ModelAsset>& cache,
-                                              const char* path);
+                                              const char* path,
+                                              u32 flags = 0);
 
     static void OnKeyDown(const OsEvent& event, void* userdata);
     static void OnKeyUp(const OsEvent& event, void* userdata);
@@ -68,6 +69,7 @@ private:
     ModelRenderQueue m_modelRenderQueue;
     std::unique_ptr<ModelInstance> m_teapot;
     std::unique_ptr<ModelInstance> m_floor;
+    std::unique_ptr<ModelInstance> m_skybox;
     float m_angle;
     Camera m_camera;
 };

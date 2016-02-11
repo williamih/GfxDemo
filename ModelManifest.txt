@@ -1,2 +1,3 @@
 Models/Teapot.obj
 Models/Floor.obj
+Models/Skybox.obj

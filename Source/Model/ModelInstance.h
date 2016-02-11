@@ -10,15 +10,23 @@ class ModelAsset;
 
 struct ModelInstanceCreateContext {
     GpuDrawItemPool* drawItemPool;
-    GpuPipelineStateID pipelineObject;
     GpuBufferID sceneCBuffer;
     GpuTextureID defaultTexture;
-    GpuSamplerID sampler;
+    GpuSamplerID samplerUVClamp;
+    GpuSamplerID samplerUVRepeat;
+
+    GpuPipelineStateID modelPSO;
+    GpuPipelineStateID skyboxPSO;
 };
 
 class ModelInstance {
 public:
+    enum Flags {
+        FLAG_SKYBOX = 1,
+    };
+
     ModelInstance(ModelAsset* model,
+                  u32 flags,
                   const ModelInstanceCreateContext& ctx);
     ~ModelInstance();
 
@@ -38,6 +46,7 @@ private:
 
     GpuDrawItemPool& m_drawItemPool;
     ModelAsset* m_model;
+    u32 m_flags;
     GpuBufferID m_cbuffer;
     GpuDrawItemPoolIndex m_drawItemIndex;
 };

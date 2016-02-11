@@ -24,7 +24,7 @@ public:
     ModelScene(GpuDevice* device, AssetCache<ShaderAsset>& shaderCache);
     ~ModelScene();
 
-    ModelInstance* CreateModelInstance(ModelAsset* model);
+    ModelInstance* CreateModelInstance(ModelAsset* model, u32 flags);
 
     void SetMaxAnisotropy(int maxAnisotropy);
 
@@ -36,17 +36,23 @@ private:
     ModelScene(const ModelScene&);
     ModelScene& operator=(const ModelScene&);
 
-    void RefreshPipelineStateObject();
+    GpuPipelineStateID CreateModelPSO();
+    GpuPipelineStateID CreateSkyboxPSO();
+    void RefreshModelPSO();
+    void RefreshSkyboxPSO();
 
     std::vector<ModelInstance*> m_modelInstances;
     GpuDevice* m_device;
     GpuDrawItemPool m_drawItemPool;
-    ShaderAsset* m_shaderAsset;
+    ShaderAsset* m_modelShader;
+    ShaderAsset* m_skyboxShader;
     GpuBufferID m_sceneCBuffer;
     GpuTextureID m_defaultTexture;
-    GpuSamplerID m_sampler;
+    GpuSamplerID m_samplerUVClamp;
+    GpuSamplerID m_samplerUVRepeat;
     GpuInputLayoutID m_inputLayout;
-    GpuPipelineStateID m_pipelineStateObj;
+    GpuPipelineStateID m_modelPSO;
+    GpuPipelineStateID m_skyboxPSO;
 };
 
 #endif // MODEL_MODELSCENE_H

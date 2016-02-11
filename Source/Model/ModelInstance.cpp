@@ -22,6 +22,7 @@ struct ModelInstanceCBuffer {
 static GpuDrawItemPoolIndex InternalCreateDrawItem(GpuDrawItemPool& drawItemPool,
                                                    GpuDrawItemPoolIndex prev,
                                                    ModelAsset* model,
+                                                   u32 flags,
                                                    u32 submeshIndex,
                                                    const ModelInstanceCreateContext& ctx,
                                                    GpuBufferID modelCBuffer)
@@ -34,14 +35,24 @@ static GpuDrawItemPoolIndex InternalCreateDrawItem(GpuDrawItemPool& drawItemPool
     if (theSubmesh.diffuseTexture)
         diffuseTex = theSubmesh.diffuseTexture->GetGpuTextureID();
 
+    GpuPipelineStateID pipelineState;
+    GpuSamplerID sampler;
+    if (flags & ModelInstance::FLAG_SKYBOX) {
+        pipelineState = ctx.skyboxPSO;
+        sampler = ctx.samplerUVClamp;
+    } else {
+        pipelineState = ctx.modelPSO;
+        sampler = ctx.samplerUVRepeat;
+    }
+
     GpuDrawItemWriter writer;
     GpuDrawItemPoolIndex index = drawItemPool.BeginDrawItem(writer, prev);
-    writer.SetPipelineState(ctx.pipelineObject);
+    writer.SetPipelineState(pipelineState);
     writer.SetVertexBuffer(0, model->GetVertexBuf(), 0);
     writer.SetCBuffer(0, ctx.sceneCBuffer);
     writer.SetCBuffer(1, modelCBuffer);
     writer.SetTexture(0, diffuseTex);
-    writer.SetSampler(0, ctx.sampler);
+    writer.SetSampler(0, sampler);
     writer.SetIndexBuffer(model->GetIndexBuf());
     writer.SetDrawCallIndexed(GPU_PRIMITIVE_TRIANGLES,
                               theSubmesh.indexStart,
@@ -54,9 +65,11 @@ static GpuDrawItemPoolIndex InternalCreateDrawItem(GpuDrawItemPool& drawItemPool
 }
 
 ModelInstance::ModelInstance(ModelAsset* model,
+                             u32 flags,
                              const ModelInstanceCreateContext& ctx)
     : m_drawItemPool(*ctx.drawItemPool)
     , m_model(model)
+    , m_flags(flags)
     , m_cbuffer(0)
     , m_drawItemIndex(0xFFFFFFFF)
 {
@@ -111,6 +124,7 @@ void ModelInstance::RefreshDrawItems(const ModelInstanceCreateContext& ctx)
             *ctx.drawItemPool,
             poolIndex,
             m_model,
+            m_flags,
             i,
             ctx,
             m_cbuffer

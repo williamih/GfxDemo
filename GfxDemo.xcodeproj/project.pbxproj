@@ -87,6 +87,8 @@
 		7A4492061BF1E63500444DFC /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		7A9264451C73CBF100F424FD /* ModelScene.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelScene.cpp; sourceTree = "<group>"; };
 		7A9264461C73CBF100F424FD /* ModelScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelScene.h; sourceTree = "<group>"; };
+		7A6F6A1E1C6ACC92004C9EE3 /* Skybox.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Skybox.metal; sourceTree = "<group>"; };
+		7A6F6A201C6ACE04004C9EE3 /* ModelTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelTypes.h; sourceTree = "<group>"; };
 		7A978A651C61E1F800299AB1 /* GpuDrawItemPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemPool.cpp; sourceTree = "<group>"; };
 		7A978A661C61E1F800299AB1 /* GpuDrawItemPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemPool.h; sourceTree = "<group>"; };
 		7AA0669B1C544657006278C8 /* Asset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Asset.h; sourceTree = "<group>"; };
@@ -206,6 +208,8 @@
 			isa = PBXGroup;
 			children = (
 				7AEB7B381C373E6600EA12EA /* Model.metal */,
+				7A6F6A1E1C6ACC92004C9EE3 /* Skybox.metal */,
+				7A6F6A201C6ACE04004C9EE3 /* ModelTypes.h */,
 			);
 			path = Shaders;
 			sourceTree = "<group>";

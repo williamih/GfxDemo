@@ -49,9 +49,10 @@ GpuDevice* Application::CreateGpuDevice(OsWindow& window)
 
 ModelInstance* Application::CreateModelInstance(ModelScene& scene,
                                                 AssetCache<ModelAsset>& cache,
-                                                const char* path)
+                                                const char* path,
+                                                u32 flags)
 {
-    return scene.CreateModelInstance(cache.FindOrLoad(path));
+    return scene.CreateModelInstance(cache.FindOrLoad(path), flags);
 }
 
 Application::Application()
@@ -86,6 +87,8 @@ Application::Application()
     , m_modelRenderQueue()
     , m_teapot(CreateModelInstance(m_modelScene, m_modelCache, "Assets/Models/Teapot.mdl"))
     , m_floor(CreateModelInstance(m_modelScene, m_modelCache, "Assets/Models/Floor.mdl"))
+    , m_skybox(CreateModelInstance(m_modelScene, m_modelCache, "Assets/Models/Skybox.mdl",
+                                   ModelInstance::FLAG_SKYBOX))
     , m_angle(0.0f)
     , m_camera()
 {
@@ -142,6 +145,8 @@ void Application::Frame()
     const float glossiness = 50.0f;
     m_teapot->Update(matrix, diffuseColor, specularColor, glossiness);
 
+    m_skybox->Update(Matrix44(), Vector3(1.0f, 1.0f, 1.0f), Vector3(), 1.0f);
+
     GpuViewport viewport;
     viewport.x = 0;
     viewport.y = 0;
@@ -164,6 +169,7 @@ void Application::Frame()
     m_modelRenderQueue.Clear();
     m_modelRenderQueue.Add(m_teapot.get());
     m_modelRenderQueue.Add(m_floor.get());
+    m_modelRenderQueue.Add(m_skybox.get());
     m_modelRenderQueue.Draw(m_modelScene, info, viewport, m_renderPass);
 
 #ifdef ASSET_REFRESH

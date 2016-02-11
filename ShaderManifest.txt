@@ -1,1 +1,2 @@
 Shaders/Model.metal
+Shaders/Skybox.metal
