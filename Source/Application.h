@@ -16,6 +16,7 @@
 
 #include "Model/ModelAsset.h"
 #include "Model/ModelInstance.h"
+#include "Model/ModelScene.h"
 #include "Model/ModelRenderQueue.h"
 
 #include "Scene/Camera.h"
@@ -34,7 +35,7 @@ private:
 
     static OsWindow* CreateWindow();
     static GpuDevice* CreateGpuDevice(OsWindow& window);
-    static ModelInstance* CreateModelInstance(ModelRenderQueue& queue,
+    static ModelInstance* CreateModelInstance(ModelScene& scene,
                                               AssetCache<ModelAsset>& cache,
                                               const char* path);
 
@@ -63,6 +64,7 @@ private:
     ModelAssetFactory m_modelAssetFactory;
     AssetCache<ModelAsset> m_modelCache;
 
+    ModelScene m_modelScene;
     ModelRenderQueue m_modelRenderQueue;
     std::unique_ptr<ModelInstance> m_teapot;
     std::unique_ptr<ModelInstance> m_floor;

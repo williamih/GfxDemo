@@ -47,11 +47,11 @@ GpuDevice* Application::CreateGpuDevice(OsWindow& window)
     return GpuDevice::Create(deviceFormat, window.GetNSView());
 }
 
-ModelInstance* Application::CreateModelInstance(ModelRenderQueue& queue,
+ModelInstance* Application::CreateModelInstance(ModelScene& scene,
                                                 AssetCache<ModelAsset>& cache,
                                                 const char* path)
 {
-    return queue.CreateModelInstance(cache.FindOrLoad(path));
+    return scene.CreateModelInstance(cache.FindOrLoad(path));
 }
 
 Application::Application()
@@ -82,9 +82,10 @@ Application::Application()
     , m_modelAssetFactory(m_gpuDevice.get(), m_textureCache)
     , m_modelCache(m_fileLoader, m_modelAssetFactory)
 
-    , m_modelRenderQueue(m_gpuDevice.get(), m_shaderCache)
-    , m_teapot(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Teapot.mdl"))
-    , m_floor(CreateModelInstance(m_modelRenderQueue, m_modelCache, "Assets/Models/Floor.mdl"))
+    , m_modelScene(m_gpuDevice.get(), m_shaderCache)
+    , m_modelRenderQueue()
+    , m_teapot(CreateModelInstance(m_modelScene, m_modelCache, "Assets/Models/Teapot.mdl"))
+    , m_floor(CreateModelInstance(m_modelScene, m_modelCache, "Assets/Models/Floor.mdl"))
     , m_angle(0.0f)
     , m_camera()
 {
@@ -97,7 +98,7 @@ Application::Application()
     renderPass.clearDepth = 1.0f;
     m_renderPass = m_gpuDevice->RenderPassCreate(renderPass);
 
-    m_modelRenderQueue.SetMaxAnisotropy(16);
+    m_modelScene.SetMaxAnisotropy(16);
 
     Matrix44 floorTransform(1.0f, 0.0f, 0.0f, 0.0f,
                             0.0f, 1.0f, 0.0f, -1.5f,
@@ -158,10 +159,12 @@ void Application::Frame()
     info.irradiance = Vector3(1.0f, 1.0f, 1.0f);
     info.ambientRadiance = Vector3(0.3f, 0.3f, 0.3f);
 
+    m_modelScene.Update();
+
     m_modelRenderQueue.Clear();
     m_modelRenderQueue.Add(m_teapot.get());
     m_modelRenderQueue.Add(m_floor.get());
-    m_modelRenderQueue.Draw(info, viewport, m_renderPass);
+    m_modelRenderQueue.Draw(m_modelScene, info, viewport, m_renderPass);
 
 #ifdef ASSET_REFRESH
     m_gpuDeferredDeletionQueue.Update(m_gpuDevice.get());
