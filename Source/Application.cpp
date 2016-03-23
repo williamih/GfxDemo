@@ -33,7 +33,7 @@ OsWindow* Application::CreateWindow()
     pf.colorBits = 32;
     pf.depthBits = 32;
 
-    return OsWindow::Create(800.0f, 600.0f, pf);
+    return OsWindow::Create(1280.0f, 720.0f, pf);
 }
 
 GpuDevice* Application::CreateGpuDevice(OsWindow& window)
@@ -41,8 +41,8 @@ GpuDevice* Application::CreateGpuDevice(OsWindow& window)
     GpuDeviceFormat deviceFormat;
     deviceFormat.pixelColorFormat = GPU_PIXEL_COLOR_FORMAT_RGBA8888;
     deviceFormat.pixelDepthFormat = GPU_PIXEL_DEPTH_FORMAT_FLOAT32;
-    deviceFormat.resolutionX = 1600;
-    deviceFormat.resolutionY = 1200;
+    deviceFormat.resolutionX = 2560;
+    deviceFormat.resolutionY = 1440;
     deviceFormat.flags = GpuDeviceFormat::FLAG_SCALE_RES_WITH_WINDOW_SIZE;
     return GpuDevice::Create(deviceFormat, window.GetNSView());
 }

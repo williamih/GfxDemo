@@ -11,7 +11,7 @@ const float HALFPI  = 1.570796327f;
 const float DEGTORAD = PI / 180.0f;
 
 const float FOV_Y = 75.0f * DEGTORAD;
-const float ASPECT = 4.0f/3.0f;
+const float ASPECT = 16.0f/9.0f;
 const float ZNEAR = 0.1f;
 const float ZFAR = 50.0f;
 
