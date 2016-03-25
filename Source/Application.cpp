@@ -104,8 +104,8 @@ Application::Application()
     m_modelScene.SetMaxAnisotropy(16);
 
     Matrix44 floorTransform(1.0f, 0.0f, 0.0f, 0.0f,
-                            0.0f, 1.0f, 0.0f, -1.5f,
-                            0.0f, 0.0f, 1.0f, 0.0f,
+                            0.0f, 1.0f, 0.0f, 0.0f,
+                            0.0f, 0.0f, 1.0f, -1.5f,
                             0.0f, 0.0f, 0.0f, 1.0f);
     m_floor->Update(
         floorTransform,
@@ -114,7 +114,7 @@ Application::Application()
         1.0f
     );
 
-    m_camera.SetPositionAndTarget(Vector3(0.0f, 2.5f, 3.87f), Vector3(0.0f, 2.0f, 3.0f));
+    m_camera.SetPositionAndTarget(Vector3(0.0f, -3.87f, 2.5f), Vector3(0.0f, -3.0f, 2.0f));
 
     m_window->RegisterEvent(OSEVENT_PAINT, OnPaint, (void*)this);
     m_window->RegisterEvent(OSEVENT_WINDOW_RESIZE, OnWindowResize, (void*)m_gpuDevice.get());
@@ -135,10 +135,10 @@ void Application::Frame()
     m_angle += 0.01f;
     float sinAngle = sinf(m_angle);
     float cosAngle = cosf(m_angle);
-    Matrix44 matrix(cosAngle,  0.0f, sinAngle, 0.0f,
-                    0.0f,      1.0f, 0.0f, 0.0f,
-                    -sinAngle, 0.0f, cosAngle, 0.0f,
-                    0.0f,      0.0f, 0.0f, 1.0f);
+    Matrix44 matrix(cosAngle, -sinAngle, 0.0f, 0.0f,
+                    sinAngle,  cosAngle, 0.0f, 0.0f,
+                    0.0f,      0.0f,     1.0f, 0.0f,
+                    0.0f,      0.0f,     0.0f, 1.0f);
 
     const Vector3 diffuseColor(0.0f, 0.5f, 0.5f);
     const Vector3 specularColor(0.3f, 0.3f, 0.3f);
@@ -160,7 +160,7 @@ void Application::Frame()
     ModelRenderQueue::SceneInfo info;
     info.viewProjTransform = m_camera.ProjTransform() * m_camera.ViewTransform();
     info.cameraPos = m_camera.Position();
-    info.dirToLight = Vector3(0.0f, 1.0f, 0.0f);
+    info.dirToLight = Vector3(0.0f, 0.0f, 1.0f);
     info.irradiance = Vector3(1.0f, 1.0f, 1.0f);
     info.ambientRadiance = Vector3(0.3f, 0.3f, 0.3f);
 

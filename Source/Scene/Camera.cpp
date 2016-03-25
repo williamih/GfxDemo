@@ -116,8 +116,8 @@ void Camera::SetPositionAndTarget(const Vector3& position, const Vector3& target
     Vector3 v = target - position;
     m_targetPos = target;
     m_distToTarget = Length(v);
-    m_targetYaw = m_yaw = atan2f(-v.x, -v.z);
-    m_pitch = asinf(v.y / m_distToTarget);
+    m_targetYaw = m_yaw = atan2f(-v.x, v.y);
+    m_pitch = asinf(v.z / m_distToTarget);
 }
 
 static Matrix33 RotateX(float theta)
@@ -129,13 +129,21 @@ static Matrix33 RotateX(float theta)
                     0.0f, sinTheta,  cosTheta);
 }
 
-static Matrix33 RotateY(float theta)
+static Matrix33 RotateZ(float theta)
 {
     float sinTheta = sinf(theta);
     float cosTheta = cosf(theta);
-    return Matrix33(cosTheta,  0.0f,  sinTheta,
-                    0.0f,      1.0f,  0.0f,
-                    -sinTheta, 0.0f,  cosTheta);
+    return Matrix33(cosTheta,  -sinTheta,  0.0f,
+                    sinTheta,   cosTheta,  0.0f,
+                    0.0f,       0.0f,      1.0f);
+}
+
+static Matrix44 ZUpToYUpMatrix()
+{
+    return Matrix44(1.0f,  0.0f, 0.0f, 0.0f,
+                    0.0f,  0.0f, 1.0f, 0.0f,
+                    0.0f, -1.0f, 0.0f, 0.0f,
+                    0.0f,  0.0f, 0.0f, 1.0f);
 }
 
 void Camera::Update(float dt)
@@ -153,7 +161,7 @@ void Camera::Update(float dt)
     else if (m_targetYaw < -PI) m_targetYaw += TWOPI;
 
     // Update our horizontal (linear) motion, if we are moving forward or backward.
-    Vector3 targetForward(-sinf(m_targetYaw), 0.0f, -cosf(m_targetYaw));
+    Vector3 targetForward(-sinf(m_targetYaw), cosf(m_targetYaw), 0.0f);
     if ((m_moveFlags & MOVE_FLAG_FORWARD) && !(m_moveFlags & MOVE_FLAG_BACKWARD))
         m_targetPos += targetForward * HORIZ_SPEED * dt;
     if ((m_moveFlags & MOVE_FLAG_BACKWARD) && !(m_moveFlags & MOVE_FLAG_FORWARD))
@@ -161,9 +169,9 @@ void Camera::Update(float dt)
 
     // Update our vertical motion, if we are ascending or descending.
     if ((m_moveFlags & MOVE_FLAG_ASCEND) && !(m_moveFlags & MOVE_FLAG_DESCEND))
-        m_targetPos.y += VERT_SPEED * dt;
+        m_targetPos.z += VERT_SPEED * dt;
     if ((m_moveFlags & MOVE_FLAG_DESCEND) && !(m_moveFlags & MOVE_FLAG_ASCEND))
-        m_targetPos.y -= VERT_SPEED * dt;
+        m_targetPos.z -= VERT_SPEED * dt;
 
     // If we're moving at all, we lock the camera's actual yaw to our target
     // yaw value. This means that attempting to adjust the camera's yaw by
@@ -172,13 +180,13 @@ void Camera::Update(float dt)
         m_yaw = m_targetYaw;
 
     // Update our rotation matrix and world-to-camera (view) transform.
-    m_rotation = RotateY(m_yaw) * RotateX(m_pitch);
+    m_rotation = RotateZ(m_yaw) * RotateX(m_pitch);
     Vector3 pos = Position();
     Matrix44 cameraMatrix(m_rotation.m11, m_rotation.m12, m_rotation.m13, pos.x,
                           m_rotation.m21, m_rotation.m22, m_rotation.m23, pos.y,
                           m_rotation.m31, m_rotation.m32, m_rotation.m33, pos.z,
                           0.0f, 0.0f, 0.0f, 1.0f);
-    m_viewTransform = cameraMatrix.AffineInverse();
+    m_viewTransform = ZUpToYUpMatrix() * cameraMatrix.AffineInverse();
 }
 
 void Camera::HandleMouseDrag(float normalizedDeltaX, float normalizedDeltaY)
@@ -194,7 +202,7 @@ void Camera::HandleMouseDrag(float normalizedDeltaX, float normalizedDeltaY)
 
 Vector3 Camera::Position() const
 {
-    Vector3 targetToCamera(m_rotation.m13, m_rotation.m23, m_rotation.m33);
+    Vector3 targetToCamera(-m_rotation.m12, -m_rotation.m22, -m_rotation.m32);
     return m_targetPos + targetToCamera * m_distToTarget;
 }
 
