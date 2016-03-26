@@ -76,8 +76,7 @@ ModelScene::ModelScene(GpuDevice* device,
     , m_samplerUVClamp(0)
     , m_samplerUVRepeat(0)
     , m_inputLayout(0)
-    , m_modelPSO(0)
-    , m_skyboxPSO(0)
+    , m_PSOs()
 {
     m_modelShader = shaderCache.FindOrLoad("Assets/Shaders/Model_MTL.shd");
     m_modelShader->AddRef();
@@ -96,17 +95,16 @@ ModelScene::ModelScene(GpuDevice* device,
     m_samplerUVClamp = CreateSampler(device, GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE, 1);
     m_samplerUVRepeat = CreateSampler(device, GPU_SAMPLER_ADDRESS_REPEAT, 1);
     m_inputLayout = CreateInputLayout(device);
-
-    m_modelPSO = CreateModelPSO();
-    m_skyboxPSO = CreateSkyboxPSO();
 }
 
 ModelScene::~ModelScene()
 {
     ASSERT(m_modelInstances.empty() && "ModelInstance not destroyed");
 
-    m_device->PipelineStateDestroy(m_modelPSO);
-    m_device->PipelineStateDestroy(m_skyboxPSO);
+    for (int i = 0; i < sizeof m_PSOs / sizeof m_PSOs[0]; ++i) {
+        if (m_PSOs[i])
+            m_device->PipelineStateDestroy(m_PSOs[i]);
+    }
     m_device->SamplerDestroy(m_samplerUVClamp);
     m_device->SamplerDestroy(m_samplerUVRepeat);
     m_device->TextureDestroy(m_defaultTexture);
@@ -117,87 +115,31 @@ ModelScene::~ModelScene()
     m_skyboxShader->Release();
 }
 
-GpuPipelineStateID ModelScene::CreateModelPSO()
+void ModelScene::RefreshPSOsMatching(u32 bits, u32 enabled)
 {
-    GpuPipelineStateDesc pipelineState;
-    pipelineState.shaderProgram = m_modelShader->GetGpuShaderProgramID();
-    pipelineState.shaderStateBitfield = 0;
-    pipelineState.inputLayout = m_inputLayout;
-    pipelineState.depthCompare = GPU_COMPARE_LESS_EQUAL;
-    pipelineState.depthWritesEnabled = true;
-    pipelineState.cullMode = GPU_CULL_BACK;
-    pipelineState.frontFaceWinding = GPU_WINDING_COUNTER_CLOCKWISE;
+    GpuPipelineStateID toDestroy[sizeof m_PSOs / sizeof m_PSOs[0]];
+    int toDestroyCount = 0;
 
-    return m_device->PipelineStateCreate(pipelineState);
-}
-
-GpuPipelineStateID ModelScene::CreateSkyboxPSO()
-{
-    GpuPipelineStateDesc pipelineState;
-    pipelineState.shaderProgram = m_skyboxShader->GetGpuShaderProgramID();
-    pipelineState.shaderStateBitfield = 0;
-    pipelineState.inputLayout = m_inputLayout;
-    pipelineState.depthCompare = GPU_COMPARE_LESS_EQUAL;
-    pipelineState.depthWritesEnabled = true;
-    pipelineState.cullMode = GPU_CULL_BACK;
-    pipelineState.frontFaceWinding = GPU_WINDING_COUNTER_CLOCKWISE;
-
-    return m_device->PipelineStateCreate(pipelineState);
-}
-
-void ModelScene::RefreshModelPSO()
-{
-    GpuPipelineStateID newPipelineState = CreateModelPSO();
-
-    for (size_t i = 0; i < m_modelInstances.size(); ++i) {
-        ModelInstanceCreateContext ctx;
-        ctx.drawItemPool = &m_drawItemPool;
-        ctx.sceneCBuffer = m_sceneCBuffer;
-        ctx.defaultTexture = m_defaultTexture;
-        ctx.samplerUVClamp = m_samplerUVClamp;
-        ctx.samplerUVRepeat = m_samplerUVRepeat;
-        ctx.modelPSO = newPipelineState;
-        ctx.skyboxPSO = m_skyboxPSO;
-        m_modelInstances[i]->RefreshDrawItems(ctx);
+    for (u32 i = 0; i < sizeof m_PSOs / sizeof m_PSOs[0]; ++i) {
+        if ((m_PSOs[i] != 0) && ((i & bits) == enabled)) {
+            toDestroy[toDestroyCount] = m_PSOs[i];
+            ++toDestroyCount;
+            m_PSOs[i] = GpuPipelineStateID(0);
+        }
     }
 
-    if (m_modelPSO != 0)
-        m_device->PipelineStateDestroy(m_modelPSO);
-    m_modelPSO = newPipelineState;
-}
-
-void ModelScene::RefreshSkyboxPSO()
-{
-    GpuPipelineStateID newPipelineState = CreateSkyboxPSO();
-
     for (size_t i = 0; i < m_modelInstances.size(); ++i) {
-        ModelInstanceCreateContext ctx;
-        ctx.drawItemPool = &m_drawItemPool;
-        ctx.sceneCBuffer = m_sceneCBuffer;
-        ctx.defaultTexture = m_defaultTexture;
-        ctx.samplerUVClamp = m_samplerUVClamp;
-        ctx.samplerUVRepeat = m_samplerUVRepeat;
-        ctx.modelPSO = m_modelPSO;
-        ctx.skyboxPSO = m_skyboxPSO;
-        m_modelInstances[i]->RefreshDrawItems(ctx);
+        m_modelInstances[i]->RefreshDrawItems();
     }
 
-    if (m_skyboxPSO != 0)
-        m_device->PipelineStateDestroy(m_skyboxPSO);
-    m_skyboxPSO = newPipelineState;
+    for (int i = 0; i < toDestroyCount; ++i) {
+        m_device->PipelineStateDestroy(toDestroy[i]);
+    }
 }
 
 ModelInstance* ModelScene::CreateModelInstance(ModelAsset* model, u32 flags)
 {
-    ModelInstanceCreateContext ctx;
-    ctx.drawItemPool = &m_drawItemPool;
-    ctx.sceneCBuffer = m_sceneCBuffer;
-    ctx.defaultTexture = m_defaultTexture;
-    ctx.samplerUVClamp = m_samplerUVClamp;
-    ctx.samplerUVRepeat = m_samplerUVRepeat;
-    ctx.modelPSO = m_modelPSO;
-    ctx.skyboxPSO = m_skyboxPSO;
-    ModelInstance* instance = new ModelInstance(model, flags, ctx);
+    ModelInstance* instance = new ModelInstance(*this, model, flags);
     m_modelInstances.push_back(instance);
     return instance;
 }
@@ -217,32 +159,73 @@ void ModelScene::DestroyModelInstance(ModelInstance* instance)
 
 void ModelScene::SetMaxAnisotropy(int maxAnisotropy)
 {
-    GpuSamplerID samplerUVClamp = CreateSampler(
+    GpuSamplerID oldSamplerUVClamp = m_samplerUVClamp;
+    GpuSamplerID oldSamplerUVRepeat = m_samplerUVRepeat;
+    m_samplerUVClamp = CreateSampler(
         m_device, GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE, maxAnisotropy
     );
-    GpuSamplerID samplerUVRepeat = CreateSampler(
+    m_samplerUVRepeat = CreateSampler(
         m_device, GPU_SAMPLER_ADDRESS_REPEAT, maxAnisotropy
     );
     for (size_t i = 0; i < m_modelInstances.size(); ++i) {
-        ModelInstanceCreateContext ctx;
-        ctx.drawItemPool = &m_drawItemPool;
-        ctx.sceneCBuffer = m_sceneCBuffer;
-        ctx.defaultTexture = m_defaultTexture;
-        ctx.samplerUVClamp = samplerUVClamp;
-        ctx.samplerUVRepeat = samplerUVRepeat;
-        ctx.modelPSO = m_modelPSO;
-        ctx.skyboxPSO = m_skyboxPSO;
-        m_modelInstances[i]->RefreshDrawItems(ctx);
+        m_modelInstances[i]->RefreshDrawItems();
     }
-    m_device->SamplerDestroy(m_samplerUVClamp);
-    m_device->SamplerDestroy(m_samplerUVRepeat);
-    m_samplerUVClamp = samplerUVClamp;
-    m_samplerUVRepeat = samplerUVRepeat;
+    m_device->SamplerDestroy(oldSamplerUVClamp);
+    m_device->SamplerDestroy(oldSamplerUVRepeat);
 }
 
-GpuDevice* ModelScene::GetGpuDevice() const
+GpuPipelineStateID ModelScene::RequestPSO(u32 flags)
 {
-    return m_device;
+    ASSERT(flags < sizeof m_PSOs / sizeof m_PSOs[0]);
+    if (!m_PSOs[flags]) {
+        GpuPipelineStateDesc desc;
+        if (flags & PSOFLAG_SKYBOX)
+            desc.shaderProgram = m_skyboxShader->GetGpuShaderProgramID();
+        else
+            desc.shaderProgram = m_modelShader->GetGpuShaderProgramID();
+        desc.shaderStateBitfield = 0;
+        desc.inputLayout = m_inputLayout;
+        desc.depthCompare = GPU_COMPARE_LESS_EQUAL;
+        desc.depthWritesEnabled = true;
+        if (flags & PSOFLAG_WIREFRAME)
+            desc.fillMode = GPU_FILL_MODE_WIREFRAME;
+        else
+            desc.fillMode = GPU_FILL_MODE_SOLID;
+        desc.cullMode = GPU_CULL_BACK;
+        desc.frontFaceWinding = GPU_WINDING_COUNTER_CLOCKWISE;
+        m_PSOs[flags] = m_device->PipelineStateCreate(desc);
+    }
+    return m_PSOs[flags];
+}
+
+void ModelScene::Update()
+{
+#ifdef ASSET_REFRESH
+    if (m_modelShader->WasJustRefreshed())
+        RefreshPSOsMatching(PSOFLAG_SKYBOX, 0);
+    if (m_skyboxShader->WasJustRefreshed())
+        RefreshPSOsMatching(PSOFLAG_SKYBOX, PSOFLAG_SKYBOX);
+#endif
+}
+
+GpuSamplerID ModelScene::GetSamplerUVClamp() const
+{
+    return m_samplerUVClamp;
+}
+
+GpuSamplerID ModelScene::GetSamplerUVRepeat() const
+{
+    return m_samplerUVRepeat;
+}
+
+GpuTextureID ModelScene::GetDefaultTexture() const
+{
+    return m_defaultTexture;
+}
+
+GpuDrawItemPool& ModelScene::GetDrawItemPool()
+{
+    return m_drawItemPool;
 }
 
 GpuBufferID ModelScene::GetSceneCBuffer() const
@@ -250,12 +233,7 @@ GpuBufferID ModelScene::GetSceneCBuffer() const
     return m_sceneCBuffer;
 }
 
-void ModelScene::Update()
+GpuDevice* ModelScene::GetGpuDevice() const
 {
-#ifdef ASSET_REFRESH
-    if (m_modelShader->WasJustRefreshed())
-        RefreshModelPSO();
-    if (m_skyboxShader->WasJustRefreshed())
-        RefreshSkyboxPSO();
-#endif
+    return m_device;
 }

@@ -43,6 +43,11 @@ static const MTLCompareFunction s_metalCompareFunctions[] = {
     MTLCompareFunctionAlways, // GPU_COMPARE_ALWAYS
 };
 
+static const MTLTriangleFillMode s_metalFillModes[] = {
+    MTLTriangleFillModeLines, // GPU_FILL_MODE_WIREFRAME
+    MTLTriangleFillModeFill, // GPU_FILL_MODE_SOLID
+};
+
 static const MTLCullMode s_metalCullModes[] = {
     MTLCullModeNone, // GPU_CULL_NONE
     MTLCullModeBack, // GPU_CULL_BACK
@@ -318,6 +323,7 @@ private:
 #endif
         id<MTLRenderPipelineState> state;
         id<MTLDepthStencilState> depthStencilState;
+        MTLTriangleFillMode triangleFillMode;
         MTLCullMode cullMode;
         MTLWinding frontFaceWinding;
     };
@@ -862,6 +868,7 @@ GpuPipelineStateID GpuDeviceMetal::PipelineStateCreate(const GpuPipelineStateDes
 
     obj.state = CreateMTLRenderPipelineState(state);
     obj.depthStencilState = CreateMTLDepthStencilState(state);
+    obj.triangleFillMode = s_metalFillModes[state.fillMode];
     obj.cullMode = s_metalCullModes[state.cullMode];
     obj.frontFaceWinding = s_metalWindingOrders[state.frontFaceWinding];
 
@@ -1037,6 +1044,7 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
             = m_pipelineStateTable.LookupRaw(item->pipelineStateIdx);
         [encoder setRenderPipelineState:pipelineState.state];
         [encoder setDepthStencilState:pipelineState.depthStencilState];
+        [encoder setTriangleFillMode:pipelineState.triangleFillMode];
         [encoder setCullMode:pipelineState.cullMode];
         [encoder setFrontFacingWinding:pipelineState.frontFaceWinding];
 

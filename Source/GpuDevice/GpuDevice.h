@@ -73,6 +73,11 @@ enum GpuCullMode {
     GPU_CULL_FRONT,
 };
 
+enum GpuFillMode {
+    GPU_FILL_MODE_WIREFRAME,
+    GPU_FILL_MODE_SOLID,
+};
+
 enum GpuWindingOrder {
     GPU_WINDING_CLOCKWISE,
     GPU_WINDING_COUNTER_CLOCKWISE,
@@ -157,6 +162,7 @@ struct GpuPipelineStateDesc {
     GpuInputLayoutID inputLayout;
     GpuCompareFunction depthCompare;
     bool depthWritesEnabled;
+    GpuFillMode fillMode;
     GpuCullMode cullMode;
     GpuWindingOrder frontFaceWinding;
 };

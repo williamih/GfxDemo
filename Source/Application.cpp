@@ -174,6 +174,14 @@ void Application::OnKeyUp(const OsEvent& event, void* userdata)
 {
     if (event.key.code == OSKEY_R)
         ((Application*)userdata)->RefreshModelShader();
+    else if (event.key.code == OSKEY_F) {
+        ModelInstance* teapot = ((Application*)userdata)->m_teapot;
+        u32 flags = teapot->GetFlags();
+        if (flags & ModelInstance::FLAG_WIREFRAME)
+            teapot->SetFlags(flags & ~(ModelInstance::FLAG_WIREFRAME));
+        else
+            teapot->SetFlags(flags | ModelInstance::FLAG_WIREFRAME);
+    }
     else if (event.key.code == OSKEY_W || event.key.code == OSKEY_UP_ARROW)
         ((Application*)userdata)->m_camera.MoveForwardStop();
     else if (event.key.code == OSKEY_S || event.key.code == OSKEY_DOWN_ARROW)

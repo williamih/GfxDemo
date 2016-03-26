@@ -7,44 +7,40 @@
 class Matrix44;
 class Vector3;
 class ModelAsset;
+class ModelScene;
 
-struct ModelInstanceCreateContext {
-    GpuDrawItemPool* drawItemPool;
-    GpuBufferID sceneCBuffer;
-    GpuTextureID defaultTexture;
-    GpuSamplerID samplerUVClamp;
-    GpuSamplerID samplerUVRepeat;
-
-    GpuPipelineStateID modelPSO;
-    GpuPipelineStateID skyboxPSO;
-};
-
+// Create and destroy via ModelScene::CreateModelInstance()
+// and ModelScene::DestroyModelInstance().
 class ModelInstance {
 public:
     enum Flags {
         FLAG_SKYBOX = 1,
+        FLAG_WIREFRAME = 2,
     };
-
-    ModelInstance(ModelAsset* model,
-                  u32 flags,
-                  const ModelInstanceCreateContext& ctx);
-    ~ModelInstance();
 
     ModelAsset* GetModelAsset() const;
     GpuBufferID GetCBuffer() const;
 
-    void RefreshDrawItems(const ModelInstanceCreateContext& ctx);
+    void RefreshDrawItems();
     void AddDrawItemsToList(std::vector<const GpuDrawItem*>& items);
+
+    u32 GetFlags() const;
+    void SetFlags(u32 flags);
 
     void Update(const Matrix44& worldTransform,
                 const Vector3& diffuseColor,
                 const Vector3& specularColor,
                 float glossiness);
+
 private:
+    friend class ModelScene;
     ModelInstance(const ModelInstance&);
     ModelInstance& operator=(const ModelInstance&);
 
-    GpuDrawItemPool& m_drawItemPool;
+    ModelInstance(ModelScene& scene, ModelAsset* model, u32 flags);
+    ~ModelInstance();
+
+    ModelScene& m_scene;
     ModelAsset* m_model;
     u32 m_flags;
     GpuBufferID m_cbuffer;

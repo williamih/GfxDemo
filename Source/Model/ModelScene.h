@@ -13,6 +13,13 @@ class ModelInstance;
 
 class ModelScene {
 public:
+    enum PSOFlag {
+        PSOFLAG_SKYBOX = 1 << 0,
+        PSOFLAG_WIREFRAME = 1 << 1,
+
+        PSOFLAG_NUMPERMUTATIONS = 1 << 2,
+    };
+
     struct SceneCBuffer {
         float viewProjTransform[4][4];
         float cameraPos[4];
@@ -29,18 +36,20 @@ public:
 
     void SetMaxAnisotropy(int maxAnisotropy);
 
-    GpuDevice* GetGpuDevice() const;
-    GpuBufferID GetSceneCBuffer() const;
-
     void Update();
+
+    GpuPipelineStateID RequestPSO(u32 flags);
+    GpuSamplerID GetSamplerUVClamp() const;
+    GpuSamplerID GetSamplerUVRepeat() const;
+    GpuTextureID GetDefaultTexture() const;
+    GpuDrawItemPool& GetDrawItemPool();
+    GpuBufferID GetSceneCBuffer() const;
+    GpuDevice* GetGpuDevice() const;
 private:
     ModelScene(const ModelScene&);
     ModelScene& operator=(const ModelScene&);
 
-    GpuPipelineStateID CreateModelPSO();
-    GpuPipelineStateID CreateSkyboxPSO();
-    void RefreshModelPSO();
-    void RefreshSkyboxPSO();
+    void RefreshPSOsMatching(u32, u32);
 
     std::vector<ModelInstance*> m_modelInstances;
     GpuDevice* m_device;
@@ -52,8 +61,7 @@ private:
     GpuSamplerID m_samplerUVClamp;
     GpuSamplerID m_samplerUVRepeat;
     GpuInputLayoutID m_inputLayout;
-    GpuPipelineStateID m_modelPSO;
-    GpuPipelineStateID m_skyboxPSO;
+    GpuPipelineStateID m_PSOs[PSOFLAG_NUMPERMUTATIONS];
 };
 
 #endif // MODEL_MODELSCENE_H

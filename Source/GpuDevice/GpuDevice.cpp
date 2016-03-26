@@ -16,6 +16,7 @@ GpuPipelineStateDesc::GpuPipelineStateDesc()
     , inputLayout(0)
     , depthCompare(GPU_COMPARE_ALWAYS)
     , depthWritesEnabled(false)
+    , fillMode(GPU_FILL_MODE_SOLID)
     , cullMode(GPU_CULL_NONE)
     , frontFaceWinding(GPU_WINDING_CLOCKWISE)
 {}
