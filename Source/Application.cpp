@@ -47,18 +47,9 @@ GpuDevice* Application::CreateGpuDevice(OsWindow& window)
     return GpuDevice::Create(deviceFormat, window.GetNSView());
 }
 
-ModelInstance* Application::CreateModelInstance(ModelScene& scene,
-                                                AssetCache<ModelAsset>& cache,
-                                                const char* path,
-                                                u32 flags)
-{
-    return scene.CreateModelInstance(cache.FindOrLoad(path), flags);
-}
-
 Application::Application()
     : m_window(CreateWindow(), &OsWindow::Destroy)
     , m_gpuDevice(CreateGpuDevice(*m_window), &GpuDevice::Destroy)
-    , m_renderPass(0)
 
 #ifdef ASSET_REFRESH
     , m_gpuDeferredDeletionQueue()
@@ -83,25 +74,15 @@ Application::Application()
     , m_modelAssetFactory(m_gpuDevice.get(), m_textureCache)
     , m_modelCache(m_fileLoader, m_modelAssetFactory)
 
-    , m_modelScene(m_gpuDevice.get(), m_shaderCache)
-    , m_modelRenderQueue()
-    , m_teapot(CreateModelInstance(m_modelScene, m_modelCache, "Assets/Models/Teapot.mdl"))
-    , m_floor(CreateModelInstance(m_modelScene, m_modelCache, "Assets/Models/Floor.mdl"))
-    , m_skybox(CreateModelInstance(m_modelScene, m_modelCache, "Assets/Models/Skybox.mdl",
-                                   ModelInstance::FLAG_SKYBOX))
-    , m_angle(0.0f)
+    , m_scene(m_gpuDevice.get(), m_shaderCache, m_modelCache)
     , m_camera()
+    , m_teapot(NULL)
+    , m_floor(NULL)
+    , m_angle(0.0f)
 {
-    GpuRenderPassDesc renderPass;
-    renderPass.flags |= GpuRenderPassDesc::FLAG_PERFORM_CLEAR;
-    renderPass.clearR = 0.0f;
-    renderPass.clearB = 0.0f;
-    renderPass.clearG = 0.0f;
-    renderPass.clearA = 0.0f;
-    renderPass.clearDepth = 1.0f;
-    m_renderPass = m_gpuDevice->RenderPassCreate(renderPass);
-
-    m_modelScene.SetMaxAnisotropy(16);
+    m_teapot = m_scene.AddModelInstance("Assets/Models/Teapot.mdl");
+    m_floor = m_scene.AddModelInstance("Assets/Models/Floor.mdl");
+    m_scene.SetSkybox("Assets/Models/Skybox.mdl");
 
     Matrix44 floorTransform(1.0f, 0.0f, 0.0f, 0.0f,
                             0.0f, 1.0f, 0.0f, 0.0f,
@@ -124,9 +105,7 @@ Application::Application()
 }
 
 Application::~Application()
-{
-    m_gpuDevice->RenderPassDestroy(m_renderPass);
-}
+{}
 
 void Application::Frame()
 {
@@ -145,8 +124,6 @@ void Application::Frame()
     const float glossiness = 50.0f;
     m_teapot->Update(matrix, diffuseColor, specularColor, glossiness);
 
-    m_skybox->Update(Matrix44(), Vector3(1.0f, 1.0f, 1.0f), Vector3(), 1.0f);
-
     GpuViewport viewport;
     viewport.x = 0;
     viewport.y = 0;
@@ -157,20 +134,16 @@ void Application::Frame()
 
     m_gpuDevice->SceneBegin();
 
-    ModelRenderQueue::SceneInfo info;
-    info.viewProjTransform = m_camera.ProjTransform() * m_camera.ViewTransform();
-    info.cameraPos = m_camera.Position();
-    info.dirToLight = Vector3(0.0f, 0.0f, 1.0f);
-    info.irradiance = Vector3(1.0f, 1.0f, 1.0f);
-    info.ambientRadiance = Vector3(0.3f, 0.3f, 0.3f);
-
-    m_modelScene.Update();
-
-    m_modelRenderQueue.Clear();
-    m_modelRenderQueue.Add(m_teapot.get());
-    m_modelRenderQueue.Add(m_floor.get());
-    m_modelRenderQueue.Add(m_skybox.get());
-    m_modelRenderQueue.Draw(m_modelScene, info, viewport, m_renderPass);
+    SceneUpdateInfo updateInfo;
+    updateInfo.cameraPos = m_camera.Position();
+    updateInfo.forward = m_camera.Forward();
+    updateInfo.right = m_camera.Right();
+    updateInfo.up = m_camera.Up();
+    updateInfo.zNear = m_camera.ZNear();
+    updateInfo.zFar = m_camera.ZFar();
+    updateInfo.fovY = m_camera.FOV();
+    m_scene.Update(updateInfo);
+    m_scene.Render(viewport);
 
 #ifdef ASSET_REFRESH
     m_gpuDeferredDeletionQueue.Update(m_gpuDevice.get());

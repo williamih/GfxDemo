@@ -103,6 +103,8 @@ ModelScene::ModelScene(GpuDevice* device,
 
 ModelScene::~ModelScene()
 {
+    ASSERT(m_modelInstances.empty() && "ModelInstance not destroyed");
+
     m_device->PipelineStateDestroy(m_modelPSO);
     m_device->PipelineStateDestroy(m_skyboxPSO);
     m_device->SamplerDestroy(m_samplerUVClamp);
@@ -198,6 +200,19 @@ ModelInstance* ModelScene::CreateModelInstance(ModelAsset* model, u32 flags)
     ModelInstance* instance = new ModelInstance(model, flags, ctx);
     m_modelInstances.push_back(instance);
     return instance;
+}
+
+void ModelScene::DestroyModelInstance(ModelInstance* instance)
+{
+    for (size_t i = 0; i < m_modelInstances.size(); ++i) {
+        if (m_modelInstances[i] == instance) {
+            m_modelInstances[i] = m_modelInstances.back();
+            m_modelInstances.pop_back();
+            delete instance;
+            return;
+        }
+    }
+    ASSERT(!"ModelInstance not found in scene");
 }
 
 void ModelScene::SetMaxAnisotropy(int maxAnisotropy)

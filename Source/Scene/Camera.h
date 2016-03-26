@@ -32,8 +32,13 @@ public:
     void Update(float dt);
 
     Vector3 Position() const;
-    Matrix44 ViewTransform() const;
-    Matrix44 ProjTransform() const;
+    Vector3 Forward() const;
+    Vector3 Right() const;
+    Vector3 Up() const;
+
+    float ZNear() const;
+    float ZFar() const;
+    float FOV() const;
 private:
     Camera(const Camera&);
     Camera& operator=(const Camera&);
@@ -44,8 +49,6 @@ private:
     float m_yaw;
     float m_pitch;
     Matrix33 m_rotation;
-    Matrix44 m_viewTransform;
-    Matrix44 m_projTransform;
     u32 m_moveFlags;
 };
 

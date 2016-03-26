@@ -11,7 +11,6 @@ const float HALFPI  = 1.570796327f;
 const float DEGTORAD = PI / 180.0f;
 
 const float FOV_Y = 75.0f * DEGTORAD;
-const float ASPECT = 16.0f/9.0f;
 const float ZNEAR = 0.1f;
 const float ZFAR = 50.0f;
 
@@ -29,16 +28,6 @@ const u32 MOVE_FLAG_DESCEND = 8;
 const u32 MOVE_FLAG_TURN_LEFT = 16;
 const u32 MOVE_FLAG_TURN_RIGHT = 32;
 
-static Matrix44 CreatePerspectiveMatrix(float aspect, float fovY, float zNear, float zFar)
-{
-    float tanHalfFovY = tanf(fovY * 0.5f);
-    float top = tanHalfFovY * zNear;
-    float bot = -top;
-    float right = top * aspect;
-    float left = -right;
-    return GpuDevice::TransformCreatePerspective(left, right, bot, top, zNear, zFar);
-}
-
 Camera::Camera()
     : m_targetPos(0.0f, 0.0f, 0.0f)
     , m_targetYaw(0.0f)
@@ -46,8 +35,6 @@ Camera::Camera()
     , m_yaw(0.0f)
     , m_pitch(0.0f)
     , m_rotation()
-    , m_viewTransform()
-    , m_projTransform(CreatePerspectiveMatrix(ASPECT, FOV_Y, ZNEAR, ZFAR))
     , m_moveFlags(0)
 {}
 
@@ -138,14 +125,6 @@ static Matrix33 RotateZ(float theta)
                     0.0f,       0.0f,      1.0f);
 }
 
-static Matrix44 ZUpToYUpMatrix()
-{
-    return Matrix44(1.0f,  0.0f, 0.0f, 0.0f,
-                    0.0f,  0.0f, 1.0f, 0.0f,
-                    0.0f, -1.0f, 0.0f, 0.0f,
-                    0.0f,  0.0f, 0.0f, 1.0f);
-}
-
 void Camera::Update(float dt)
 {
     // Update the target yaw, if we are turning left or right
@@ -179,14 +158,8 @@ void Camera::Update(float dt)
     if (m_moveFlags)
         m_yaw = m_targetYaw;
 
-    // Update our rotation matrix and world-to-camera (view) transform.
+    // Update our rotation matrix.
     m_rotation = RotateZ(m_yaw) * RotateX(m_pitch);
-    Vector3 pos = Position();
-    Matrix44 cameraMatrix(m_rotation.m11, m_rotation.m12, m_rotation.m13, pos.x,
-                          m_rotation.m21, m_rotation.m22, m_rotation.m23, pos.y,
-                          m_rotation.m31, m_rotation.m32, m_rotation.m33, pos.z,
-                          0.0f, 0.0f, 0.0f, 1.0f);
-    m_viewTransform = ZUpToYUpMatrix() * cameraMatrix.AffineInverse();
 }
 
 void Camera::HandleMouseDrag(float normalizedDeltaX, float normalizedDeltaY)
@@ -206,12 +179,32 @@ Vector3 Camera::Position() const
     return m_targetPos + targetToCamera * m_distToTarget;
 }
 
-Matrix44 Camera::ViewTransform() const
+Vector3 Camera::Forward() const
 {
-    return m_viewTransform;
+    return Vector3(m_rotation.m12, m_rotation.m22, m_rotation.m32);
 }
 
-Matrix44 Camera::ProjTransform() const
+Vector3 Camera::Right() const
 {
-    return m_projTransform;
+    return Vector3(m_rotation.m11, m_rotation.m21, m_rotation.m31);
+}
+
+Vector3 Camera::Up() const
+{
+    return Vector3(m_rotation.m13, m_rotation.m23, m_rotation.m33);
+}
+
+float Camera::ZNear() const
+{
+    return ZNEAR;
+}
+
+float Camera::ZFar() const
+{
+    return ZFAR;
+}
+
+float Camera::FOV() const
+{
+    return FOV_Y;
 }

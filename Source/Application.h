@@ -20,6 +20,7 @@
 #include "Model/ModelRenderQueue.h"
 
 #include "Scene/Camera.h"
+#include "Scene/Scene.h"
 
 class OsWindow;
 class OsEvent;
@@ -35,10 +36,6 @@ private:
 
     static OsWindow* CreateWindow();
     static GpuDevice* CreateGpuDevice(OsWindow& window);
-    static ModelInstance* CreateModelInstance(ModelScene& scene,
-                                              AssetCache<ModelAsset>& cache,
-                                              const char* path,
-                                              u32 flags = 0);
 
     static void OnKeyDown(const OsEvent& event, void* userdata);
     static void OnKeyUp(const OsEvent& event, void* userdata);
@@ -48,7 +45,6 @@ private:
 
     std::unique_ptr<OsWindow, void (*)(OsWindow*)> m_window;
     std::unique_ptr<GpuDevice, void (*)(GpuDevice*)> m_gpuDevice;
-    GpuRenderPassID m_renderPass;
 
 #ifdef ASSET_REFRESH
     GpuDeferredDeletionQueue m_gpuDeferredDeletionQueue;
@@ -65,13 +61,11 @@ private:
     ModelAssetFactory m_modelAssetFactory;
     AssetCache<ModelAsset> m_modelCache;
 
-    ModelScene m_modelScene;
-    ModelRenderQueue m_modelRenderQueue;
-    std::unique_ptr<ModelInstance> m_teapot;
-    std::unique_ptr<ModelInstance> m_floor;
-    std::unique_ptr<ModelInstance> m_skybox;
-    float m_angle;
+    Scene m_scene;
     Camera m_camera;
+    ModelInstance* m_teapot;
+    ModelInstance* m_floor;
+    float m_angle;
 };
 
 #endif // APPLICATION_H

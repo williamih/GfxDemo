@@ -25,6 +25,7 @@ public:
     ~ModelScene();
 
     ModelInstance* CreateModelInstance(ModelAsset* model, u32 flags);
+    void DestroyModelInstance(ModelInstance* instance);
 
     void SetMaxAnisotropy(int maxAnisotropy);
 
