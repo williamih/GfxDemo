@@ -945,8 +945,6 @@ bool GpuDeviceMetal::RenderPassExists(GpuRenderPassID renderPassID) const
 
 GpuRenderPassID GpuDeviceMetal::RenderPassCreate(const GpuRenderPassDesc& pass)
 {
-    m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
-
     GpuRenderPassID renderPassID(m_renderPassTable.Add());
     RenderPassObj& obj = m_renderPassTable.Lookup(renderPassID);
 
@@ -1108,14 +1106,8 @@ void GpuDeviceMetal::SceneBegin()
 {
     @autoreleasepool {
         m_commandBuffer = [[m_commandQueue commandBuffer] retain];
-
-        // Hack: -[CAMetalLayer nextDrawable] shouldn't be returning nil.
-        // But sometimes it does -- maybe there is an actual reason why,
-        // but for now, we just keep looping until it returns an actual
-        // drawable.
-        do {
-            m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
-        } while (!m_currentDrawable);
+        m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
+        ASSERT(m_currentDrawable);
     }
 }
 
