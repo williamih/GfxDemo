@@ -18,12 +18,11 @@
 #include "GpuDevice/GpuDevice.h"
 
 struct GpuDrawItem {
+    static const u32 NUM_PRIMITIVE_TYPE_BITS = 3;
+
     GpuPrimitiveType GetPrimitiveType() const
     {
-        switch (flags & 0x7) {
-            case 0: return GPU_PRIMITIVE_TRIANGLES;
-            default: return GPU_PRIMITIVE_TRIANGLES;
-        }
+        return (GpuPrimitiveType)(flags & 0x7);
     }
 
     GpuIndexType GetIndexType() const
@@ -40,12 +39,9 @@ struct GpuDrawItem {
 
     void SetPrimitiveType(GpuPrimitiveType type)
     {
-        switch (type) {
-            case GPU_PRIMITIVE_TRIANGLES:
-                flags &= ~(0x7);
-                break;
-            default: break;
-        }
+        ASSERT((u32)type < (1 << NUM_PRIMITIVE_TYPE_BITS));
+        flags &= ~(0x7);
+        flags |= (u16)type;
     }
 
     void SetIndexType(GpuIndexType type)
@@ -82,8 +78,13 @@ struct GpuDrawItem {
     u16* Samplers() const
     { return (u16*)(Textures() + nSamplers); }
 
+    // Description of flags (16-bit):
+    //   Bits 0-2 contain the primitive type.
+    //   Bit 3 contains the index type (16 vs 32 bit)
+    //   Bit 4 is 1 if indexed drawing is used, otherwise 0 for non-indexed.
+
     u16 pipelineStateIdx;
-    u16 flags; // contains the primitive type and the index type
+    u16 flags;
     u16 indexBufferIdx;
     u8 nVertexBuffers;
     u8 nCBuffers;

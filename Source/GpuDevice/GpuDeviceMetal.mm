@@ -20,6 +20,7 @@
 
 static const MTLPrimitiveType s_metalPrimitiveTypes[] = {
     MTLPrimitiveTypeTriangle, // GPU_PRIMITIVE_TRIANGLES
+    MTLPrimitiveTypeTriangleStrip, // GPU_PRIMITIVE_TRIANGLE_STRIP
 };
 
 static const MTLIndexType s_metalIndexTypes[] = {

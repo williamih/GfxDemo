@@ -49,6 +49,7 @@ struct GpuRegion {
 
 enum GpuPrimitiveType {
     GPU_PRIMITIVE_TRIANGLES,
+    GPU_PRIMITIVE_TRIANGLE_STRIP,
 };
 
 enum GpuIndexType {
