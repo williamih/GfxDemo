@@ -60,6 +60,17 @@ static const MTLWinding s_metalWindingOrders[] = {
     MTLWindingCounterClockwise, // GPU_WINDING_COUNTER_CLOCKWISE
 };
 
+static const MTLLoadAction s_metalLoadActions[] = {
+    MTLLoadActionLoad, // GPU_RENDER_LOAD_ACTION_LOAD
+    MTLLoadActionClear, // GPU_RENDER_LOAD_ACTION_CLEAR
+    MTLLoadActionDontCare, // GPU_RENDER_LOAD_ACTION_DISCARD
+};
+
+static const MTLStoreAction s_metalStoreActions[] = {
+    MTLStoreActionStore, // GPU_RENDER_STORE_ACTION_STORE
+    MTLStoreActionDontCare, // GPU_RENDER_STORE_ACTION_DISCARD
+};
+
 // -----------------------------------------------------------------------------
 // Lookup tables for buffers
 // -----------------------------------------------------------------------------
@@ -81,6 +92,8 @@ static const MTLPixelFormat s_metalPixelFormats[] = {
     MTLPixelFormatBC1_RGBA, // GPU_PIXEL_FORMAT_DXT1
     MTLPixelFormatBC2_RGBA, // GPU_PIXEL_FORMAT_DXT3
     MTLPixelFormatBC3_RGBA, // GPU_PIXEL_FORMAT_DXT5
+    MTLPixelFormatDepth32Float, // GPU_PIXEL_FORMAT_DEPTH_32
+    MTLPixelFormatDepth24Unorm_Stencil8, // GPU_PIXEL_FORMAT_DEPTH_24_STENCIL_8
 };
 
 static const MTLTextureType s_metalTextureTypes[] = {
@@ -188,6 +201,7 @@ public:
     bool TextureExists(GpuTextureID textureID) const;
     GpuTextureID TextureCreate(GpuTextureType type,
                                GpuPixelFormat pixelFormat,
+                               u32 flags,
                                int width,
                                int height,
                                int depthOrArrayLength,
@@ -331,6 +345,7 @@ private:
 
     struct RenderPassObj {
         MTLRenderPassDescriptor* descriptor;
+        bool usesRenderTarget;
     };
 
     struct InputLayout {
@@ -651,6 +666,7 @@ bool GpuDeviceMetal::TextureExists(GpuTextureID textureID) const
 
 GpuTextureID GpuDeviceMetal::TextureCreate(GpuTextureType type,
                                            GpuPixelFormat pixelFormat,
+                                           u32 flags,
                                            int width,
                                            int height,
                                            int depthOrArrayLength,
@@ -682,8 +698,14 @@ GpuTextureID GpuDeviceMetal::TextureCreate(GpuTextureType type,
     desc.arrayLength = s_textureTypeIsArray[type] ? depthOrArrayLength : 1;
     desc.resourceOptions = MTLResourceStorageModeManaged | MTLResourceOptionCPUCacheModeDefault;
     desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
-    desc.storageMode = MTLStorageModeManaged;
-    desc.usage = MTLTextureUsageShaderRead;
+
+    if (flags & GPU_TEXTURE_FLAG_RENDER_TARGET) {
+        desc.storageMode = MTLStorageModePrivate;
+        desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    } else {
+        desc.storageMode = MTLStorageModeManaged;
+        desc.usage = MTLTextureUsageShaderRead;
+    }
 
     tex.texture = [m_device newTextureWithDescriptor:desc];
 
@@ -944,32 +966,85 @@ bool GpuDeviceMetal::RenderPassExists(GpuRenderPassID renderPassID) const
     return m_renderPassTable.Has(renderPassID);
 }
 
+static MTLLoadAction GetMTLColorLoadAction(const GpuRenderPassDesc& desc, int index)
+{
+    if (desc.colorLoadActions)
+        return s_metalLoadActions[desc.colorLoadActions[index]];
+    return s_metalLoadActions[GpuRenderPassDesc::DEFAULT_LOAD_ACTION];
+}
+
+static MTLStoreAction GetMTLColorStoreAction(const GpuRenderPassDesc& desc, int index)
+{
+    if (desc.colorStoreActions)
+        return s_metalStoreActions[desc.colorStoreActions[index]];
+    return s_metalStoreActions[GpuRenderPassDesc::DEFAULT_STORE_ACTION];
+}
+
+static MTLClearColor GetMTLClearColor(const GpuRenderPassDesc& desc, int index)
+{
+    if (desc.clearColors) {
+        GpuColor color = desc.clearColors[index];
+        return MTLClearColorMake(
+            (double)color.r,
+            (double)color.g,
+            (double)color.b,
+            (double)color.a
+        );
+    }
+    return MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
+}
+
 GpuRenderPassID GpuDeviceMetal::RenderPassCreate(const GpuRenderPassDesc& pass)
 {
+    ASSERT(pass.numRenderTargets >= 0);
+
     GpuRenderPassID renderPassID(m_renderPassTable.Add());
     RenderPassObj& obj = m_renderPassTable.Lookup(renderPassID);
-
-    MTLRenderPassColorAttachmentDescriptor* colorDesc;
-    colorDesc = [[[MTLRenderPassColorAttachmentDescriptor alloc] init] autorelease];
-    colorDesc.clearColor = {pass.clearR, pass.clearG, pass.clearB, pass.clearA};
-    if (pass.flags & GpuRenderPassDesc::FLAG_PERFORM_CLEAR)
-        colorDesc.loadAction = MTLLoadActionClear;
-    colorDesc.storeAction = MTLStoreActionStore;
-
-    MTLRenderPassDepthAttachmentDescriptor* depthDesc = nil;
-    // Only create a depth attachment for the render pass if this device
-    // actually has a depth buffer.
-    if (m_depthBuf != nil) {
-        depthDesc = [[[MTLRenderPassDepthAttachmentDescriptor alloc] init] autorelease];
-        depthDesc.clearDepth = pass.clearDepth;
-        if (pass.flags & GpuRenderPassDesc::FLAG_PERFORM_CLEAR)
-            depthDesc.loadAction = MTLLoadActionClear;
-        depthDesc.storeAction = MTLStoreActionStore;
-    }
+    obj.usesRenderTarget = false;
 
     obj.descriptor = [[MTLRenderPassDescriptor alloc] init];
+
+    if (pass.numRenderTargets > 0) {
+        ASSERT(pass.renderTargets != NULL);
+        obj.usesRenderTarget = true;
+        for (int i = 0; i < pass.numRenderTargets; ++i) {
+            ASSERT(pass.renderTargets[i] != 0);
+
+            MTLRenderPassColorAttachmentDescriptor* desc;
+            desc = [[[MTLRenderPassColorAttachmentDescriptor alloc] init] autorelease];
+
+            desc.clearColor = GetMTLClearColor(pass, i);
+            desc.loadAction = GetMTLColorLoadAction(pass, i);
+            desc.storeAction = GetMTLColorStoreAction(pass, i);
+            desc.texture = m_textureTable.Lookup(pass.renderTargets[i]).texture;
+
+            [obj.descriptor.colorAttachments setObject:desc
+                                    atIndexedSubscript:(NSUInteger)i];
+        }
+    } else {
+        MTLRenderPassColorAttachmentDescriptor* desc;
+        desc = [[[MTLRenderPassColorAttachmentDescriptor alloc] init] autorelease];
+
+        desc.clearColor = GetMTLClearColor(pass, 0);
+        desc.loadAction = GetMTLColorLoadAction(pass, 0);
+        desc.storeAction = GetMTLColorStoreAction(pass, 0);
+
+        [obj.descriptor.colorAttachments setObject:desc atIndexedSubscript:0];
+    }
+
+    MTLRenderPassDepthAttachmentDescriptor* depthDesc = nil;
+
+    if (m_depthBuf != nil || pass.depthStencilTarget != 0) {
+        depthDesc = [[[MTLRenderPassDepthAttachmentDescriptor alloc] init] autorelease];
+        depthDesc.clearDepth = pass.clearDepth;
+        depthDesc.loadAction = s_metalLoadActions[pass.depthStencilLoadAction];
+        depthDesc.storeAction = s_metalStoreActions[pass.depthStencilStoreAction];
+
+        if (pass.depthStencilTarget != 0)
+            depthDesc.texture = m_textureTable.Lookup(pass.depthStencilTarget).texture;
+    }
+
     obj.descriptor.depthAttachment = depthDesc;
-    [obj.descriptor.colorAttachments setObject:colorDesc atIndexedSubscript:0];
 
     ++m_dbg_renderPassCount;
 
@@ -1003,15 +1078,18 @@ id<MTLRenderCommandEncoder> GpuDeviceMetal::PreDraw(GpuRenderPassID passID,
 {
     RenderPassObj& pass = m_renderPassTable.Lookup(passID);
 
-    MTLRenderPassColorAttachmentDescriptor* colorDesc;
-    colorDesc = [pass.descriptor.colorAttachments objectAtIndexedSubscript:0];
-    colorDesc.texture = m_currentDrawable.texture;
-    ASSERT(colorDesc.texture.width == m_deviceFormat.resolutionX);
-    ASSERT(colorDesc.texture.height == m_deviceFormat.resolutionY);
+    if (!pass.usesRenderTarget) {
+        // Set up the render pass to write to the backbuffer.
+        MTLRenderPassColorAttachmentDescriptor* colorDesc;
+        colorDesc = [pass.descriptor.colorAttachments objectAtIndexedSubscript:0];
+        colorDesc.texture = m_currentDrawable.texture;
+        ASSERT(colorDesc.texture.width == m_deviceFormat.resolutionX);
+        ASSERT(colorDesc.texture.height == m_deviceFormat.resolutionY);
 
-    pass.descriptor.depthAttachment.texture = m_depthBuf;
-    ASSERT(m_depthBuf.width == m_deviceFormat.resolutionX);
-    ASSERT(m_depthBuf.height == m_deviceFormat.resolutionY);
+        pass.descriptor.depthAttachment.texture = m_depthBuf;
+        ASSERT(m_depthBuf.width == m_deviceFormat.resolutionX);
+        ASSERT(m_depthBuf.height == m_deviceFormat.resolutionY);
+    }
 
     id<MTLRenderCommandEncoder> encoder;
     encoder = [m_commandBuffer renderCommandEncoderWithDescriptor:pass.descriptor];
@@ -1213,11 +1291,22 @@ bool GpuDevice::TextureExists(GpuTextureID textureID) const
 
 GpuTextureID GpuDevice::TextureCreate(GpuTextureType type,
                                       GpuPixelFormat pixelFormat,
+                                      u32 flags,
                                       int width,
                                       int height,
                                       int depthOrArrayLength,
                                       int nMipmapLevels)
-{ return Cast(this)->TextureCreate(type, pixelFormat, width, height, depthOrArrayLength, nMipmapLevels); }
+{
+    return Cast(this)->TextureCreate(
+        type,
+        pixelFormat,
+        flags,
+        width,
+        height,
+        depthOrArrayLength,
+        nMipmapLevels
+    );
+}
 
 void GpuDevice::TextureDestroy(GpuTextureID textureID)
 { return Cast(this)->TextureDestroy(textureID); }

@@ -1,2 +1,3 @@
 Shaders/Model.metal
 Shaders/Skybox.metal
+Shaders/BlitRT.metal

@@ -25,6 +25,7 @@
 		7A20A7FE1C6952A300E82F66 /* Path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A20A7FC1C6952A300E82F66 /* Path.cpp */; };
 		7A20A8011C69543C00E82F66 /* Str.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A20A7FF1C69543C00E82F66 /* Str.cpp */; };
 		7A2B4CEA1CA3EA0800714D93 /* Scene.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A2B4CE81CA3EA0700714D93 /* Scene.cpp */; };
+		7A2E8B681CA756B200A66B3D /* RenderTargetDisplay.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A2E8B661CA756B200A66B3D /* RenderTargetDisplay.cpp */; };
 		7A4492031BF1E44100444DFC /* GpuDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492011BF1E44100444DFC /* GpuDevice.cpp */; };
 		7A4492051BF1E46700444DFC /* GpuDeviceMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7A4492041BF1E46700444DFC /* GpuDeviceMetal.mm */; };
 		7A4492071BF1E63500444DFC /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A4492061BF1E63500444DFC /* Metal.framework */; };
@@ -83,6 +84,8 @@
 		7A20A8001C69543C00E82F66 /* Str.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Str.h; sourceTree = "<group>"; };
 		7A2B4CE81CA3EA0700714D93 /* Scene.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Scene.cpp; sourceTree = "<group>"; };
 		7A2B4CE91CA3EA0800714D93 /* Scene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Scene.h; sourceTree = "<group>"; };
+		7A2E8B661CA756B200A66B3D /* RenderTargetDisplay.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RenderTargetDisplay.cpp; sourceTree = "<group>"; };
+		7A2E8B671CA756B200A66B3D /* RenderTargetDisplay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderTargetDisplay.h; sourceTree = "<group>"; };
 		7A38309F1C3879250073769C /* GpuShaderPermutations.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GpuShaderPermutations.h; sourceTree = "<group>"; };
 		7A4492011BF1E44100444DFC /* GpuDevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDevice.cpp; sourceTree = "<group>"; };
 		7A4492021BF1E44100444DFC /* GpuDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDevice.h; sourceTree = "<group>"; };
@@ -92,6 +95,7 @@
 		7A6F6A201C6ACE04004C9EE3 /* ModelTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelTypes.h; sourceTree = "<group>"; };
 		7A9264451C73CBF100F424FD /* ModelScene.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelScene.cpp; sourceTree = "<group>"; };
 		7A9264461C73CBF100F424FD /* ModelScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelScene.h; sourceTree = "<group>"; };
+		7A975BC41CA68B0E00753831 /* BlitRT.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = BlitRT.metal; sourceTree = "<group>"; };
 		7A978A651C61E1F800299AB1 /* GpuDrawItemPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemPool.cpp; sourceTree = "<group>"; };
 		7A978A661C61E1F800299AB1 /* GpuDrawItemPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemPool.h; sourceTree = "<group>"; };
 		7AA0669B1C544657006278C8 /* Asset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Asset.h; sourceTree = "<group>"; };
@@ -154,6 +158,8 @@
 				7A060A081C5C43F200DDE30A /* Camera.cpp */,
 				7A2B4CE91CA3EA0800714D93 /* Scene.h */,
 				7A2B4CE81CA3EA0700714D93 /* Scene.cpp */,
+				7A2E8B671CA756B200A66B3D /* RenderTargetDisplay.h */,
+				7A2E8B661CA756B200A66B3D /* RenderTargetDisplay.cpp */,
 			);
 			path = Scene;
 			sourceTree = "<group>";
@@ -214,6 +220,7 @@
 			children = (
 				7AEB7B381C373E6600EA12EA /* Model.metal */,
 				7A6F6A1E1C6ACC92004C9EE3 /* Skybox.metal */,
+				7A975BC41CA68B0E00753831 /* BlitRT.metal */,
 				7A6F6A201C6ACE04004C9EE3 /* ModelTypes.h */,
 			);
 			path = Shaders;
@@ -412,6 +419,7 @@
 				7A10CEA11C0070C000A6816F /* Matrix33.cpp in Sources */,
 				7A2B4CEA1CA3EA0800714D93 /* Scene.cpp in Sources */,
 				7A20A8011C69543C00E82F66 /* Str.cpp in Sources */,
+				7A2E8B681CA756B200A66B3D /* RenderTargetDisplay.cpp in Sources */,
 				7A10CEA31C0070C000A6816F /* Quaternion.cpp in Sources */,
 				7AEAF2011BF81DA400620EB0 /* Main.cpp in Sources */,
 				7A106EA71C56F767003B9E09 /* ShaderAsset.cpp in Sources */,

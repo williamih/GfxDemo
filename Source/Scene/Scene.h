@@ -4,6 +4,7 @@
 #include "Math/Matrix44.h"
 #include "Model/ModelScene.h"
 #include "Model/ModelRenderQueue.h"
+#include "Scene/RenderTargetDisplay.h"
 
 struct SceneUpdateInfo {
     Vector3 cameraPos;
@@ -37,12 +38,15 @@ private:
 
     GpuDevice* m_device;
     AssetCache<ModelAsset>& m_modelCache;
+    RenderTargetDisplay m_renderTargetDisplay;
 
     ModelScene m_modelScene;
     ModelRenderQueue m_modelRenderQueue;
     std::vector<ModelInstance*> m_modelInstances;
     ModelInstance* m_skybox;
 
+    GpuTextureID m_colorRenderTarget;
+    GpuTextureID m_depthRenderTarget;
     GpuRenderPassID m_renderPass;
 
     Vector3 m_cameraPos;

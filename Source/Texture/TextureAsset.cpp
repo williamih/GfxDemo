@@ -33,6 +33,7 @@ static GpuTextureID CreateTexture(GpuDevice* device, DDSFile& file)
     GpuTextureID texture = device->TextureCreate(
         GPU_TEXTURE_2D,
         pixelFormat,
+        0,
         width,
         height,
         1,

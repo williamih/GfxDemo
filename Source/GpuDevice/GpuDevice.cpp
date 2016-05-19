@@ -22,10 +22,16 @@ GpuPipelineStateDesc::GpuPipelineStateDesc()
 {}
 
 GpuRenderPassDesc::GpuRenderPassDesc()
-    : flags(0)
-    , clearR(0.0f)
-    , clearG(0.0f)
-    , clearB(0.0f)
-    , clearA(0.0f)
+    : numRenderTargets(0)
+
+    , renderTargets(NULL)
+
+    , clearColors(NULL)
+    , colorLoadActions(NULL)
+    , colorStoreActions(NULL)
+
+    , depthStencilTarget(0)
     , clearDepth(0.0f)
+    , depthStencilLoadAction(DEFAULT_LOAD_ACTION)
+    , depthStencilStoreAction(DEFAULT_STORE_ACTION)
 {}

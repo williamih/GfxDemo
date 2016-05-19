@@ -47,6 +47,13 @@ struct GpuRegion {
     int height;
 };
 
+struct GpuColor {
+    float r;
+    float g;
+    float b;
+    float a;
+};
+
 enum GpuPrimitiveType {
     GPU_PRIMITIVE_TRIANGLES,
     GPU_PRIMITIVE_TRIANGLE_STRIP,
@@ -113,6 +120,8 @@ enum GpuPixelFormat {
     GPU_PIXEL_FORMAT_DXT1,
     GPU_PIXEL_FORMAT_DXT3,
     GPU_PIXEL_FORMAT_DXT5,
+    GPU_PIXEL_FORMAT_DEPTH_32,
+    GPU_PIXEL_FORMAT_DEPTH_24_STENCIL_8,
 };
 
 enum GpuTextureType {
@@ -122,6 +131,10 @@ enum GpuTextureType {
     GPU_TEXTURE_2D_ARRAY,
     GPU_TEXTURE_CUBE,
     GPU_TEXTURE_3D,
+};
+
+enum GpuTextureFlags {
+    GPU_TEXTURE_FLAG_RENDER_TARGET = 1,
 };
 
 enum GpuSamplerAddressMode {
@@ -141,6 +154,17 @@ enum GpuSamplerMipFilter {
     GPU_SAMPLER_MIPFILTER_NOT_MIPMAPPED,
     GPU_SAMPLER_MIPFILTER_NEAREST,
     GPU_SAMPLER_MIPFILTER_LINEAR,
+};
+
+enum GpuRenderLoadAction {
+    GPU_RENDER_LOAD_ACTION_LOAD,
+    GPU_RENDER_LOAD_ACTION_CLEAR,
+    GPU_RENDER_LOAD_ACTION_DISCARD,
+};
+
+enum GpuRenderStoreAction {
+    GPU_RENDER_STORE_ACTION_STORE,
+    GPU_RENDER_STORE_ACTION_DISCARD,
 };
 
 struct GpuSamplerDesc {
@@ -171,12 +195,29 @@ struct GpuPipelineStateDesc {
 struct GpuRenderPassDesc {
     GpuRenderPassDesc();
 
-    enum {
-        FLAG_PERFORM_CLEAR = 1,
-    };
-    u32 flags;
-    float clearR, clearG, clearB, clearA;
+    static const GpuRenderLoadAction DEFAULT_LOAD_ACTION = GPU_RENDER_LOAD_ACTION_DISCARD;
+    static const GpuRenderStoreAction DEFAULT_STORE_ACTION = GPU_RENDER_STORE_ACTION_STORE;
+
+    int numRenderTargets;
+
+    // Must point to array of size: numRenderTargets.
+    const GpuTextureID* renderTargets;
+
+    // If any of the three pointers below is NULL, the relevant default values
+    // are used.
+    // Otherwise, each of these should point to an array of size:
+    // max(1, numRenderTargets).
+    // That is, if numRenderTargets == 0, then each of these three pointers
+    // must point to an array of size 1, specifying the value to use for the
+    // backbuffer.
+    const GpuColor* clearColors;
+    const GpuRenderLoadAction* colorLoadActions;
+    const GpuRenderStoreAction* colorStoreActions;
+
+    GpuTextureID depthStencilTarget;
     float clearDepth;
+    GpuRenderLoadAction depthStencilLoadAction;
+    GpuRenderStoreAction depthStencilStoreAction;
 };
 
 // -----------------------------------------------------------------------------
@@ -265,6 +306,7 @@ public:
     bool TextureExists(GpuTextureID textureID) const;
     GpuTextureID TextureCreate(GpuTextureType type,
                                GpuPixelFormat pixelFormat,
+                               u32 flags,
                                int width,
                                int height,
                                int depthOrArrayLength,

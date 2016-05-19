@@ -19,12 +19,15 @@ Scene::Scene(
 )
     : m_device(device)
     , m_modelCache(modelCache)
+    , m_renderTargetDisplay(device, shaderCache)
 
     , m_modelScene(device, shaderCache)
     , m_modelRenderQueue()
     , m_modelInstances(NULL)
     , m_skybox(NULL)
 
+    , m_colorRenderTarget()
+    , m_depthRenderTarget()
     , m_renderPass()
 
     , m_cameraPos()
@@ -37,18 +40,45 @@ Scene::Scene(
 {
     m_modelScene.SetMaxAnisotropy(MAX_ANISOTROPY);
 
+    m_colorRenderTarget = device->TextureCreate(
+        GPU_TEXTURE_2D,
+        GPU_PIXEL_FORMAT_BGRA8888,
+        GPU_TEXTURE_FLAG_RENDER_TARGET,
+        device->GetFormat().resolutionX, // width
+        device->GetFormat().resolutionY, // height
+        1, // depthOrArrayLength
+        1 // nMipmapLevels
+    );
+    m_depthRenderTarget = device->TextureCreate(
+        GPU_TEXTURE_2D,
+        GPU_PIXEL_FORMAT_DEPTH_32,
+        GPU_TEXTURE_FLAG_RENDER_TARGET,
+        device->GetFormat().resolutionX, // width
+        device->GetFormat().resolutionY, // height
+        1, // depthOrArrayLength
+        1 // nMipmapLevels
+    );
+
+    GpuRenderLoadAction colorLoadAction = GPU_RENDER_LOAD_ACTION_DISCARD;
+    GpuRenderStoreAction colorStoreAction = GPU_RENDER_STORE_ACTION_STORE;
+    GpuColor clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
     GpuRenderPassDesc renderPassDesc;
-    renderPassDesc.flags |= GpuRenderPassDesc::FLAG_PERFORM_CLEAR;
-    renderPassDesc.clearR = 0.0f;
-    renderPassDesc.clearB = 0.0f;
-    renderPassDesc.clearG = 0.0f;
-    renderPassDesc.clearA = 0.0f;
+    renderPassDesc.clearColors = &clearColor;
+    renderPassDesc.colorLoadActions = &colorLoadAction;
+    renderPassDesc.colorStoreActions = &colorStoreAction;
     renderPassDesc.clearDepth = 1.0f;
+    renderPassDesc.numRenderTargets = 1;
+    renderPassDesc.renderTargets = &m_colorRenderTarget;
+    renderPassDesc.depthStencilTarget = m_depthRenderTarget;
+    renderPassDesc.depthStencilLoadAction = GPU_RENDER_LOAD_ACTION_CLEAR;
+    renderPassDesc.depthStencilStoreAction = GPU_RENDER_STORE_ACTION_STORE;
     m_renderPass = device->RenderPassCreate(renderPassDesc);
 }
 
 Scene::~Scene()
 {
+    m_device->TextureDestroy(m_colorRenderTarget);
+    m_device->TextureDestroy(m_depthRenderTarget);
     m_device->RenderPassDestroy(m_renderPass);
 
     for (size_t i = 0; i < m_modelInstances.size(); ++i) {
@@ -135,4 +165,8 @@ void Scene::Render(const GpuViewport& viewport)
     if (m_skybox)
         m_modelRenderQueue.Add(m_skybox);
     m_modelRenderQueue.Draw(m_modelScene, info, viewport, m_renderPass);
+
+    m_renderTargetDisplay.CopyToBackbuffer(
+        viewport, m_colorRenderTarget, m_depthRenderTarget
+    );
 }

@@ -10,6 +10,7 @@ static GpuTextureID CreateDefaultWhiteTexture(GpuDevice* device)
     GpuTextureID texture = device->TextureCreate(
         GPU_TEXTURE_2D,
         GPU_PIXEL_FORMAT_BGRA8888,
+        0, // flags
         1, // width
         1, // height
         1, // depthOrArrayLength
