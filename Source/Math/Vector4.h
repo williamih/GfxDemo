@@ -3,10 +3,13 @@
 
 #include <math.h>
 
+class Vector3;
+
 class Vector4 {
 public:
     Vector4();
     Vector4(float xVal, float yVal, float zVal, float wVal);
+    Vector4(const Vector3& vec, float wVal);
 
     Vector4& operator=(const Vector4& rhs);
     Vector4& operator+=(const Vector4& rhs);

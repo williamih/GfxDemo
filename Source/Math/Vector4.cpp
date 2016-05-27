@@ -1,5 +1,7 @@
 #include "Math/Vector4.h"
 
+#include "Math/Vector3.h"
+
 Vector4::Vector4()
     : x(0.0f)
     , y(0.0f)
@@ -11,6 +13,13 @@ Vector4::Vector4(float xVal, float yVal, float zVal, float wVal)
     : x(xVal)
     , y(yVal)
     , z(zVal)
+    , w(wVal)
+{}
+
+Vector4::Vector4(const Vector3& vec, float wVal)
+    : x(vec.x)
+    , y(vec.y)
+    , z(vec.z)
     , w(wVal)
 {}
 
