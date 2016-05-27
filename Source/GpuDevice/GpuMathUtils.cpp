@@ -2,6 +2,8 @@
 
 #include "Math/Matrix44.h"
 #include "Math/Matrix33.h"
+#include "Math/Vector4.h"
+#include "Math/Vector3.h"
 
 void GpuMathUtils::FillArrayRowMajor(const Matrix44& m, float array[4][4])
 {
@@ -83,4 +85,19 @@ void GpuMathUtils::FillArrayColumnMajor(const Matrix33& m, float array[3][4])
     array[2][1] = m.m23;
     array[2][2] = m.m33;
     array[2][3] = 0.0f; // placeholder for alignment purposes
+}
+
+void GpuMathUtils::FillArray(const Vector4& vec, float array[4])
+{
+    array[0] = vec.x;
+    array[1] = vec.y;
+    array[2] = vec.z;
+    array[3] = vec.w;
+}
+
+void GpuMathUtils::FillArray(const Vector3& vec, float array[3])
+{
+    array[0] = vec.x;
+    array[1] = vec.y;
+    array[2] = vec.z;
 }
