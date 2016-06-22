@@ -76,7 +76,7 @@ struct GpuDrawItem {
     { return (u16*)(CBuffers() + nCBuffers); }
 
     u16* Samplers() const
-    { return (u16*)(Textures() + nSamplers); }
+    { return (u16*)(Textures() + nTextures); }
 
     // Description of flags (16-bit):
     //   Bits 0-2 contain the primitive type.
