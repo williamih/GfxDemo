@@ -27,7 +27,6 @@ private:
 
 class GpuDrawItemWriter {
 public:
-    typedef void* (*PFnAlloc)(size_t size, void* userdata);
 
     // Returns the number of bytes of memory needed for a draw call
     // created from the specified GpuDrawItemWriterDesc.
@@ -35,10 +34,7 @@ public:
 
     GpuDrawItemWriter();
 
-    void Begin(GpuDevice* device,
-               const GpuDrawItemWriterDesc& desc,
-               PFnAlloc alloc,
-               void* userdata);
+    void Begin(GpuDevice* device, const GpuDrawItemWriterDesc& desc, void* memory);
     GpuDrawItem* End();
 
     void SetPipelineState(GpuPipelineStateID state);

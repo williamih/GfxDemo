@@ -90,11 +90,6 @@ RenderTargetDisplay::~RenderTargetDisplay()
     m_device.RenderPassDestroy(m_renderPass);
 }
 
-static void* Alloc(size_t, void* userdata)
-{
-    return userdata;
-}
-
 void RenderTargetDisplay::CopyToBackbuffer(
     const GpuViewport& viewport,
     GpuTextureID colorBuf,
@@ -107,7 +102,7 @@ void RenderTargetDisplay::CopyToBackbuffer(
 #endif
 
     GpuDrawItemWriter writer;
-    writer.Begin(&m_device, GetDrawItemDesc(), Alloc, m_drawItem);
+    writer.Begin(&m_device, GetDrawItemDesc(), m_drawItem);
     writer.SetTexture(0, colorBuf);
     writer.SetTexture(1, depthBuf);
     writer.SetSampler(0, m_sampler);

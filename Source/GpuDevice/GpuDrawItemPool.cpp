@@ -10,11 +10,6 @@ GpuDrawItemPool::GpuDrawItemPool(GpuDevice& device, const GpuDrawItemWriterDesc&
     , m_freeIndex(0xFFFFFFFF)
 {}
 
-static void* Alloc(size_t size, void* userdata)
-{
-    return userdata;
-}
-
 GpuDrawItemPoolIndex GpuDrawItemPool::BeginDrawItem(GpuDrawItemWriter& writer,
                                                     GpuDrawItemPoolIndex prev)
 {
@@ -26,7 +21,7 @@ GpuDrawItemPoolIndex GpuDrawItemPool::BeginDrawItem(GpuDrawItemWriter& writer,
         void* pos = &m_data[m_freeIndex * m_itemSize];
         memcpy(&m_freeIndex, pos, 4);
 
-        writer.Begin(&m_device, m_desc, Alloc, (u8*)pos + 8);
+        writer.Begin(&m_device, m_desc, (u8*)pos + 8);
     } else {
         ASSERT(m_data.size() % m_itemSize == 0);
         ASSERT(((m_data.size() / m_itemSize) + 1) < 0xFFFFFFFF &&
@@ -36,7 +31,7 @@ GpuDrawItemPoolIndex GpuDrawItemPool::BeginDrawItem(GpuDrawItemWriter& writer,
         index = GpuDrawItemPoolIndex((u32)(size / m_itemSize));
 
         m_data.resize(size + m_itemSize);
-        writer.Begin(&m_device, m_desc, Alloc, (u8*)&m_data[size] + 8);
+        writer.Begin(&m_device, m_desc, (u8*)&m_data[size] + 8);
     }
 
     // Set the previous item's next pointer to the new item

@@ -102,8 +102,7 @@ GpuDrawItemWriter::GpuDrawItemWriter()
 
 void GpuDrawItemWriter::Begin(GpuDevice* device,
                               const GpuDrawItemWriterDesc& desc,
-                              PFnAlloc alloc,
-                              void* userdata)
+                              void* memory)
 {
     ASSERT(device != NULL);
     ASSERT(!m_drawItem && "Must call End() before calling Begin() again");
@@ -114,8 +113,7 @@ void GpuDrawItemWriter::Begin(GpuDevice* device,
 
     m_device = device;
 
-    size_t size = SizeInBytes(desc);
-    m_drawItem = (GpuDrawItem*)alloc(size, userdata);
+    m_drawItem = (GpuDrawItem*)memory;
     m_desc = desc;
     m_flags = 0;
 
