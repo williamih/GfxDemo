@@ -13,8 +13,12 @@ public:
     void SetNumTextures(int n);
     void SetNumSamplers(int n);
 
+    int NumCBuffers() const { return m_nCBuffers; }
+    int NumVertexBuffers() const { return m_nVertexBuffers; }
+    int NumTextures() const { return m_nTextures; }
+    int NumSamplers() const { return m_nSamplers; }
+
 private:
-    friend class GpuDrawItemWriter;
     int m_nCBuffers;
     int m_nVertexBuffers;
     int m_nTextures;
@@ -55,11 +59,6 @@ public:
 private:
     GpuDrawItemWriter(const GpuDrawItemWriter&);
     GpuDrawItemWriter& operator=(const GpuDrawItemWriter&);
-
-    void ValidateVertexBuffers();
-    void ValidateCBuffers();
-    void ValidateTextures();
-    void ValidateSamplers();
 
     GpuDevice* m_device;
     GpuDrawItem* m_drawItem;
