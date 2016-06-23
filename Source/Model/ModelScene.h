@@ -7,6 +7,7 @@
 
 template<class T> class AssetCache;
 
+class GpuSamplerCache;
 class ShaderAsset;
 class ModelAsset;
 class ModelInstance;
@@ -28,13 +29,15 @@ public:
         float ambientRadiance[4];
     };
 
-    ModelScene(GpuDevice& device, AssetCache<ShaderAsset>& shaderCache);
+    ModelScene(
+        GpuDevice& device,
+        GpuSamplerCache& samplerCache,
+        AssetCache<ShaderAsset>& shaderCache
+    );
     ~ModelScene();
 
     ModelInstance* CreateModelInstance(ModelAsset* model, u32 flags);
     void DestroyModelInstance(ModelInstance* instance);
-
-    void SetMaxAnisotropy(int maxAnisotropy);
 
     void Update();
 
@@ -49,10 +52,12 @@ private:
     ModelScene(const ModelScene&);
     ModelScene& operator=(const ModelScene&);
 
+    static void SamplerCacheCallback(GpuSamplerCache& cache, void* userdata);
     void RefreshPSOsMatching(u32, u32);
 
     std::vector<ModelInstance*> m_modelInstances;
     GpuDevice& m_device;
+    GpuSamplerCache& m_samplerCache;
     GpuDrawItemPool m_drawItemPool;
     ShaderAsset* m_modelShader;
     ShaderAsset* m_skyboxShader;

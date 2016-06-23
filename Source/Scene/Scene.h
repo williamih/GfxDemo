@@ -6,6 +6,8 @@
 #include "Model/ModelRenderQueue.h"
 #include "Scene/RenderTargetDisplay.h"
 
+class GpuSamplerCache;
+
 struct SceneUpdateInfo {
     Vector3 cameraPos;
     Vector3 forward;
@@ -20,6 +22,7 @@ class Scene {
 public:
     Scene(
         GpuDevice& device,
+        GpuSamplerCache& samplerCache,
         AssetCache<ShaderAsset>& shaderCache,
         AssetCache<ModelAsset>& modelCache
     );

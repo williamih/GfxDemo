@@ -1,6 +1,7 @@
 #include "Scene/RenderTargetDisplay.h"
 
 #include "GpuDevice/GpuDrawItemWriter.h"
+#include "GpuDevice/GpuSamplerCache.h"
 
 #include "Asset/AssetCache.h"
 
@@ -15,17 +16,32 @@ static GpuDrawItemWriterDesc GetDrawItemDesc()
     return desc;
 }
 
-RenderTargetDisplay::RenderTargetDisplay(GpuDevice& device,
-                                         AssetCache<ShaderAsset>& shaderCache)
+void RenderTargetDisplay::SamplerCacheCallback(GpuSamplerCache& cache,
+                                               void* userdata)
+{
+    RenderTargetDisplay* self = (RenderTargetDisplay*)userdata;
+    cache.Release(self->m_sampler);
+    self->m_sampler = cache.Acquire(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE);
+}
+
+RenderTargetDisplay::RenderTargetDisplay(
+    GpuDevice& device,
+    GpuSamplerCache& samplerCache,
+    AssetCache<ShaderAsset>& shaderCache
+)
     : m_device(device)
+    , m_samplerCache(samplerCache)
     , m_shader(shaderCache.FindOrLoad("Assets/Shaders/BlitRT_MTL.shd"))
     , m_renderPass()
     , m_vertexBuf()
     , m_inputLayout()
-    , m_sampler()
+    , m_sampler(samplerCache.Acquire(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE))
     , m_pipelineStateObj()
     , m_drawItem(NULL)
 {
+    m_samplerCache.RegisterCallback(&RenderTargetDisplay::SamplerCacheCallback,
+                                    (void*)this);
+
     m_drawItem = malloc(GpuDrawItemWriter::SizeInBytes(GetDrawItemDesc()));
 
     GpuRenderLoadAction loadAction = GPU_RENDER_LOAD_ACTION_DISCARD;
@@ -68,15 +84,6 @@ RenderTargetDisplay::RenderTargetDisplay(GpuDevice& device,
         &stride
     );
 
-    GpuSamplerDesc samplerDesc;
-    samplerDesc.minFilter = GPU_SAMPLER_FILTER_LINEAR;
-    samplerDesc.magFilter = GPU_SAMPLER_FILTER_LINEAR;
-    samplerDesc.mipFilter = GPU_SAMPLER_MIPFILTER_NOT_MIPMAPPED;
-    samplerDesc.uAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
-    samplerDesc.vAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
-    samplerDesc.wAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
-    m_sampler = m_device.SamplerCreate(samplerDesc);
-
     CreatePSO();
 }
 
@@ -84,10 +91,14 @@ RenderTargetDisplay::~RenderTargetDisplay()
 {
     free(m_drawItem);
     m_device.PipelineStateDestroy(m_pipelineStateObj);
-    m_device.SamplerDestroy(m_sampler);
     m_device.InputLayoutDestroy(m_inputLayout);
     m_device.BufferDestroy(m_vertexBuf);
     m_device.RenderPassDestroy(m_renderPass);
+    m_samplerCache.Release(m_sampler);
+
+    m_samplerCache.UnregisterCallback(&RenderTargetDisplay::SamplerCacheCallback,
+                                      (void*)this);
+
 }
 
 void RenderTargetDisplay::CopyToBackbuffer(

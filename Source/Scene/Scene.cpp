@@ -7,21 +7,21 @@
 #include "Model/ModelAsset.h"
 #include "Model/ModelInstance.h"
 
-const int MAX_ANISOTROPY = 16;
 static const Vector3 s_dirToLight(0.0f, 0.0f, 1.0f);
 static const Vector3 s_irradiance(1.0f, 1.0f, 1.0f);
 static const Vector3 s_ambientRadiance(0.3f, 0.3f, 0.3f);
 
 Scene::Scene(
     GpuDevice& device,
+    GpuSamplerCache& samplerCache,
     AssetCache<ShaderAsset>& shaderCache,
     AssetCache<ModelAsset>& modelCache
 )
     : m_device(device)
     , m_modelCache(modelCache)
-    , m_renderTargetDisplay(device, shaderCache)
+    , m_renderTargetDisplay(device, samplerCache, shaderCache)
 
-    , m_modelScene(device, shaderCache)
+    , m_modelScene(device, samplerCache, shaderCache)
     , m_modelRenderQueue()
     , m_modelInstances(NULL)
     , m_skybox(NULL)
@@ -38,8 +38,6 @@ Scene::Scene(
     , m_zFar(0.0f)
     , m_fovY(0.0f)
 {
-    m_modelScene.SetMaxAnisotropy(MAX_ANISOTROPY);
-
     m_colorRenderTarget = device.TextureCreate(
         GPU_TEXTURE_2D,
         GPU_PIXEL_FORMAT_BGRA8888,

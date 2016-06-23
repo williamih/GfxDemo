@@ -1,5 +1,7 @@
 #include "Model/ModelScene.h"
 
+#include "GpuDevice/GpuSamplerCache.h"
+
 #include "Asset/AssetCache.h"
 #include "Shader/ShaderAsset.h"
 #include "Model/ModelAsset.h"
@@ -20,23 +22,6 @@ static GpuTextureID CreateDefaultWhiteTexture(GpuDevice& device)
     GpuRegion region = {0, 0, 1, 1};
     device.TextureUpload(texture, region, 0, 4, texturePixels);
     return texture;
-}
-
-static GpuSamplerID CreateSampler(
-    GpuDevice& device,
-    GpuSamplerAddressMode uvAddressMode,
-    int maxAnisotropy
-)
-{
-    GpuSamplerDesc desc;
-    desc.uAddressMode = uvAddressMode;
-    desc.vAddressMode = uvAddressMode;
-    desc.wAddressMode = GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE;
-    desc.minFilter = GPU_SAMPLER_FILTER_LINEAR;
-    desc.magFilter = GPU_SAMPLER_FILTER_LINEAR;
-    desc.mipFilter = GPU_SAMPLER_MIPFILTER_LINEAR;
-    desc.maxAnisotropy = maxAnisotropy;
-    return device.SamplerCreate(desc);
 }
 
 static GpuInputLayoutID CreateInputLayout(GpuDevice& device)
@@ -65,17 +50,39 @@ static GpuDrawItemWriterDesc CreateDrawItemWriterDesc()
     return desc;
 }
 
-ModelScene::ModelScene(GpuDevice& device,
-                       AssetCache<ShaderAsset>& shaderCache)
+void ModelScene::SamplerCacheCallback(GpuSamplerCache& cache, void* userdata)
+{
+    ModelScene* self = (ModelScene*)userdata;
+
+    GpuSamplerID oldSamplerUVClamp = self->m_samplerUVClamp;
+    GpuSamplerID oldSamplerUVRepeat = self->m_samplerUVRepeat;
+
+    self->m_samplerUVClamp = cache.Acquire(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE);
+    self->m_samplerUVRepeat = cache.Acquire(GPU_SAMPLER_ADDRESS_REPEAT);
+
+    for (size_t i = 0; i < self->m_modelInstances.size(); ++i) {
+        self->m_modelInstances[i]->RefreshDrawItems();
+    }
+
+    cache.Release(oldSamplerUVClamp);
+    cache.Release(oldSamplerUVRepeat);
+}
+
+ModelScene::ModelScene(
+    GpuDevice& device,
+    GpuSamplerCache& samplerCache,
+    AssetCache<ShaderAsset>& shaderCache
+)
     : m_modelInstances()
     , m_device(device)
+    , m_samplerCache(samplerCache)
     , m_drawItemPool(m_device, CreateDrawItemWriterDesc())
     , m_modelShader(NULL)
     , m_skyboxShader(NULL)
     , m_sceneCBuffer(0)
     , m_defaultTexture(0)
-    , m_samplerUVClamp(0)
-    , m_samplerUVRepeat(0)
+    , m_samplerUVClamp(samplerCache.Acquire(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE))
+    , m_samplerUVRepeat(samplerCache.Acquire(GPU_SAMPLER_ADDRESS_REPEAT))
     , m_inputLayout(0)
     , m_PSOs()
 {
@@ -93,21 +100,23 @@ ModelScene::ModelScene(GpuDevice& device,
     );
 
     m_defaultTexture = CreateDefaultWhiteTexture(device);
-    m_samplerUVClamp = CreateSampler(device, GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE, 1);
-    m_samplerUVRepeat = CreateSampler(device, GPU_SAMPLER_ADDRESS_REPEAT, 1);
     m_inputLayout = CreateInputLayout(device);
+
+    samplerCache.RegisterCallback(&ModelScene::SamplerCacheCallback, (void*)this);
 }
 
 ModelScene::~ModelScene()
 {
     ASSERT(m_modelInstances.empty() && "ModelInstance not destroyed");
 
+    m_samplerCache.UnregisterCallback(&ModelScene::SamplerCacheCallback, (void*)this);
+    m_samplerCache.Release(m_samplerUVClamp);
+    m_samplerCache.Release(m_samplerUVRepeat);
+
     for (int i = 0; i < sizeof m_PSOs / sizeof m_PSOs[0]; ++i) {
         if (m_PSOs[i])
             m_device.PipelineStateDestroy(m_PSOs[i]);
     }
-    m_device.SamplerDestroy(m_samplerUVClamp);
-    m_device.SamplerDestroy(m_samplerUVRepeat);
     m_device.TextureDestroy(m_defaultTexture);
     m_device.InputLayoutDestroy(m_inputLayout);
     m_device.BufferDestroy(m_sceneCBuffer);
@@ -156,23 +165,6 @@ void ModelScene::DestroyModelInstance(ModelInstance* instance)
         }
     }
     ASSERT(!"ModelInstance not found in scene");
-}
-
-void ModelScene::SetMaxAnisotropy(int maxAnisotropy)
-{
-    GpuSamplerID oldSamplerUVClamp = m_samplerUVClamp;
-    GpuSamplerID oldSamplerUVRepeat = m_samplerUVRepeat;
-    m_samplerUVClamp = CreateSampler(
-        m_device, GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE, maxAnisotropy
-    );
-    m_samplerUVRepeat = CreateSampler(
-        m_device, GPU_SAMPLER_ADDRESS_REPEAT, maxAnisotropy
-    );
-    for (size_t i = 0; i < m_modelInstances.size(); ++i) {
-        m_modelInstances[i]->RefreshDrawItems();
-    }
-    m_device.SamplerDestroy(oldSamplerUVClamp);
-    m_device.SamplerDestroy(oldSamplerUVRepeat);
 }
 
 GpuPipelineStateID ModelScene::RequestPSO(u32 flags)

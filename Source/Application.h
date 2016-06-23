@@ -6,6 +6,7 @@
 #include "Core/FileLoader.h"
 
 #include "GpuDevice/GpuDevice.h"
+#include "GpuDevice/GpuSamplerCache.h"
 #include "GpuDevice/GpuDeferredDeletionQueue.h"
 
 #include "Asset/AssetCache.h"
@@ -45,6 +46,7 @@ private:
 
     std::unique_ptr<OsWindow, void (*)(OsWindow*)> m_window;
     std::unique_ptr<GpuDevice, void (*)(GpuDevice*)> m_gpuDevice;
+    GpuSamplerCache m_samplerCache;
 
 #ifdef ASSET_REFRESH
     GpuDeferredDeletionQueue m_gpuDeferredDeletionQueue;

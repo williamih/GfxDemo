@@ -50,6 +50,7 @@ GpuDevice* Application::CreateGpuDevice(OsWindow& window)
 Application::Application()
     : m_window(CreateWindow(), &OsWindow::Destroy)
     , m_gpuDevice(CreateGpuDevice(*m_window), &GpuDevice::Destroy)
+    , m_samplerCache(*m_gpuDevice)
 
 #ifdef ASSET_REFRESH
     , m_gpuDeferredDeletionQueue()
@@ -74,7 +75,7 @@ Application::Application()
     , m_modelAssetFactory(*m_gpuDevice, m_textureCache)
     , m_modelCache(m_fileLoader, m_modelAssetFactory)
 
-    , m_scene(*m_gpuDevice, m_shaderCache, m_modelCache)
+    , m_scene(*m_gpuDevice, m_samplerCache, m_shaderCache, m_modelCache)
     , m_camera()
     , m_teapot(NULL)
     , m_floor(NULL)
@@ -83,6 +84,7 @@ Application::Application()
     m_teapot = m_scene.AddModelInstance("Assets/Models/Teapot.mdl");
     m_floor = m_scene.AddModelInstance("Assets/Models/Floor.mdl");
     m_scene.SetSkybox("Assets/Models/Skybox.mdl");
+    m_samplerCache.SetFilterQuality(GpuSamplerCache::ANISOTROPIC, 16);
 
     Matrix44 floorTransform(1.0f, 0.0f, 0.0f, 0.0f,
                             0.0f, 1.0f, 0.0f, 0.0f,
@@ -110,6 +112,8 @@ Application::~Application()
 void Application::Frame()
 {
     m_camera.Update(1.0f / 60.0f);
+
+    m_samplerCache.CallCallbacks();
 
     m_angle += 0.01f;
     float sinAngle = sinf(m_angle);
