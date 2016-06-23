@@ -8,7 +8,7 @@ class ShaderAsset;
 
 class RenderTargetDisplay {
 public:
-    RenderTargetDisplay(GpuDevice* device, AssetCache<ShaderAsset>& shaderCache);
+    RenderTargetDisplay(GpuDevice& device, AssetCache<ShaderAsset>& shaderCache);
     ~RenderTargetDisplay();
 
     void CopyToBackbuffer(
@@ -23,7 +23,7 @@ private:
 
     void CreatePSO();
 
-    GpuDevice* m_device;
+    GpuDevice& m_device;
     ShaderAsset* m_shader;
     GpuRenderPassID m_renderPass;
     GpuBufferID m_vertexBuf;

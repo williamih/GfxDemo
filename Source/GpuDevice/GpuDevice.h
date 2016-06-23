@@ -379,7 +379,7 @@ private:
 };
 
 #ifdef GPUDEVICE_DEBUG_MODE
-#  define GPUDEVICE_UNREGISTER_DRAWITEM(dev, item) dev->UnregisterDrawItem(item)
+#  define GPUDEVICE_UNREGISTER_DRAWITEM(dev, item) (dev).UnregisterDrawItem(item)
 #else
 #  define GPUDEVICE_UNREGISTER_DRAWITEM(dev, item) ((void)0)
 #endif

@@ -7,7 +7,7 @@
 
 #include "Texture/DDSFile.h"
 
-static GpuTextureID CreateTexture(GpuDevice* device, DDSFile& file)
+static GpuTextureID CreateTexture(GpuDevice& device, DDSFile& file)
 {
     GpuPixelFormat pixelFormat;
     unsigned bytesPerBlock;
@@ -30,7 +30,7 @@ static GpuTextureID CreateTexture(GpuDevice* device, DDSFile& file)
     unsigned width = file.Width();
     unsigned height = file.Height();
     unsigned nMips = file.MipCount();
-    GpuTextureID texture = device->TextureCreate(
+    GpuTextureID texture = device.TextureCreate(
         GPU_TEXTURE_2D,
         pixelFormat,
         0,
@@ -51,21 +51,21 @@ static GpuTextureID CreateTexture(GpuDevice* device, DDSFile& file)
         region.y = 0;
         region.width = w;
         region.height = h;
-        device->TextureUpload(texture, region, i, stride, pixels);
+        device.TextureUpload(texture, region, i, stride, pixels);
         pixels += mipSize;
     }
 
     return texture;
 }
 
-TextureAsset::TextureAsset(GpuDevice* device, DDSFile& file)
+TextureAsset::TextureAsset(GpuDevice& device, DDSFile& file)
     : m_device(device)
     , m_texture(CreateTexture(device, file))
 {}
 
 TextureAsset::~TextureAsset()
 {
-    m_device->TextureDestroy(m_texture);
+    m_device.TextureDestroy(m_texture);
 }
 
 #ifdef ASSET_REFRESH
@@ -81,7 +81,7 @@ GpuTextureID TextureAsset::GetGpuTextureID() const
     return m_texture;
 }
 
-TextureAssetFactory::TextureAssetFactory(GpuDevice* device
+TextureAssetFactory::TextureAssetFactory(GpuDevice& device
 #ifdef ASSET_REFRESH
                                          , GpuDeferredDeletionQueue& deletionQ
 #endif

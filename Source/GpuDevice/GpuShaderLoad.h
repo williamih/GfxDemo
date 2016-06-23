@@ -53,7 +53,7 @@ namespace GpuShaderLoad {
     {
         ShaderReadContext<ShaderProgram>* ctx = (ShaderReadContext<ShaderProgram>*)userdata;
         GpuShaderPermutations<ShaderProgram>* permutations = ctx->permutations;
-        GpuDevice* device = ctx->device;
+        GpuDevice& device = *ctx->device;
 
         switch (action) {
             case READACTION_NEW_PERMUTATION: {
@@ -76,11 +76,11 @@ namespace GpuShaderLoad {
 
     template<class ShaderProgram>
     u32 LoadShader(const char* data, int length, u32 targetLanguageFourCC,
-                   GpuDevice* device,
+                   GpuDevice& device,
                    GpuShaderPermutations<ShaderProgram>& permutations)
     {
         ShaderReadContext<ShaderProgram> ctx;
-        ctx.device = device;
+        ctx.device = &device;
         ctx.permutations = &permutations;
         ctx.idxHead = 0xFFFFFFFF;
         ctx.idxTail = 0xFFFFFFFF;

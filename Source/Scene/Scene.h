@@ -19,7 +19,7 @@ struct SceneUpdateInfo {
 class Scene {
 public:
     Scene(
-        GpuDevice* device,
+        GpuDevice& device,
         AssetCache<ShaderAsset>& shaderCache,
         AssetCache<ModelAsset>& modelCache
     );
@@ -36,7 +36,7 @@ private:
 
     ModelInstance* LoadModel(const char* path, u32 flags);
 
-    GpuDevice* m_device;
+    GpuDevice& m_device;
     AssetCache<ModelAsset>& m_modelCache;
     RenderTargetDisplay m_renderTargetDisplay;
 

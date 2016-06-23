@@ -23,17 +23,17 @@ void GpuDeferredDeletionQueue::AddTexture(GpuTextureID textureID,
     m_items.push_back(item);
 }
 
-static void Delete(u32 resourceID, u16 type, GpuDevice* device)
+static void Delete(u32 resourceID, u16 type, GpuDevice& device)
 {
     switch (type) {
         case TYPE_SHADERPROGRAM: {
             GpuShaderProgramID programID(resourceID);
-            device->ShaderProgramDestroy(programID);
+            device.ShaderProgramDestroy(programID);
             break;
         }
         case TYPE_TEXTURE: {
             GpuTextureID textureID(resourceID);
-            device->TextureDestroy(textureID);
+            device.TextureDestroy(textureID);
             break;
         }
         default:
@@ -42,7 +42,7 @@ static void Delete(u32 resourceID, u16 type, GpuDevice* device)
     }
 }
 
-void GpuDeferredDeletionQueue::Update(GpuDevice* device)
+void GpuDeferredDeletionQueue::Update(GpuDevice& device)
 {
     for (size_t i = 0; i < m_items.size(); ) {
         --m_items[i].framesUntilDelete;

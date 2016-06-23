@@ -276,9 +276,9 @@ private:
             return library != NULL;
         }
 
-        void LoadVertexShader(GpuDevice* device, const char* code, int length)
+        void LoadVertexShader(GpuDevice& device, const char* code, int length)
         {
-            GpuDeviceMetal* devMTL = (GpuDeviceMetal*)device;
+            GpuDeviceMetal& devMTL = (GpuDeviceMetal&)device;
 
             void* codeCopy = malloc(length);
             memcpy(codeCopy, code, length);
@@ -286,7 +286,7 @@ private:
                                                         DISPATCH_DATA_DESTRUCTOR_FREE);
 
             NSError* error;
-            library = [devMTL->m_device newLibraryWithData:data error:&error];
+            library = [devMTL.m_device newLibraryWithData:data error:&error];
             if (error) {
                 FATAL("GpuDeviceMetal: Failed to create shader: %s",
                       error.localizedDescription.UTF8String);
@@ -296,7 +296,7 @@ private:
             fragmentFunction = [library newFunctionWithName:@"PixelMain"];
         }
 
-        void LoadPixelShader(GpuDevice* device, const char* code, int length)
+        void LoadPixelShader(GpuDevice& device, const char* code, int length)
         {}
 
         void Release()
@@ -565,7 +565,7 @@ GpuShaderProgramID GpuDeviceMetal::ShaderProgramCreate(const char* data, size_t 
         data,
         (int)length,
         FOURCC('M', 'E', 'T', 'L'),
-        (GpuDevice*)this,
+        *(GpuDevice*)this,
         m_permutations
     );
 

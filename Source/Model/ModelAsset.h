@@ -33,14 +33,14 @@ public:
     };
 
     static ModelAsset* Create(
-        GpuDevice* device,
+        GpuDevice& device,
         AssetCache<TextureAsset>& textureCache,
         FileLoader& loader,
         const char* path
     );
 
     const u8* GetMDLData() const;
-    GpuDevice* GetGpuDevice() const;
+    GpuDevice& GetGpuDevice() const;
     GpuBufferID GetVertexBuf() const;
     GpuBufferID GetIndexBuf() const;
 
@@ -49,7 +49,7 @@ private:
     ModelAsset& operator=(const ModelAsset&);
 
     ModelAsset(
-        GpuDevice* device,
+        GpuDevice& device,
         AssetCache<TextureAsset>& textureCache,
         u8* mdlData,
         u8* mdgData
@@ -58,7 +58,7 @@ private:
 
     virtual void Destroy();
 
-    GpuDevice* m_device;
+    GpuDevice& m_device;
     GpuBufferID m_vertexBuf;
     GpuBufferID m_indexBuf;
 #ifdef ASSET_REFRESH
@@ -68,7 +68,7 @@ private:
 
 class ModelAssetFactory : public AssetFactory<ModelAsset> {
 public:
-    ModelAssetFactory(GpuDevice* device, AssetCache<TextureAsset>& textureCache);
+    ModelAssetFactory(GpuDevice& device, AssetCache<TextureAsset>& textureCache);
 
     virtual ModelAsset* Create(const char* path, FileLoader& loader);
 
@@ -76,7 +76,7 @@ public:
     virtual void Refresh(ModelAsset* asset, const char* path, FileLoader& loader);
 #endif
 private:
-    GpuDevice* m_device;
+    GpuDevice& m_device;
     AssetCache<TextureAsset>& m_textureCache;
 };
 

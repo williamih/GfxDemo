@@ -5,9 +5,9 @@
 #include "Model/ModelAsset.h"
 #include "Model/ModelInstance.h"
 
-static GpuTextureID CreateDefaultWhiteTexture(GpuDevice* device)
+static GpuTextureID CreateDefaultWhiteTexture(GpuDevice& device)
 {
-    GpuTextureID texture = device->TextureCreate(
+    GpuTextureID texture = device.TextureCreate(
         GPU_TEXTURE_2D,
         GPU_PIXEL_FORMAT_BGRA8888,
         0, // flags
@@ -18,12 +18,12 @@ static GpuTextureID CreateDefaultWhiteTexture(GpuDevice* device)
     );
     const u8 texturePixels[] = {0xFF, 0xFF, 0xFF, 0xFF};
     GpuRegion region = {0, 0, 1, 1};
-    device->TextureUpload(texture, region, 0, 4, texturePixels);
+    device.TextureUpload(texture, region, 0, 4, texturePixels);
     return texture;
 }
 
 static GpuSamplerID CreateSampler(
-    GpuDevice* device,
+    GpuDevice& device,
     GpuSamplerAddressMode uvAddressMode,
     int maxAnisotropy
 )
@@ -36,10 +36,10 @@ static GpuSamplerID CreateSampler(
     desc.magFilter = GPU_SAMPLER_FILTER_LINEAR;
     desc.mipFilter = GPU_SAMPLER_MIPFILTER_LINEAR;
     desc.maxAnisotropy = maxAnisotropy;
-    return device->SamplerCreate(desc);
+    return device.SamplerCreate(desc);
 }
 
-static GpuInputLayoutID CreateInputLayout(GpuDevice* device)
+static GpuInputLayoutID CreateInputLayout(GpuDevice& device)
 {
     GpuVertexAttribute attribs[] = {
         {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, position), 0},
@@ -47,7 +47,7 @@ static GpuInputLayoutID CreateInputLayout(GpuDevice* device)
         {GPU_VERTEX_ATTRIB_FLOAT2, offsetof(ModelAsset::Vertex, uv), 0},
     };
     unsigned stride = sizeof(ModelAsset::Vertex);
-    return device->InputLayoutCreate(
+    return device.InputLayoutCreate(
         sizeof attribs / sizeof attribs[0],
         attribs,
         1,
@@ -65,7 +65,7 @@ static GpuDrawItemWriterDesc CreateDrawItemWriterDesc()
     return desc;
 }
 
-ModelScene::ModelScene(GpuDevice* device,
+ModelScene::ModelScene(GpuDevice& device,
                        AssetCache<ShaderAsset>& shaderCache)
     : m_modelInstances()
     , m_device(device)
@@ -85,7 +85,7 @@ ModelScene::ModelScene(GpuDevice* device,
     m_skyboxShader = shaderCache.FindOrLoad("Assets/Shaders/Skybox_MTL.shd");
     m_skyboxShader->AddRef();
 
-    m_sceneCBuffer = device->BufferCreate(
+    m_sceneCBuffer = device.BufferCreate(
         GPU_BUFFER_TYPE_CONSTANT,
         GPU_BUFFER_ACCESS_DYNAMIC,
         NULL,
@@ -104,13 +104,13 @@ ModelScene::~ModelScene()
 
     for (int i = 0; i < sizeof m_PSOs / sizeof m_PSOs[0]; ++i) {
         if (m_PSOs[i])
-            m_device->PipelineStateDestroy(m_PSOs[i]);
+            m_device.PipelineStateDestroy(m_PSOs[i]);
     }
-    m_device->SamplerDestroy(m_samplerUVClamp);
-    m_device->SamplerDestroy(m_samplerUVRepeat);
-    m_device->TextureDestroy(m_defaultTexture);
-    m_device->InputLayoutDestroy(m_inputLayout);
-    m_device->BufferDestroy(m_sceneCBuffer);
+    m_device.SamplerDestroy(m_samplerUVClamp);
+    m_device.SamplerDestroy(m_samplerUVRepeat);
+    m_device.TextureDestroy(m_defaultTexture);
+    m_device.InputLayoutDestroy(m_inputLayout);
+    m_device.BufferDestroy(m_sceneCBuffer);
 
     m_modelShader->Release();
     m_skyboxShader->Release();
@@ -134,7 +134,7 @@ void ModelScene::RefreshPSOsMatching(u32 bits, u32 enabled)
     }
 
     for (int i = 0; i < toDestroyCount; ++i) {
-        m_device->PipelineStateDestroy(toDestroy[i]);
+        m_device.PipelineStateDestroy(toDestroy[i]);
     }
 }
 
@@ -171,8 +171,8 @@ void ModelScene::SetMaxAnisotropy(int maxAnisotropy)
     for (size_t i = 0; i < m_modelInstances.size(); ++i) {
         m_modelInstances[i]->RefreshDrawItems();
     }
-    m_device->SamplerDestroy(oldSamplerUVClamp);
-    m_device->SamplerDestroy(oldSamplerUVRepeat);
+    m_device.SamplerDestroy(oldSamplerUVClamp);
+    m_device.SamplerDestroy(oldSamplerUVRepeat);
 }
 
 GpuPipelineStateID ModelScene::RequestPSO(u32 flags)
@@ -194,7 +194,7 @@ GpuPipelineStateID ModelScene::RequestPSO(u32 flags)
             desc.fillMode = GPU_FILL_MODE_SOLID;
         desc.cullMode = GPU_CULL_BACK;
         desc.frontFaceWinding = GPU_WINDING_COUNTER_CLOCKWISE;
-        m_PSOs[flags] = m_device->PipelineStateCreate(desc);
+        m_PSOs[flags] = m_device.PipelineStateCreate(desc);
     }
     return m_PSOs[flags];
 }
@@ -234,7 +234,7 @@ GpuBufferID ModelScene::GetSceneCBuffer() const
     return m_sceneCBuffer;
 }
 
-GpuDevice* ModelScene::GetGpuDevice() const
+GpuDevice& ModelScene::GetGpuDevice() const
 {
     return m_device;
 }

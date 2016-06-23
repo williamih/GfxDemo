@@ -28,7 +28,7 @@ public:
         float ambientRadiance[4];
     };
 
-    ModelScene(GpuDevice* device, AssetCache<ShaderAsset>& shaderCache);
+    ModelScene(GpuDevice& device, AssetCache<ShaderAsset>& shaderCache);
     ~ModelScene();
 
     ModelInstance* CreateModelInstance(ModelAsset* model, u32 flags);
@@ -44,7 +44,7 @@ public:
     GpuTextureID GetDefaultTexture() const;
     GpuDrawItemPool& GetDrawItemPool();
     GpuBufferID GetSceneCBuffer() const;
-    GpuDevice* GetGpuDevice() const;
+    GpuDevice& GetGpuDevice() const;
 private:
     ModelScene(const ModelScene&);
     ModelScene& operator=(const ModelScene&);
@@ -52,7 +52,7 @@ private:
     void RefreshPSOsMatching(u32, u32);
 
     std::vector<ModelInstance*> m_modelInstances;
-    GpuDevice* m_device;
+    GpuDevice& m_device;
     GpuDrawItemPool m_drawItemPool;
     ShaderAsset* m_modelShader;
     ShaderAsset* m_skyboxShader;

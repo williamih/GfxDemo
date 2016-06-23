@@ -12,7 +12,7 @@ public:
     void AddTexture(GpuTextureID textureID, u16 framesUntilDelete = 1);
 
     // Call at the end of each frame
-    void Update(GpuDevice* device);
+    void Update(GpuDevice& device);
 
 private:
     GpuDeferredDeletionQueue(const GpuDeferredDeletionQueue&);

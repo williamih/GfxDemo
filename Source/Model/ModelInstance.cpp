@@ -80,11 +80,13 @@ ModelInstance::ModelInstance(ModelScene& scene, ModelAsset* model, u32 flags)
     ASSERT(model);
     model->AddRef();
 
-    GpuDevice* dev = model->GetGpuDevice();
-    m_cbuffer = dev->BufferCreate(GPU_BUFFER_TYPE_CONSTANT,
-                                  GPU_BUFFER_ACCESS_DYNAMIC,
-                                  NULL,
-                                  sizeof(ModelInstanceCBuffer));
+    GpuDevice& dev = model->GetGpuDevice();
+    m_cbuffer = dev.BufferCreate(
+        GPU_BUFFER_TYPE_CONSTANT,
+        GPU_BUFFER_ACCESS_DYNAMIC,
+        NULL,
+        sizeof(ModelInstanceCBuffer)
+    );
 
     RefreshDrawItems();
 }
@@ -98,7 +100,7 @@ ModelInstance::~ModelInstance()
         m_drawItemIndex = next;
     }
 
-    m_model->GetGpuDevice()->BufferDestroy(m_cbuffer);
+    m_model->GetGpuDevice().BufferDestroy(m_cbuffer);
 
     m_model->Release();
 }
@@ -167,8 +169,8 @@ void ModelInstance::Update(const Matrix44& worldTransform,
                            const Vector3& specularColor,
                            float glossiness)
 {
-    GpuDevice* dev = m_model->GetGpuDevice();
-    ModelInstanceCBuffer* buf = (ModelInstanceCBuffer*)dev->BufferGetContents(m_cbuffer);
+    GpuDevice& dev = m_model->GetGpuDevice();
+    ModelInstanceCBuffer* buf = (ModelInstanceCBuffer*)dev.BufferGetContents(m_cbuffer);
 
     Matrix33 normalTransform = worldTransform.UpperLeft3x3().Inverse().Transpose();
 
@@ -183,5 +185,5 @@ void ModelInstance::Update(const Matrix44& worldTransform,
     buf->specularColorAndGlossiness[2] = specularColor.z;
     buf->specularColorAndGlossiness[3] = glossiness;
 
-    dev->BufferFlushRange(m_cbuffer, 0, sizeof(ModelInstanceCBuffer));
+    dev.BufferFlushRange(m_cbuffer, 0, sizeof(ModelInstanceCBuffer));
 }

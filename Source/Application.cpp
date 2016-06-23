@@ -57,24 +57,24 @@ Application::Application()
 
     , m_fileLoader()
 
-    , m_shaderAssetFactory(m_gpuDevice.get()
+    , m_shaderAssetFactory(*m_gpuDevice
 #ifdef ASSET_REFRESH
                            , m_gpuDeferredDeletionQueue
 #endif
                            )
     , m_shaderCache(m_fileLoader, m_shaderAssetFactory)
 
-    , m_textureAssetFactory(m_gpuDevice.get()
+    , m_textureAssetFactory(*m_gpuDevice
 #ifdef ASSET_REFRESH
                             , m_gpuDeferredDeletionQueue
 #endif
                             )
     , m_textureCache(m_fileLoader, m_textureAssetFactory)
 
-    , m_modelAssetFactory(m_gpuDevice.get(), m_textureCache)
+    , m_modelAssetFactory(*m_gpuDevice, m_textureCache)
     , m_modelCache(m_fileLoader, m_modelAssetFactory)
 
-    , m_scene(m_gpuDevice.get(), m_shaderCache, m_modelCache)
+    , m_scene(*m_gpuDevice, m_shaderCache, m_modelCache)
     , m_camera()
     , m_teapot(NULL)
     , m_floor(NULL)
@@ -146,7 +146,7 @@ void Application::Frame()
     m_scene.Render(viewport);
 
 #ifdef ASSET_REFRESH
-    m_gpuDeferredDeletionQueue.Update(m_gpuDevice.get());
+    m_gpuDeferredDeletionQueue.Update(*m_gpuDevice);
     m_shaderCache.UpdateRefreshSystem();
 #endif
     m_gpuDevice->ScenePresent();

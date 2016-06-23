@@ -9,7 +9,7 @@ DECLARE_PRIMITIVE_WRAPPER(u32, GpuDrawItemPoolIndex);
 
 class GpuDrawItemPool {
 public:
-    GpuDrawItemPool(GpuDevice* device, const GpuDrawItemWriterDesc& desc);
+    GpuDrawItemPool(GpuDevice& device, const GpuDrawItemWriterDesc& desc);
 
     GpuDrawItemPoolIndex BeginDrawItem(GpuDrawItemWriter& writer,
                                        GpuDrawItemPoolIndex prev
@@ -25,7 +25,7 @@ private:
     GpuDrawItemPool(const GpuDrawItemPool&);
     GpuDrawItemPool& operator=(const GpuDrawItemPool&);
 
-    GpuDevice* m_device;
+    GpuDevice& m_device;
     GpuDrawItemWriterDesc m_desc;
     size_t m_itemSize;
     std::vector<u8> m_data;

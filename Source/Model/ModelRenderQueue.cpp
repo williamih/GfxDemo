@@ -28,11 +28,11 @@ void ModelRenderQueue::Draw(ModelScene& scene,
                             const GpuViewport& viewport,
                             GpuRenderPassID renderPass)
 {
-    GpuDevice* device = scene.GetGpuDevice();
+    GpuDevice& device = scene.GetGpuDevice();
     GpuBufferID sceneCBuffer = scene.GetSceneCBuffer();
 
     ModelScene::SceneCBuffer* sceneCBuf;
-    sceneCBuf = (ModelScene::SceneCBuffer*)device->BufferGetContents(sceneCBuffer);
+    sceneCBuf = (ModelScene::SceneCBuffer*)device.BufferGetContents(sceneCBuffer);
 
     GpuMathUtils::FillArrayColumnMajor(sceneInfo.viewProjTransform,
                                        sceneCBuf->viewProjTransform);
@@ -52,7 +52,7 @@ void ModelRenderQueue::Draw(ModelScene& scene,
     sceneCBuf->ambientRadiance[1] = sceneInfo.ambientRadiance.y;
     sceneCBuf->ambientRadiance[2] = sceneInfo.ambientRadiance.z;
     sceneCBuf->ambientRadiance[3] = 0.0f;
-    device->BufferFlushRange(sceneCBuffer, 0, sizeof(ModelScene::SceneCBuffer));
+    device.BufferFlushRange(sceneCBuffer, 0, sizeof(ModelScene::SceneCBuffer));
 
-    device->Draw(&m_drawItems[0], (int)m_drawItems.size(), renderPass, viewport);
+    device.Draw(&m_drawItems[0], (int)m_drawItems.size(), renderPass, viewport);
 }

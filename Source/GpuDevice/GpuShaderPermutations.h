@@ -85,12 +85,12 @@ public:
         }
     }
 
-    void LoadVertexShader(u32 index, GpuDevice* device, const char* shaderCode, int length)
+    void LoadVertexShader(u32 index, GpuDevice& device, const char* shaderCode, int length)
     {
         Lookup(index).program.LoadVertexShader(device, shaderCode, length);
     }
 
-    void LoadPixelShader(u32 index, GpuDevice* device, const char* shaderCode, int length)
+    void LoadPixelShader(u32 index, GpuDevice& device, const char* shaderCode, int length)
     {
         Lookup(index).program.LoadPixelShader(device, shaderCode, length);
     }

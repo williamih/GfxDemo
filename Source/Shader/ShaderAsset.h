@@ -8,7 +8,7 @@ class GpuDeferredDeletionQueue;
 
 class ShaderAsset : public Asset {
 public:
-    ShaderAsset(GpuDevice* device, const char* data, size_t length);
+    ShaderAsset(GpuDevice& device, const char* data, size_t length);
 
 #ifdef ASSET_REFRESH
     void Refresh(GpuDeferredDeletionQueue& deletionQ,
@@ -22,16 +22,16 @@ private:
 
     virtual ~ShaderAsset();
 
-    GpuDevice* m_device;
+    GpuDevice& m_device;
     GpuShaderProgramID m_shaderProgram;
 };
 
 class ShaderAssetFactory : public AssetFactory<ShaderAsset> {
 public:
 #ifdef ASSET_REFRESH
-    ShaderAssetFactory(GpuDevice* device, GpuDeferredDeletionQueue& deletionQ);
+    ShaderAssetFactory(GpuDevice& device, GpuDeferredDeletionQueue& deletionQ);
 #else
-    explicit ShaderAssetFactory(GpuDevice* device);
+    explicit ShaderAssetFactory(GpuDevice& device);
 #endif
 
     virtual ShaderAsset* Create(const char* path, FileLoader& loader);
@@ -41,7 +41,7 @@ public:
 #endif
 
 private:
-    GpuDevice* m_device;
+    GpuDevice& m_device;
 #ifdef ASSET_REFRESH
     GpuDeferredDeletionQueue& m_deletionQ;
 #endif

@@ -13,7 +13,7 @@ static const Vector3 s_irradiance(1.0f, 1.0f, 1.0f);
 static const Vector3 s_ambientRadiance(0.3f, 0.3f, 0.3f);
 
 Scene::Scene(
-    GpuDevice* device,
+    GpuDevice& device,
     AssetCache<ShaderAsset>& shaderCache,
     AssetCache<ModelAsset>& modelCache
 )
@@ -40,21 +40,21 @@ Scene::Scene(
 {
     m_modelScene.SetMaxAnisotropy(MAX_ANISOTROPY);
 
-    m_colorRenderTarget = device->TextureCreate(
+    m_colorRenderTarget = device.TextureCreate(
         GPU_TEXTURE_2D,
         GPU_PIXEL_FORMAT_BGRA8888,
         GPU_TEXTURE_FLAG_RENDER_TARGET,
-        device->GetFormat().resolutionX, // width
-        device->GetFormat().resolutionY, // height
+        device.GetFormat().resolutionX, // width
+        device.GetFormat().resolutionY, // height
         1, // depthOrArrayLength
         1 // nMipmapLevels
     );
-    m_depthRenderTarget = device->TextureCreate(
+    m_depthRenderTarget = device.TextureCreate(
         GPU_TEXTURE_2D,
         GPU_PIXEL_FORMAT_DEPTH_32,
         GPU_TEXTURE_FLAG_RENDER_TARGET,
-        device->GetFormat().resolutionX, // width
-        device->GetFormat().resolutionY, // height
+        device.GetFormat().resolutionX, // width
+        device.GetFormat().resolutionY, // height
         1, // depthOrArrayLength
         1 // nMipmapLevels
     );
@@ -72,14 +72,14 @@ Scene::Scene(
     renderPassDesc.depthStencilTarget = m_depthRenderTarget;
     renderPassDesc.depthStencilLoadAction = GPU_RENDER_LOAD_ACTION_CLEAR;
     renderPassDesc.depthStencilStoreAction = GPU_RENDER_STORE_ACTION_STORE;
-    m_renderPass = device->RenderPassCreate(renderPassDesc);
+    m_renderPass = device.RenderPassCreate(renderPassDesc);
 }
 
 Scene::~Scene()
 {
-    m_device->TextureDestroy(m_colorRenderTarget);
-    m_device->TextureDestroy(m_depthRenderTarget);
-    m_device->RenderPassDestroy(m_renderPass);
+    m_device.TextureDestroy(m_colorRenderTarget);
+    m_device.TextureDestroy(m_depthRenderTarget);
+    m_device.RenderPassDestroy(m_renderPass);
 
     for (size_t i = 0; i < m_modelInstances.size(); ++i) {
         m_modelScene.DestroyModelInstance(m_modelInstances[i]);

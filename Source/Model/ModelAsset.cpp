@@ -104,7 +104,7 @@ static void MDGFixEndian(u8* mdgData)
 }
 
 ModelAsset::ModelAsset(
-    GpuDevice* device,
+    GpuDevice& device,
     AssetCache<TextureAsset>& textureCache,
     u8* mdlData,
     u8* mdgData
@@ -116,8 +116,6 @@ ModelAsset::ModelAsset(
     , m_data(mdlData)
 #endif
 {
-    ASSERT(device);
-
     MDLHeader* mdlHeader = (MDLHeader*)GetMDLData();
     if (memcmp(mdlHeader->code, "MODL", 4) != 0)
         FATAL("Model has incorrect header code");
@@ -127,14 +125,14 @@ ModelAsset::ModelAsset(
 
     MDGHeader* mdgHeader = (MDGHeader*)mdgData;
 
-    m_vertexBuf = device->BufferCreate(
+    m_vertexBuf = device.BufferCreate(
         GPU_BUFFER_TYPE_VERTEX,
         GPU_BUFFER_ACCESS_STATIC,
         mdgData + mdgHeader->ofsVertices,
         mdgHeader->nVertices * sizeof(Vertex)
     );
 
-    m_indexBuf = device->BufferCreate(
+    m_indexBuf = device.BufferCreate(
         GPU_BUFFER_TYPE_INDEX,
         GPU_BUFFER_ACCESS_STATIC,
         mdgData + mdgHeader->ofsIndices,
@@ -172,8 +170,8 @@ ModelAsset::~ModelAsset()
             submeshes[i].diffuseTexture->Release();
     }
 
-    m_device->BufferDestroy(m_vertexBuf);
-    m_device->BufferDestroy(m_indexBuf);
+    m_device.BufferDestroy(m_vertexBuf);
+    m_device.BufferDestroy(m_indexBuf);
 
 #ifdef ASSET_REFRESH
     free((void*)m_data);
@@ -206,7 +204,7 @@ void* MDGAlloc(u32 size, void* userdata)
 }
 
 ModelAsset* ModelAsset::Create(
-    GpuDevice* device,
+    GpuDevice& device,
     AssetCache<TextureAsset>& textureCache,
     FileLoader& loader,
     const char* path
@@ -253,7 +251,7 @@ const u8* ModelAsset::GetMDLData() const
 #endif
 }
 
-GpuDevice* ModelAsset::GetGpuDevice() const
+GpuDevice& ModelAsset::GetGpuDevice() const
 {
     return m_device;
 }
@@ -268,7 +266,7 @@ GpuBufferID ModelAsset::GetIndexBuf() const
     return m_indexBuf;
 }
 
-ModelAssetFactory::ModelAssetFactory(GpuDevice* device,
+ModelAssetFactory::ModelAssetFactory(GpuDevice& device,
                                      AssetCache<TextureAsset>& textureCache)
     : m_device(device)
     , m_textureCache(textureCache)
