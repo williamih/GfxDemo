@@ -6,7 +6,7 @@
 #import <QuartzCore/QuartzCore.h> // for CAMetalLayer
 #import <Metal/Metal.h>
 
-#include "IDLookupTable.h"
+#include "Core/IDLookupTable.h"
 #include "Core/Macros.h"
 #include "GpuDevice/GpuDrawItem.h"
 #include "GpuDevice/GpuShaderLoad.h"

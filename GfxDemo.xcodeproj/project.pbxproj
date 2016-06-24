@@ -94,6 +94,7 @@
 		7A4492061BF1E63500444DFC /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		7A6F6A1E1C6ACC92004C9EE3 /* Skybox.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Skybox.metal; sourceTree = "<group>"; };
 		7A6F6A201C6ACE04004C9EE3 /* ModelTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelTypes.h; sourceTree = "<group>"; };
+		7A7D08401D1DECD2001C6375 /* IDLookupTable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IDLookupTable.h; sourceTree = "<group>"; };
 		7A7E6BCE1D1C9C1D00DF7DCC /* GpuSamplerCache.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuSamplerCache.cpp; sourceTree = "<group>"; };
 		7A7E6BCF1D1C9C1D00DF7DCC /* GpuSamplerCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuSamplerCache.h; sourceTree = "<group>"; };
 		7A9264451C73CBF100F424FD /* ModelScene.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelScene.cpp; sourceTree = "<group>"; };
@@ -127,7 +128,6 @@
 		CA0085231A43A21800E2A102 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		CA0732C51A43A54B00770DE8 /* OsWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OsWindow.h; sourceTree = "<group>"; };
 		CA0732C71A43A62300770DE8 /* OsWindowMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OsWindowMac.mm; sourceTree = "<group>"; };
-		CA71F72E1A48E0440000B102 /* IDLookupTable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IDLookupTable.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -276,6 +276,7 @@
 				7A20A7FF1C69543C00E82F66 /* Str.cpp */,
 				7A20A7FD1C6952A300E82F66 /* Path.h */,
 				7A20A7FC1C6952A300E82F66 /* Path.cpp */,
+				7A7D08401D1DECD2001C6375 /* IDLookupTable.h */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -308,7 +309,6 @@
 				7AF7AB0C1C00157000B44E92 /* Core */,
 				7AC5DFC91B8AF1C700FC65B1 /* Application.h */,
 				7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */,
-				CA71F72E1A48E0440000B102 /* IDLookupTable.h */,
 				7AEAF1FF1BF814B900620EB0 /* OsEvent.h */,
 				CA0732C51A43A54B00770DE8 /* OsWindow.h */,
 				CA0732C71A43A62300770DE8 /* OsWindowMac.mm */,

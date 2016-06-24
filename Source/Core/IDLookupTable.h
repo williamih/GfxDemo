@@ -72,8 +72,8 @@
  *
  ***/
 
-#ifndef IDLOOKUPTABLE_H
-#define IDLOOKUPTABLE_H
+#ifndef CORE_IDLOOKUPTABLE_H
+#define CORE_IDLOOKUPTABLE_H
 
 #include <vector>
 #include <limits.h>
@@ -175,4 +175,4 @@ private:
     unsigned m_freeList;
 };
 
-#endif // IDLOOKUPTABLE_H
+#endif // CORE_IDLOOKUPTABLE_H
