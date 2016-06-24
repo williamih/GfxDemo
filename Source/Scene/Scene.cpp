@@ -14,7 +14,7 @@ static const Vector3 s_ambientRadiance(0.3f, 0.3f, 0.3f);
 Scene::Scene(
     GpuDevice& device,
     GpuSamplerCache& samplerCache,
-    AssetCache<ShaderAsset>& shaderCache,
+    ShaderCache& shaderCache,
     AssetCache<ModelAsset>& modelCache
 )
     : m_device(device)

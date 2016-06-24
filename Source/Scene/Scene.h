@@ -7,6 +7,8 @@
 #include "Scene/RenderTargetDisplay.h"
 
 class GpuSamplerCache;
+class ShaderCache;
+template<class T> class AssetCache;
 
 struct SceneUpdateInfo {
     Vector3 cameraPos;
@@ -23,7 +25,7 @@ public:
     Scene(
         GpuDevice& device,
         GpuSamplerCache& samplerCache,
-        AssetCache<ShaderAsset>& shaderCache,
+        ShaderCache& shaderCache,
         AssetCache<ModelAsset>& modelCache
     );
     ~Scene();

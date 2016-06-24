@@ -107,6 +107,7 @@
 		7AA0669C1C5449C3006278C8 /* Asset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Asset.cpp; sourceTree = "<group>"; };
 		7AB95A031C25225600A71282 /* GpuMathUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuMathUtils.cpp; sourceTree = "<group>"; };
 		7AB95A041C25225600A71282 /* GpuMathUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuMathUtils.h; sourceTree = "<group>"; };
+		7AC2A7EE1D1E28010091D3CB /* AssetRefreshQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AssetRefreshQueue.h; sourceTree = "<group>"; };
 		7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Application.cpp; sourceTree = "<group>"; };
 		7AC5DFC91B8AF1C700FC65B1 /* Application.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Application.h; sourceTree = "<group>"; };
 		7AD002001C5A123500AD3F39 /* FileLoader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FileLoader.cpp; sourceTree = "<group>"; };
@@ -174,6 +175,7 @@
 				7A0FA8761C52D46F00EAC474 /* AssetCache.h */,
 				7AA0669B1C544657006278C8 /* Asset.h */,
 				7AA0669C1C5449C3006278C8 /* Asset.cpp */,
+				7AC2A7EE1D1E28010091D3CB /* AssetRefreshQueue.h */,
 			);
 			path = Asset;
 			sourceTree = "<group>";

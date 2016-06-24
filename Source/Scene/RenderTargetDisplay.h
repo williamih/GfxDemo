@@ -6,7 +6,7 @@
 
 class GpuSamplerCache;
 
-template<class T> class AssetCache;
+class ShaderCache;
 class ShaderAsset;
 
 class RenderTargetDisplay {
@@ -14,7 +14,7 @@ public:
     RenderTargetDisplay(
         GpuDevice& device,
         GpuSamplerCache& samplerCache,
-        AssetCache<ShaderAsset>& shaderCache
+        ShaderCache& shaderCache
     );
     ~RenderTargetDisplay();
 

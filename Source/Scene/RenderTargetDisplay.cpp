@@ -26,11 +26,11 @@ void RenderTargetDisplay::SamplerCacheCallback(GpuSamplerCache& cache,
 RenderTargetDisplay::RenderTargetDisplay(
     GpuDevice& device,
     GpuSamplerCache& samplerCache,
-    AssetCache<ShaderAsset>& shaderCache
+    ShaderCache& shaderCache
 )
     : m_device(device)
     , m_samplerCache(samplerCache)
-    , m_shader(shaderCache.FindOrLoad("Assets/Shaders/BlitRT_MTL.shd"))
+    , m_shader(shaderCache.FindOrLoad("Assets/Shaders/BlitRT"))
     , m_renderPass()
     , m_vertexBuf()
     , m_inputLayout()
@@ -38,6 +38,8 @@ RenderTargetDisplay::RenderTargetDisplay(
     , m_pipelineStateObj()
     , m_drawItem()
 {
+    m_shader->AddRef();
+
     m_samplerCache.RegisterCallback(&RenderTargetDisplay::SamplerCacheCallback,
                                     (void*)this);
 
@@ -95,6 +97,7 @@ RenderTargetDisplay::~RenderTargetDisplay()
     m_samplerCache.UnregisterCallback(&RenderTargetDisplay::SamplerCacheCallback,
                                       (void*)this);
 
+    m_shader->Release();
 }
 
 void RenderTargetDisplay::CopyToBackbuffer(
@@ -103,10 +106,8 @@ void RenderTargetDisplay::CopyToBackbuffer(
     GpuTextureID depthBuf
 )
 {
-#ifdef ASSET_REFRESH
-    if (m_shader->WasJustRefreshed())
+    if (m_shader->PollRefreshed())
         CreatePSO();
-#endif
 
     ASSERT(GpuDrawItemWriter::SizeInBytes(GetDrawItemDesc()) == sizeof m_drawItem);
     GpuDrawItemWriter writer;

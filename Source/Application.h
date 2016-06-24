@@ -54,8 +54,7 @@ private:
 
     FileLoader m_fileLoader;
 
-    ShaderAssetFactory m_shaderAssetFactory;
-    AssetCache<ShaderAsset> m_shaderCache;
+    ShaderCache m_shaderCache;
 
     TextureAssetFactory m_textureAssetFactory;
     AssetCache<TextureAsset> m_textureCache;

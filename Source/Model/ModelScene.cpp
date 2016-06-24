@@ -71,7 +71,7 @@ void ModelScene::SamplerCacheCallback(GpuSamplerCache& cache, void* userdata)
 ModelScene::ModelScene(
     GpuDevice& device,
     GpuSamplerCache& samplerCache,
-    AssetCache<ShaderAsset>& shaderCache
+    ShaderCache& shaderCache
 )
     : m_modelInstances()
     , m_device(device)
@@ -86,10 +86,10 @@ ModelScene::ModelScene(
     , m_inputLayout(0)
     , m_PSOs()
 {
-    m_modelShader = shaderCache.FindOrLoad("Assets/Shaders/Model_MTL.shd");
+    m_modelShader = shaderCache.FindOrLoad("Assets/Shaders/Model");
     m_modelShader->AddRef();
 
-    m_skyboxShader = shaderCache.FindOrLoad("Assets/Shaders/Skybox_MTL.shd");
+    m_skyboxShader = shaderCache.FindOrLoad("Assets/Shaders/Skybox");
     m_skyboxShader->AddRef();
 
     m_sceneCBuffer = device.BufferCreate(
@@ -193,12 +193,10 @@ GpuPipelineStateID ModelScene::RequestPSO(u32 flags)
 
 void ModelScene::Update()
 {
-#ifdef ASSET_REFRESH
-    if (m_modelShader->WasJustRefreshed())
+    if (m_modelShader->PollRefreshed())
         RefreshPSOsMatching(PSOFLAG_SKYBOX, 0);
-    if (m_skyboxShader->WasJustRefreshed())
+    if (m_skyboxShader->PollRefreshed())
         RefreshPSOsMatching(PSOFLAG_SKYBOX, PSOFLAG_SKYBOX);
-#endif
 }
 
 GpuSamplerID ModelScene::GetSamplerUVClamp() const

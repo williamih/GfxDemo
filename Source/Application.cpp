@@ -58,12 +58,7 @@ Application::Application()
 
     , m_fileLoader()
 
-    , m_shaderAssetFactory(*m_gpuDevice
-#ifdef ASSET_REFRESH
-                           , m_gpuDeferredDeletionQueue
-#endif
-                           )
-    , m_shaderCache(m_fileLoader, m_shaderAssetFactory)
+    , m_shaderCache(*m_gpuDevice, m_fileLoader)
 
     , m_textureAssetFactory(*m_gpuDevice
 #ifdef ASSET_REFRESH
@@ -151,8 +146,8 @@ void Application::Frame()
 
 #ifdef ASSET_REFRESH
     m_gpuDeferredDeletionQueue.Update(*m_gpuDevice);
-    m_shaderCache.UpdateRefreshSystem();
 #endif
+    m_shaderCache.UpdateRefreshSystem();
     m_gpuDevice->ScenePresent();
 }
 
@@ -210,9 +205,5 @@ void Application::OnMouseDragged(const OsEvent& event, void* userdata)
 
 void Application::RefreshModelShader()
 {
-#ifdef ASSET_REFRESH
-    m_shaderCache.Refresh("Assets/Shaders/Model_MTL.shd");
-#else
-    printf("Asset refresh system is disabled\n");
-#endif
+    m_shaderCache.Refresh("Assets/Shaders/Model");
 }

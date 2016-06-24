@@ -5,10 +5,9 @@
 #include "GpuDevice/GpuDevice.h"
 #include "GpuDevice/GpuDrawItemPool.h"
 
-template<class T> class AssetCache;
-
 class GpuSamplerCache;
 class ShaderAsset;
+class ShaderCache;
 class ModelAsset;
 class ModelInstance;
 
@@ -32,7 +31,7 @@ public:
     ModelScene(
         GpuDevice& device,
         GpuSamplerCache& samplerCache,
-        AssetCache<ShaderAsset>& shaderCache
+        ShaderCache& shaderCache
     );
     ~ModelScene();
 
