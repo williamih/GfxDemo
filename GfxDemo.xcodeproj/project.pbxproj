@@ -291,6 +291,7 @@
 				7A15D2C31BF9728E000DD053 /* Assets */,
 				7A15D2BE1BF97289000DD053 /* Shaders */,
 				CA0085181A43A21800E2A102 /* Source */,
+				CA0085191A43A21800E2A102 /* Supporting Files */,
 				CA0085171A43A21800E2A102 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -306,23 +307,22 @@
 		CA0085181A43A21800E2A102 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				7AF7AB0C1C00157000B44E92 /* Core */,
 				7AC5DFC91B8AF1C700FC65B1 /* Application.h */,
 				7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */,
 				7AEAF1FF1BF814B900620EB0 /* OsEvent.h */,
 				CA0732C51A43A54B00770DE8 /* OsWindow.h */,
 				CA0732C71A43A62300770DE8 /* OsWindowMac.mm */,
 				7AEAF2001BF81DA400620EB0 /* Main.cpp */,
+				CA0085221A43A21800E2A102 /* MainMenu.xib */,
+				7A0020F81BF8238100A0B82F /* Mac */,
 				7A060A071C5C43E900DDE30A /* Scene */,
 				7A10CE841C006FF200A6816F /* Model */,
 				7AF6B8BD1C574C28004C16C6 /* Texture */,
 				7A106EA41C56F767003B9E09 /* Shader */,
 				7A0FA8751C52D46F00EAC474 /* Asset */,
-				7A10CE961C0070C000A6816F /* Math */,
-				7A0020F81BF8238100A0B82F /* Mac */,
 				7A4492001BF1E42800444DFC /* GpuDevice */,
-				CA0085221A43A21800E2A102 /* MainMenu.xib */,
-				CA0085191A43A21800E2A102 /* Supporting Files */,
+				7A10CE961C0070C000A6816F /* Math */,
+				7AF7AB0C1C00157000B44E92 /* Core */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -333,6 +333,7 @@
 				CA00851A1A43A21800E2A102 /* Info.plist */,
 			);
 			name = "Supporting Files";
+			path = Source;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
