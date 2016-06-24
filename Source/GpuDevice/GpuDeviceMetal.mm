@@ -71,6 +71,19 @@ static const MTLStoreAction s_metalStoreActions[] = {
     MTLStoreActionDontCare, // GPU_RENDER_STORE_ACTION_DISCARD
 };
 
+static const MTLBlendFactor s_metalBlendFactors[] = {
+    MTLBlendFactorZero, // GPU_BLEND_ZERO
+    MTLBlendFactorOne, // GPU_BLEND_ONE
+    MTLBlendFactorSourceColor, // GPU_BLEND_SRC_COLOR
+    MTLBlendFactorOneMinusSourceColor, // GPU_BLEND_ONE_MINUS_SRC_COLOR
+    MTLBlendFactorDestinationColor, // GPU_BLEND_DST_COLOR
+    MTLBlendFactorOneMinusDestinationColor, // GPU_BLEND_ONE_MINUS_DST_COLOR
+    MTLBlendFactorSourceAlpha, // GPU_BLEND_SRC_ALPHA
+    MTLBlendFactorOneMinusSourceAlpha, // GPU_BLEND_ONE_MINUS_SRC_ALPHA
+    MTLBlendFactorDestinationAlpha, // GPU_BLEND_DST_ALPHA
+    MTLBlendFactorOneMinusDestinationAlpha, // GPU_BLEND_ONE_MINUS_DST_ALPHA
+};
+
 // -----------------------------------------------------------------------------
 // Lookup tables for buffers
 // -----------------------------------------------------------------------------
@@ -910,13 +923,26 @@ id<MTLRenderPipelineState> GpuDeviceMetal::CreateMTLRenderPipelineState(const Gp
     PermutationApiData& permutation = m_permutations.Lookup(idxPermutation).program;
 
     MTLRenderPipelineDescriptor* desc = [[[MTLRenderPipelineDescriptor alloc] init] autorelease];
+
+    // Set the shaders and input layout
     desc.vertexFunction = permutation.vertexFunction;
     desc.fragmentFunction = permutation.fragmentFunction;
     desc.vertexDescriptor = m_inputLayoutTable.Lookup(state.inputLayout).descriptor;
 
     MTLRenderPipelineColorAttachmentDescriptor* colorDesc;
     colorDesc = [[[MTLRenderPipelineColorAttachmentDescriptor alloc] init] autorelease];
+
     colorDesc.pixelFormat = s_metalColorPixelFormats[m_deviceFormat.pixelColorFormat];
+
+    // Setup blending
+    colorDesc.blendingEnabled = state.blendingEnabled ? YES : NO;
+    colorDesc.rgbBlendOperation = MTLBlendOperationAdd;
+    colorDesc.alphaBlendOperation = MTLBlendOperationAdd;
+    colorDesc.sourceRGBBlendFactor = s_metalBlendFactors[state.blendSrcFactor];
+    colorDesc.sourceAlphaBlendFactor = s_metalBlendFactors[state.blendSrcFactor];
+    colorDesc.destinationRGBBlendFactor = s_metalBlendFactors[state.blendDstFactor];
+    colorDesc.destinationAlphaBlendFactor = s_metalBlendFactors[state.blendDstFactor];
+
     [desc.colorAttachments setObject:colorDesc atIndexedSubscript:0];
 
     desc.depthAttachmentPixelFormat = s_metalDepthPixelFormats[m_deviceFormat.pixelDepthFormat];

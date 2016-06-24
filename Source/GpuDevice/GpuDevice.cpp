@@ -19,6 +19,9 @@ GpuPipelineStateDesc::GpuPipelineStateDesc()
     , fillMode(GPU_FILL_MODE_SOLID)
     , cullMode(GPU_CULL_NONE)
     , frontFaceWinding(GPU_WINDING_CLOCKWISE)
+    , blendingEnabled(false)
+    , blendSrcFactor(GPU_BLEND_ONE)
+    , blendDstFactor(GPU_BLEND_ZERO)
 {}
 
 GpuRenderPassDesc::GpuRenderPassDesc()

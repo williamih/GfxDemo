@@ -91,6 +91,19 @@ enum GpuWindingOrder {
     GPU_WINDING_COUNTER_CLOCKWISE,
 };
 
+enum GpuBlendFactor {
+    GPU_BLEND_ZERO,
+    GPU_BLEND_ONE,
+    GPU_BLEND_SRC_COLOR,
+    GPU_BLEND_ONE_MINUS_SRC_COLOR,
+    GPU_BLEND_DST_COLOR,
+    GPU_BLEND_ONE_MINUS_DST_COLOR,
+    GPU_BLEND_SRC_ALPHA,
+    GPU_BLEND_ONE_MINUS_SRC_ALPHA,
+    GPU_BLEND_DST_ALPHA,
+    GPU_BLEND_ONE_MINUS_DST_ALPHA,
+};
+
 // -----------------------------------------------------------------------------
 // Graphics resources
 // -----------------------------------------------------------------------------
@@ -190,6 +203,9 @@ struct GpuPipelineStateDesc {
     GpuFillMode fillMode;
     GpuCullMode cullMode;
     GpuWindingOrder frontFaceWinding;
+    bool blendingEnabled;
+    GpuBlendFactor blendSrcFactor;
+    GpuBlendFactor blendDstFactor;
 };
 
 struct GpuRenderPassDesc {
