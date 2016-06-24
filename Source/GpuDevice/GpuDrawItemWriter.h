@@ -25,6 +25,18 @@ private:
     int m_nSamplers;
 };
 
+class GpuDrawItemSize {
+public:
+    static const int Base = 24;
+    static const int VertexBuf = 6;
+    static const int CBuf = 2;
+    static const int Texture = 2;
+    static const int Sampler = 2;
+private:
+    GpuDrawItemSize();
+    ~GpuDrawItemSize();
+};
+
 class GpuDrawItemWriter {
 public:
 

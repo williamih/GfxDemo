@@ -2,6 +2,7 @@
 #define SCENE_RENDERTARGETDISPLAY_H
 
 #include "GpuDevice/GpuDevice.h"
+#include "GpuDevice/GpuDrawItemWriter.h"
 
 class GpuSamplerCache;
 
@@ -30,6 +31,12 @@ private:
     static void SamplerCacheCallback(GpuSamplerCache& cache, void* userdata);
     void CreatePSO();
 
+    static const int DRAW_ITEM_SIZE =
+        GpuDrawItemSize::Base
+          + 2 * GpuDrawItemSize::Texture
+          + 1 * GpuDrawItemSize::Sampler
+          + 1 * GpuDrawItemSize::VertexBuf;
+
     GpuDevice& m_device;
     GpuSamplerCache& m_samplerCache;
     ShaderAsset* m_shader;
@@ -38,7 +45,7 @@ private:
     GpuInputLayoutID m_inputLayout;
     GpuSamplerID m_sampler;
     GpuPipelineStateID m_pipelineStateObj;
-    void* m_drawItem;
+    char m_drawItem[DRAW_ITEM_SIZE];
 };
 
 #endif // SCENE_RENDERTARGETDISPLAY_H

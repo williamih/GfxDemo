@@ -1,6 +1,5 @@
 #include "Scene/RenderTargetDisplay.h"
 
-#include "GpuDevice/GpuDrawItemWriter.h"
 #include "GpuDevice/GpuSamplerCache.h"
 
 #include "Asset/AssetCache.h"
@@ -37,12 +36,10 @@ RenderTargetDisplay::RenderTargetDisplay(
     , m_inputLayout()
     , m_sampler(samplerCache.Acquire(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE))
     , m_pipelineStateObj()
-    , m_drawItem(NULL)
+    , m_drawItem()
 {
     m_samplerCache.RegisterCallback(&RenderTargetDisplay::SamplerCacheCallback,
                                     (void*)this);
-
-    m_drawItem = malloc(GpuDrawItemWriter::SizeInBytes(GetDrawItemDesc()));
 
     GpuRenderLoadAction loadAction = GPU_RENDER_LOAD_ACTION_DISCARD;
     GpuRenderStoreAction storeAction = GPU_RENDER_STORE_ACTION_STORE;
@@ -89,7 +86,6 @@ RenderTargetDisplay::RenderTargetDisplay(
 
 RenderTargetDisplay::~RenderTargetDisplay()
 {
-    free(m_drawItem);
     m_device.PipelineStateDestroy(m_pipelineStateObj);
     m_device.InputLayoutDestroy(m_inputLayout);
     m_device.BufferDestroy(m_vertexBuf);
@@ -112,6 +108,7 @@ void RenderTargetDisplay::CopyToBackbuffer(
         CreatePSO();
 #endif
 
+    ASSERT(GpuDrawItemWriter::SizeInBytes(GetDrawItemDesc()) == sizeof m_drawItem);
     GpuDrawItemWriter writer;
     writer.Begin(&m_device, GetDrawItemDesc(), m_drawItem);
     writer.SetTexture(0, colorBuf);

@@ -6,6 +6,9 @@
 const u32 FLAG_SETDRAWCALL = 1;
 const u32 FLAG_INDEXED = 2;
 
+STATIC_ASSERT(GpuDrawItemSize::Base == sizeof(GpuDrawItem),
+              "GpuDrawItemSize::Base is wrong");
+
 static u16 GetRawIndex(u32 resourceID)
 {
     return (u16)(resourceID & 0xFFFF);
