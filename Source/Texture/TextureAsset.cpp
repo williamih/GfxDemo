@@ -3,9 +3,10 @@
 #include "Core/Macros.h"
 #include "Core/FileLoader.h"
 
-#include "GpuDevice/GpuDeferredDeletionQueue.h"
-
 #include "Texture/DDSFile.h"
+
+const int REFRESH_STATUS_MASK = 0x80000000;
+const int REF_COUNT_MASK = ~(REFRESH_STATUS_MASK);
 
 static GpuTextureID CreateTexture(GpuDevice& device, DDSFile& file)
 {
@@ -61,6 +62,7 @@ static GpuTextureID CreateTexture(GpuDevice& device, DDSFile& file)
 TextureAsset::TextureAsset(GpuDevice& device, DDSFile& file)
     : m_device(device)
     , m_texture(CreateTexture(device, file))
+    , m_refCountAndRefreshStatus(0)
 {}
 
 TextureAsset::~TextureAsset()
@@ -68,29 +70,43 @@ TextureAsset::~TextureAsset()
     m_device.TextureDestroy(m_texture);
 }
 
-#ifdef ASSET_REFRESH
-void TextureAsset::Refresh(GpuDeferredDeletionQueue& deletionQ, DDSFile& file)
-{
-    deletionQ.AddTexture(m_texture);
-    m_texture = CreateTexture(m_device, file);
-}
-#endif
-
 GpuTextureID TextureAsset::GetGpuTextureID() const
 {
     return m_texture;
 }
 
-TextureAssetFactory::TextureAssetFactory(GpuDevice& device
-#ifdef ASSET_REFRESH
-                                         , GpuDeferredDeletionQueue& deletionQ
-#endif
-)
-    : m_device(device)
-#ifdef ASSET_REFRESH
-    , m_deletionQ(deletionQ)
-#endif
-{}
+int TextureAsset::RefCount() const
+{
+    return (m_refCountAndRefreshStatus & REF_COUNT_MASK);
+}
+
+void TextureAsset::AddRef()
+{
+    ++m_refCountAndRefreshStatus;
+}
+
+void TextureAsset::Release()
+{
+    ASSERT((m_refCountAndRefreshStatus & REF_COUNT_MASK) > 0);
+    --m_refCountAndRefreshStatus;
+}
+
+GpuTextureID TextureAsset::Refresh(DDSFile& file)
+{
+    GpuTextureID oldTex = m_texture;
+    m_texture = CreateTexture(m_device, file);
+    return oldTex;
+}
+
+bool TextureAsset::PollRefreshed() const
+{
+    return (m_refCountAndRefreshStatus & REFRESH_STATUS_MASK);
+}
+
+void TextureAsset::ClearRefreshedStatus()
+{
+    m_refCountAndRefreshStatus &= ~(REFRESH_STATUS_MASK);
+}
 
 static void* Alloc(u32 size, void* userdata)
 {
@@ -102,23 +118,89 @@ static void Destroy(void* ptr, void* userdata)
     free(ptr);
 }
 
-TextureAsset* TextureAssetFactory::Create(const char* path, FileLoader& loader)
+TextureCache::TextureCache(GpuDevice& device, FileLoader& loader)
+    : m_device(device)
+    , m_fileLoader(loader)
+    , m_textures()
+    , m_refreshQueue(&TextureCache::RefreshPerform, &TextureCache::RefreshFinalize, (void*)this)
+{}
+
+TextureCache::~TextureCache()
 {
-    u8* data;
-    u32 size;
-    loader.Load(path, &data, &size, Alloc, NULL);
-    DDSFile file(data, size, path, &Destroy, NULL);
-    TextureAsset* asset = new TextureAsset(m_device, file);
-    return asset;
+    m_refreshQueue.Clear();
+
+    auto iter = m_textures.begin();
+    auto end = m_textures.end();
+    for ( ; iter != end; ++iter) {
+        ASSERT(iter->second->RefCount() == 0);
+        delete iter->second;
+    }
 }
 
-#ifdef ASSET_REFRESH
-void TextureAssetFactory::Refresh(TextureAsset* asset, const char* path, FileLoader& loader)
+TextureAsset* TextureCache::FindOrLoad(const char* path)
 {
+    std::string strPath(path);
+
+    auto iter = m_textures.find(strPath);
+    if (iter != m_textures.end())
+        return iter->second;
+
     u8* data;
     u32 size;
-    loader.Load(path, &data, &size, Alloc, NULL);
+    m_fileLoader.Load(path, &data, &size, Alloc, NULL);
+
     DDSFile file(data, size, path, &Destroy, NULL);
-    asset->Refresh(m_deletionQ, file);
+
+    TextureAsset* texture = new TextureAsset(m_device, file);
+
+    m_textures[path] = texture;
+
+    return texture;
 }
-#endif
+
+void TextureCache::Refresh(const char* path)
+{
+    std::string strPath(path);
+
+    auto iter = m_textures.find(path);
+    if (iter == m_textures.end())
+        return;
+    TextureAsset* texture = iter->second;
+
+    texture->AddRef();
+    m_refreshQueue.QueueRefresh(texture, path);
+}
+
+void TextureCache::UpdateRefreshSystem()
+{
+    m_refreshQueue.Update();
+}
+
+GpuTextureID TextureCache::RefreshPerform(TextureAsset* texture,
+                                          const char* path,
+                                          void* userdata)
+{
+    TextureCache* self = (TextureCache*)userdata;
+
+    u8* data;
+    u32 size;
+    self->m_fileLoader.Load(path, &data, &size, Alloc, NULL);
+
+    DDSFile file(data, size, path, &Destroy, NULL);
+
+    GpuTextureID old = texture->Refresh(file);
+
+    return old;
+}
+
+void TextureCache::RefreshFinalize(TextureAsset* texture,
+                                   GpuTextureID oldTexture,
+                                   void* userdata)
+{
+    TextureCache* self = (TextureCache*)userdata;
+
+    if (oldTexture != GpuTextureID())
+        self->m_device.TextureDestroy(oldTexture);
+    texture->ClearRefreshedStatus();
+    texture->Release();
+}

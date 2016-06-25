@@ -59,13 +59,7 @@ Application::Application()
     , m_fileLoader()
 
     , m_shaderCache(*m_gpuDevice, m_fileLoader)
-
-    , m_textureAssetFactory(*m_gpuDevice
-#ifdef ASSET_REFRESH
-                            , m_gpuDeferredDeletionQueue
-#endif
-                            )
-    , m_textureCache(m_fileLoader, m_textureAssetFactory)
+    , m_textureCache(*m_gpuDevice, m_fileLoader)
 
     , m_modelAssetFactory(*m_gpuDevice, m_textureCache)
     , m_modelCache(m_fileLoader, m_modelAssetFactory)
@@ -148,6 +142,7 @@ void Application::Frame()
     m_gpuDeferredDeletionQueue.Update(*m_gpuDevice);
 #endif
     m_shaderCache.UpdateRefreshSystem();
+    m_textureCache.UpdateRefreshSystem();
     m_gpuDevice->ScenePresent();
 }
 

@@ -105,7 +105,7 @@ static void MDGFixEndian(u8* mdgData)
 
 ModelAsset::ModelAsset(
     GpuDevice& device,
-    AssetCache<TextureAsset>& textureCache,
+    TextureCache& textureCache,
     u8* mdlData,
     u8* mdgData
 )
@@ -205,7 +205,7 @@ void* MDGAlloc(u32 size, void* userdata)
 
 ModelAsset* ModelAsset::Create(
     GpuDevice& device,
-    AssetCache<TextureAsset>& textureCache,
+    TextureCache& textureCache,
     FileLoader& loader,
     const char* path
 )
@@ -266,8 +266,7 @@ GpuBufferID ModelAsset::GetIndexBuf() const
     return m_indexBuf;
 }
 
-ModelAssetFactory::ModelAssetFactory(GpuDevice& device,
-                                     AssetCache<TextureAsset>& textureCache)
+ModelAssetFactory::ModelAssetFactory(GpuDevice& device, TextureCache& textureCache)
     : m_device(device)
     , m_textureCache(textureCache)
 {}

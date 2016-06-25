@@ -5,8 +5,8 @@
 #include "GpuDevice/GpuDevice.h"
 #include "Asset/Asset.h"
 
-template<class T> class AssetCache;
 class TextureAsset;
+class TextureCache;
 
 struct MDLHeader {
     char code[4];
@@ -34,7 +34,7 @@ public:
 
     static ModelAsset* Create(
         GpuDevice& device,
-        AssetCache<TextureAsset>& textureCache,
+        TextureCache& textureCache,
         FileLoader& loader,
         const char* path
     );
@@ -50,7 +50,7 @@ private:
 
     ModelAsset(
         GpuDevice& device,
-        AssetCache<TextureAsset>& textureCache,
+        TextureCache& textureCache,
         u8* mdlData,
         u8* mdgData
     );
@@ -68,7 +68,7 @@ private:
 
 class ModelAssetFactory : public AssetFactory<ModelAsset> {
 public:
-    ModelAssetFactory(GpuDevice& device, AssetCache<TextureAsset>& textureCache);
+    ModelAssetFactory(GpuDevice& device, TextureCache& textureCache);
 
     virtual ModelAsset* Create(const char* path, FileLoader& loader);
 
@@ -77,7 +77,7 @@ public:
 #endif
 private:
     GpuDevice& m_device;
-    AssetCache<TextureAsset>& m_textureCache;
+    TextureCache& m_textureCache;
 };
 
 #endif // MODEL_MODELASSET_H
