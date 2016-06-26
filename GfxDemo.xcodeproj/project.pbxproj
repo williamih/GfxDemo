@@ -52,6 +52,7 @@
 		7A0020FA1BF8239000A0B82F /* MacApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacApplication.h; sourceTree = "<group>"; };
 		7A060A081C5C43F200DDE30A /* Camera.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Camera.cpp; sourceTree = "<group>"; };
 		7A060A091C5C43F200DDE30A /* Camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Camera.h; sourceTree = "<group>"; };
+		7A0B09401D20804F0080A4DB /* List.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = List.h; sourceTree = "<group>"; };
 		7A0CF6191C54C17200C7952C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		7A0FA8761C52D46F00EAC474 /* AssetCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssetCache.h; sourceTree = "<group>"; };
 		7A106EA51C56F767003B9E09 /* ShaderAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ShaderAsset.cpp; sourceTree = "<group>"; };
@@ -277,6 +278,7 @@
 				7A20A7FD1C6952A300E82F66 /* Path.h */,
 				7A20A7FC1C6952A300E82F66 /* Path.cpp */,
 				7A7D08401D1DECD2001C6375 /* IDLookupTable.h */,
+				7A0B09401D20804F0080A4DB /* List.h */,
 			);
 			path = Core;
 			sourceTree = "<group>";
