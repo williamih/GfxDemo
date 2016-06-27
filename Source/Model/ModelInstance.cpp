@@ -10,8 +10,10 @@
 
 #include "Texture/TextureAsset.h"
 
-#include "Model/ModelAsset.h"
+#include "Model/ModelShared.h"
 #include "Model/ModelScene.h"
+
+const u32 FLAG_LAST_IN_ASSET_GROUP = 1u << 31;
 
 struct ModelInstanceCBuffer {
     float worldTransform[4][4];
@@ -22,15 +24,15 @@ struct ModelInstanceCBuffer {
 
 static GpuDrawItemPoolIndex InternalCreateDrawItem(
     ModelScene& scene,
-    ModelAsset* model,
+    ModelShared* shared,
     GpuDrawItemPoolIndex prev,
     u32 flags,
     u32 submeshIndex,
     GpuBufferID modelCBuffer
 )
 {
-    MDLHeader* header = (MDLHeader*)(model->GetMDLData());
-    MDLSubmesh* submeshes = (MDLSubmesh*)(model->GetMDLData() + header->ofsSubmeshes);
+    MDLHeader* header = (MDLHeader*)(shared->GetMDLData());
+    MDLSubmesh* submeshes = (MDLSubmesh*)(shared->GetMDLData() + header->ofsSubmeshes);
     MDLSubmesh& theSubmesh = submeshes[submeshIndex];
     GpuDrawItemPool& drawItemPool = scene.GetDrawItemPool();
 
@@ -52,12 +54,12 @@ static GpuDrawItemPoolIndex InternalCreateDrawItem(
     GpuDrawItemWriter writer;
     GpuDrawItemPoolIndex index = drawItemPool.BeginDrawItem(writer, prev);
     writer.SetPipelineState(scene.RequestPSO(psoFlags));
-    writer.SetVertexBuffer(0, model->GetVertexBuf(), 0);
+    writer.SetVertexBuffer(0, shared->GetVertexBuf(), 0);
     writer.SetCBuffer(0, scene.GetSceneCBuffer());
     writer.SetCBuffer(1, modelCBuffer);
     writer.SetTexture(0, diffuseTex);
     writer.SetSampler(0, sampler);
-    writer.SetIndexBuffer(model->GetIndexBuf());
+    writer.SetIndexBuffer(shared->GetIndexBuf());
     writer.SetDrawCallIndexed(
         GPU_PRIMITIVE_TRIANGLES,
         theSubmesh.indexStart,
@@ -70,17 +72,17 @@ static GpuDrawItemPoolIndex InternalCreateDrawItem(
     return index;
 }
 
-ModelInstance::ModelInstance(ModelScene& scene, ModelAsset* model, u32 flags)
+ModelInstance::ModelInstance(ModelScene& scene, ModelShared* shared, u32 flags)
     : m_scene(scene)
-    , m_model(model)
-    , m_flags(flags)
+    , m_shared(shared)
+    , m_flagsAndAssetGroupInfo(flags)
     , m_cbuffer(0)
     , m_drawItemIndex(0xFFFFFFFF)
 {
-    ASSERT(model);
-    model->AddRef();
+    ASSERT(shared);
+    shared->AddRef();
 
-    GpuDevice& dev = model->GetGpuDevice();
+    GpuDevice& dev = shared->GetGpuDevice();
     m_cbuffer = dev.BufferCreate(
         GPU_BUFFER_TYPE_CONSTANT,
         GPU_BUFFER_ACCESS_DYNAMIC,
@@ -88,7 +90,7 @@ ModelInstance::ModelInstance(ModelScene& scene, ModelAsset* model, u32 flags)
         sizeof(ModelInstanceCBuffer)
     );
 
-    RefreshDrawItems();
+    RecreateDrawItems();
 }
 
 ModelInstance::~ModelInstance()
@@ -100,14 +102,18 @@ ModelInstance::~ModelInstance()
         m_drawItemIndex = next;
     }
 
-    m_model->GetGpuDevice().BufferDestroy(m_cbuffer);
+    // Update the linked list
+    if (m_shared->GetFirstInstance() == this)
+        m_shared->SetFirstInstance(m_link.Next());
 
-    m_model->Release();
+    m_shared->GetGpuDevice().BufferDestroy(m_cbuffer);
+
+    m_shared->Release();
 }
 
-ModelAsset* ModelInstance::GetModelAsset() const
+ModelShared* ModelInstance::GetShared() const
 {
-    return m_model;
+    return m_shared;
 }
 
 GpuBufferID ModelInstance::GetCBuffer() const
@@ -115,52 +121,17 @@ GpuBufferID ModelInstance::GetCBuffer() const
     return m_cbuffer;
 }
 
-void ModelInstance::RefreshDrawItems()
-{
-    while (m_drawItemIndex != 0xFFFFFFFF) {
-        GpuDrawItemPool& pool = m_scene.GetDrawItemPool();
-        GpuDrawItemPoolIndex next = pool.Next(m_drawItemIndex);
-        pool.DeleteDrawItem(m_drawItemIndex);
-        m_drawItemIndex = next;
-    }
-
-    MDLHeader* header = (MDLHeader*)m_model->GetMDLData();
-    u32 nSubmeshes = header->nSubmeshes;
-    GpuDrawItemPoolIndex poolIndex(0xFFFFFFFF);
-    for (u32 i = 0; i < nSubmeshes; ++i) {
-        poolIndex = InternalCreateDrawItem(
-            m_scene,
-            m_model,
-            poolIndex,
-            m_flags,
-            i,
-            m_cbuffer
-        );
-        if (m_drawItemIndex == 0xFFFFFFFF)
-            m_drawItemIndex = poolIndex;
-    }
-}
-
-void ModelInstance::AddDrawItemsToList(std::vector<const GpuDrawItem*>& items)
-{
-    GpuDrawItemPoolIndex index = m_drawItemIndex;
-    while (index != 0xFFFFFFFF) {
-        GpuDrawItemPool& pool = m_scene.GetDrawItemPool();
-        items.push_back(pool.GetDrawItem(index));
-        index = pool.Next(index);
-    }
-}
-
 u32 ModelInstance::GetFlags() const
 {
-    return m_flags;
+    return m_flagsAndAssetGroupInfo & ~(FLAG_LAST_IN_ASSET_GROUP);
 }
 
 void ModelInstance::SetFlags(u32 flags)
 {
-    if (flags != m_flags) {
-        m_flags = flags;
-        RefreshDrawItems();
+    if (flags != GetFlags()) {
+        m_flagsAndAssetGroupInfo = flags |
+            (m_flagsAndAssetGroupInfo & FLAG_LAST_IN_ASSET_GROUP);
+        RecreateDrawItems();
     }
 }
 
@@ -169,7 +140,7 @@ void ModelInstance::Update(const Matrix44& worldTransform,
                            const Vector3& specularColor,
                            float glossiness)
 {
-    GpuDevice& dev = m_model->GetGpuDevice();
+    GpuDevice& dev = m_shared->GetGpuDevice();
     ModelInstanceCBuffer* buf = (ModelInstanceCBuffer*)dev.BufferGetContents(m_cbuffer);
 
     Matrix33 normalTransform = worldTransform.UpperLeft3x3().Inverse().Transpose();
@@ -186,4 +157,64 @@ void ModelInstance::Update(const Matrix44& worldTransform,
     buf->specularColorAndGlossiness[3] = glossiness;
 
     dev.BufferFlushRange(m_cbuffer, 0, sizeof(ModelInstanceCBuffer));
+}
+
+void ModelInstance::RecreateDrawItems()
+{
+    while (m_drawItemIndex != 0xFFFFFFFF) {
+        GpuDrawItemPool& pool = m_scene.GetDrawItemPool();
+        GpuDrawItemPoolIndex next = pool.Next(m_drawItemIndex);
+        pool.DeleteDrawItem(m_drawItemIndex);
+        m_drawItemIndex = next;
+    }
+
+    MDLHeader* header = (MDLHeader*)m_shared->GetMDLData();
+    u32 nSubmeshes = header->nSubmeshes;
+    GpuDrawItemPoolIndex poolIndex(0xFFFFFFFF);
+    for (u32 i = 0; i < nSubmeshes; ++i) {
+        poolIndex = InternalCreateDrawItem(
+            m_scene,
+            m_shared,
+            poolIndex,
+            GetFlags(),
+            i,
+            m_cbuffer
+        );
+        if (m_drawItemIndex == 0xFFFFFFFF)
+            m_drawItemIndex = poolIndex;
+    }
+}
+
+void ModelInstance::Reload(ModelShared* newShared)
+{
+    if (m_shared->GetFirstInstance() == this) {
+        m_shared->SetFirstInstance(NULL);
+        newShared->SetFirstInstance(this);
+    }
+    m_shared->Release();
+    newShared->AddRef();
+    m_shared = newShared;
+    RecreateDrawItems();
+}
+
+void ModelInstance::AddDrawItemsToList(std::vector<const GpuDrawItem*>& items)
+{
+    GpuDrawItemPoolIndex index = m_drawItemIndex;
+    while (index != 0xFFFFFFFF) {
+        GpuDrawItemPool& pool = m_scene.GetDrawItemPool();
+        items.push_back(pool.GetDrawItem(index));
+        index = pool.Next(index);
+    }
+}
+
+ModelInstance* ModelInstance::NextInAssetGroup()
+{
+    if (m_flagsAndAssetGroupInfo & FLAG_LAST_IN_ASSET_GROUP)
+        return NULL;
+    return m_link.Next();
+}
+
+void ModelInstance::MarkLastInAssetGroup()
+{
+    m_flagsAndAssetGroupInfo |= FLAG_LAST_IN_ASSET_GROUP;
 }

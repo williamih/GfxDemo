@@ -15,7 +15,6 @@
 
 #include "Texture/TextureAsset.h"
 
-#include "Model/ModelAsset.h"
 #include "Model/ModelInstance.h"
 #include "Model/ModelScene.h"
 #include "Model/ModelRenderQueue.h"
@@ -56,9 +55,6 @@ private:
 
     ShaderCache m_shaderCache;
     TextureCache m_textureCache;
-
-    ModelAssetFactory m_modelAssetFactory;
-    AssetCache<ModelAsset> m_modelCache;
 
     Scene m_scene;
     Camera m_camera;

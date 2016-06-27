@@ -4,7 +4,6 @@
 
 #include "Asset/AssetCache.h"
 
-#include "Model/ModelAsset.h"
 #include "Model/ModelInstance.h"
 
 static const Vector3 s_dirToLight(0.0f, 0.0f, 1.0f);
@@ -13,15 +12,15 @@ static const Vector3 s_ambientRadiance(0.3f, 0.3f, 0.3f);
 
 Scene::Scene(
     GpuDevice& device,
+    FileLoader& loader,
     GpuSamplerCache& samplerCache,
     ShaderCache& shaderCache,
-    AssetCache<ModelAsset>& modelCache
+    TextureCache& textureCache
 )
     : m_device(device)
-    , m_modelCache(modelCache)
     , m_renderTargetDisplay(device, samplerCache, shaderCache)
 
-    , m_modelScene(device, samplerCache, shaderCache)
+    , m_modelScene(device, loader, samplerCache, shaderCache, textureCache)
     , m_modelRenderQueue()
     , m_modelInstances(NULL)
     , m_skybox(NULL)
@@ -86,23 +85,24 @@ Scene::~Scene()
         m_modelScene.DestroyModelInstance(m_skybox);
 }
 
-ModelInstance* Scene::LoadModel(const char* path, u32 flags)
-{
-    return m_modelScene.CreateModelInstance(m_modelCache.FindOrLoad(path), flags);
-}
-
 void Scene::SetSkybox(const char* path)
 {
     if (m_skybox)
         m_modelScene.DestroyModelInstance(m_skybox);
-    m_skybox = LoadModel("Assets/Models/Skybox.mdl", ModelInstance::FLAG_SKYBOX);
+    m_skybox = m_modelScene.CreateModelInstance("Assets/Models/Skybox.mdl",
+                                                ModelInstance::FLAG_SKYBOX);
     m_skybox->Update(Matrix44(), Vector3(1.0f, 1.0f, 1.0f), Vector3(), 1.0f);
 }
 
 ModelInstance* Scene::AddModelInstance(const char* path)
 {
-    m_modelInstances.push_back(LoadModel(path, 0));
+    m_modelInstances.push_back(m_modelScene.CreateModelInstance(path, 0));
     return m_modelInstances.back();
+}
+
+void Scene::RefreshModel(const char* path)
+{
+    m_modelScene.Reload(path);
 }
 
 void Scene::Update(const SceneUpdateInfo& info)

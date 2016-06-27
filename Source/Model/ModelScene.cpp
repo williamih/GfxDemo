@@ -2,9 +2,8 @@
 
 #include "GpuDevice/GpuSamplerCache.h"
 
-#include "Asset/AssetCache.h"
 #include "Shader/ShaderAsset.h"
-#include "Model/ModelAsset.h"
+#include "Model/ModelShared.h"
 #include "Model/ModelInstance.h"
 
 static GpuTextureID CreateDefaultWhiteTexture(GpuDevice& device)
@@ -27,11 +26,11 @@ static GpuTextureID CreateDefaultWhiteTexture(GpuDevice& device)
 static GpuInputLayoutID CreateInputLayout(GpuDevice& device)
 {
     GpuVertexAttribute attribs[] = {
-        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, position), 0},
-        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelAsset::Vertex, normal), 0},
-        {GPU_VERTEX_ATTRIB_FLOAT2, offsetof(ModelAsset::Vertex, uv), 0},
+        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelShared::Vertex, position), 0},
+        {GPU_VERTEX_ATTRIB_FLOAT3, offsetof(ModelShared::Vertex, normal), 0},
+        {GPU_VERTEX_ATTRIB_FLOAT2, offsetof(ModelShared::Vertex, uv), 0},
     };
-    unsigned stride = sizeof(ModelAsset::Vertex);
+    unsigned stride = sizeof(ModelShared::Vertex);
     return device.InputLayoutCreate(
         sizeof attribs / sizeof attribs[0],
         attribs,
@@ -60,8 +59,9 @@ void ModelScene::SamplerCacheCallback(GpuSamplerCache& cache, void* userdata)
     self->m_samplerUVClamp = cache.Acquire(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE);
     self->m_samplerUVRepeat = cache.Acquire(GPU_SAMPLER_ADDRESS_REPEAT);
 
-    for (size_t i = 0; i < self->m_modelInstances.size(); ++i) {
-        self->m_modelInstances[i]->RefreshDrawItems();
+    for (ModelInstance* instance = self->m_modelInstances.Head(); instance;
+         instance = instance->m_link.Next()) {
+        instance->RecreateDrawItems();
     }
 
     cache.Release(oldSamplerUVClamp);
@@ -70,15 +70,24 @@ void ModelScene::SamplerCacheCallback(GpuSamplerCache& cache, void* userdata)
 
 ModelScene::ModelScene(
     GpuDevice& device,
+    FileLoader& loader,
     GpuSamplerCache& samplerCache,
-    ShaderCache& shaderCache
+    ShaderCache& shaderCache,
+    TextureCache& textureCache
 )
-    : m_modelInstances()
-    , m_device(device)
+    : m_device(device)
+    , m_fileLoader(loader)
     , m_samplerCache(samplerCache)
+    , m_textureCache(textureCache)
+
+    , m_modelInstances()
+    , m_modelCache()
+
     , m_drawItemPool(m_device, CreateDrawItemWriterDesc())
+
     , m_modelShader(NULL)
     , m_skyboxShader(NULL)
+
     , m_sceneCBuffer(0)
     , m_defaultTexture(0)
     , m_samplerUVClamp(samplerCache.Acquire(GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE))
@@ -107,7 +116,7 @@ ModelScene::ModelScene(
 
 ModelScene::~ModelScene()
 {
-    ASSERT(m_modelInstances.empty() && "ModelInstance not destroyed");
+    ASSERT(m_modelInstances.Empty() && "ModelInstance not destroyed");
 
     m_samplerCache.UnregisterCallback(&ModelScene::SamplerCacheCallback, (void*)this);
     m_samplerCache.Release(m_samplerUVClamp);
@@ -138,8 +147,9 @@ void ModelScene::RefreshPSOsMatching(u32 bits, u32 enabled)
         }
     }
 
-    for (size_t i = 0; i < m_modelInstances.size(); ++i) {
-        m_modelInstances[i]->RefreshDrawItems();
+    for (ModelInstance* instance = m_modelInstances.Head(); instance;
+         instance = instance->m_link.Next()) {
+        instance->RecreateDrawItems();
     }
 
     for (int i = 0; i < toDestroyCount; ++i) {
@@ -147,24 +157,35 @@ void ModelScene::RefreshPSOsMatching(u32 bits, u32 enabled)
     }
 }
 
-ModelInstance* ModelScene::CreateModelInstance(ModelAsset* model, u32 flags)
+ModelInstance* ModelScene::CreateModelInstance(const char* path, u32 flags)
 {
-    ModelInstance* instance = new ModelInstance(*this, model, flags);
-    m_modelInstances.push_back(instance);
+    ModelShared* shared = m_modelCache.Get(
+        m_device,
+        m_textureCache,
+        m_fileLoader,
+        path
+    );
+    ModelInstance* instance = new ModelInstance(*this, shared, flags);
+    ModelInstance* firstInGroup = shared->GetFirstInstance();
+    if (firstInGroup != NULL) {
+        m_modelInstances.InsertBefore(instance, firstInGroup);
+    } else {
+        m_modelInstances.InsertHead(instance);
+        instance->MarkLastInAssetGroup();
+    }
+    shared->SetFirstInstance(instance);
+
     return instance;
 }
 
 void ModelScene::DestroyModelInstance(ModelInstance* instance)
 {
-    for (size_t i = 0; i < m_modelInstances.size(); ++i) {
-        if (m_modelInstances[i] == instance) {
-            m_modelInstances[i] = m_modelInstances.back();
-            m_modelInstances.pop_back();
-            delete instance;
-            return;
-        }
-    }
-    ASSERT(!"ModelInstance not found in scene");
+    delete instance;
+}
+
+void ModelScene::Reload(const char* path)
+{
+    m_modelCache.Reload(m_device, m_textureCache, m_fileLoader, path);
 }
 
 GpuPipelineStateID ModelScene::RequestPSO(u32 flags)

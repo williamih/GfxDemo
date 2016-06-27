@@ -1,14 +1,16 @@
 #ifndef MODEL_MODELSCENE_H
 #define MODEL_MODELSCENE_H
 
-#include <vector>
 #include "GpuDevice/GpuDevice.h"
 #include "GpuDevice/GpuDrawItemPool.h"
+#include "Model/ModelInstance.h"
+#include "Model/ModelCache.h"
 
+class FileLoader;
 class GpuSamplerCache;
 class ShaderAsset;
 class ShaderCache;
-class ModelAsset;
+class TextureCache;
 class ModelInstance;
 
 class ModelScene {
@@ -30,13 +32,16 @@ public:
 
     ModelScene(
         GpuDevice& device,
+        FileLoader& loader,
         GpuSamplerCache& samplerCache,
-        ShaderCache& shaderCache
+        ShaderCache& shaderCache,
+        TextureCache& textureCache
     );
     ~ModelScene();
 
-    ModelInstance* CreateModelInstance(ModelAsset* model, u32 flags);
+    ModelInstance* CreateModelInstance(const char* path, u32 flags);
     void DestroyModelInstance(ModelInstance* instance);
+    void Reload(const char* path);
 
     void Update();
 
@@ -54,12 +59,19 @@ private:
     static void SamplerCacheCallback(GpuSamplerCache& cache, void* userdata);
     void RefreshPSOsMatching(u32, u32);
 
-    std::vector<ModelInstance*> m_modelInstances;
     GpuDevice& m_device;
+    FileLoader& m_fileLoader;
     GpuSamplerCache& m_samplerCache;
+    TextureCache& m_textureCache;
+
+    LIST_DECLARE(ModelInstance, m_link) m_modelInstances;
+    ModelCache m_modelCache;
+
     GpuDrawItemPool m_drawItemPool;
+
     ShaderAsset* m_modelShader;
     ShaderAsset* m_skyboxShader;
+
     GpuBufferID m_sceneCBuffer;
     GpuTextureID m_defaultTexture;
     GpuSamplerID m_samplerUVClamp;

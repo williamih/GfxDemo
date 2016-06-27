@@ -24,14 +24,16 @@ class Scene {
 public:
     Scene(
         GpuDevice& device,
+        FileLoader& loader,
         GpuSamplerCache& samplerCache,
         ShaderCache& shaderCache,
-        AssetCache<ModelAsset>& modelCache
+        TextureCache& textureCache
     );
     ~Scene();
 
     void SetSkybox(const char* path);
     ModelInstance* AddModelInstance(const char* path);
+    void RefreshModel(const char* path);
 
     void Update(const SceneUpdateInfo& info);
     void Render(const GpuViewport& viewport);
@@ -39,10 +41,7 @@ private:
     Scene(const Scene&);
     Scene& operator=(const Scene&);
 
-    ModelInstance* LoadModel(const char* path, u32 flags);
-
     GpuDevice& m_device;
-    AssetCache<ModelAsset>& m_modelCache;
     RenderTargetDisplay m_renderTargetDisplay;
 
     ModelScene m_modelScene;

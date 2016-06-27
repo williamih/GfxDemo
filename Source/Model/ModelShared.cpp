@@ -1,4 +1,4 @@
-#include "Model/ModelAsset.h"
+#include "Model/ModelShared.h"
 
 #include <string.h>
 
@@ -6,8 +6,6 @@
 #include "Core/Endian.h"
 #include "Core/FileLoader.h"
 #include "Core/Path.h"
-
-#include "Asset/AssetCache.h"
 
 #include "Texture/TextureAsset.h"
 
@@ -56,7 +54,7 @@ static void FixEndian(MDGTextureInfo& s)
     s.ofsFilename = EndianSwapLE32(s.ofsFilename);
 }
 
-static void FixEndian(ModelAsset::Vertex& v)
+static void FixEndian(ModelShared::Vertex& v)
 {
     for (int i = 0; i < 3; ++i) {
         v.position[i] = EndianSwapLEFloat32(v.position[i]);
@@ -87,7 +85,7 @@ static void MDGFixEndian(u8* mdgData)
     u32 nIndices = mdgHeader->nIndices;
     u32 nTextures = mdgHeader->nTextures;
 
-    ModelAsset::Vertex* vertices = (ModelAsset::Vertex*)(mdgData + mdgHeader->ofsVertices);
+    ModelShared::Vertex* vertices = (ModelShared::Vertex*)(mdgData + mdgHeader->ofsVertices);
     for (u32 i = 0; i < nVertices; ++i) {
         FixEndian(vertices[i]);
     }
@@ -103,7 +101,7 @@ static void MDGFixEndian(u8* mdgData)
     }
 }
 
-ModelAsset::ModelAsset(
+ModelShared::ModelShared(
     GpuDevice& device,
     TextureCache& textureCache,
     u8* mdlData,
@@ -112,9 +110,8 @@ ModelAsset::ModelAsset(
     : m_device(device)
     , m_vertexBuf(0)
     , m_indexBuf(0)
-#ifdef ASSET_REFRESH
-    , m_data(mdlData)
-#endif
+    , m_firstInstance(NULL)
+    , m_refCount(0)
 {
     MDLHeader* mdlHeader = (MDLHeader*)GetMDLData();
     if (memcmp(mdlHeader->code, "MODL", 4) != 0)
@@ -158,7 +155,7 @@ ModelAsset::ModelAsset(
     }
 }
 
-ModelAsset::~ModelAsset()
+ModelShared::~ModelShared()
 {
     MDLHeader* mdlHeader = (MDLHeader*)GetMDLData();
 
@@ -172,30 +169,12 @@ ModelAsset::~ModelAsset()
 
     m_device.BufferDestroy(m_vertexBuf);
     m_device.BufferDestroy(m_indexBuf);
-
-#ifdef ASSET_REFRESH
-    free((void*)m_data);
-#endif
-}
-
-void ModelAsset::Destroy()
-{
-#ifdef ASSET_REFRESH
-    delete this;
-#else
-    this->~ModelAsset();
-    free((void*)this);
-#endif
 }
 
 void* MDLAlloc(u32 size, void* userdata)
 {
-#ifdef ASSET_REFRESH
-    return malloc(size);
-#else
-    void* memory = malloc(sizeof(ModelAsset) + size);
-    return (u8*)memory + sizeof(ModelAsset);
-#endif
+    void* memory = malloc(sizeof(ModelShared) + size);
+    return (u8*)memory + sizeof(ModelShared);
 }
 
 void* MDGAlloc(u32 size, void* userdata)
@@ -203,7 +182,7 @@ void* MDGAlloc(u32 size, void* userdata)
     return malloc(size);
 }
 
-ModelAsset* ModelAsset::Create(
+ModelShared* ModelShared::Create(
     GpuDevice& device,
     TextureCache& textureCache,
     FileLoader& loader,
@@ -219,66 +198,67 @@ ModelAsset* ModelAsset::Create(
     u8* mdgData;
     loader.Load(mdgPath, &mdgData, NULL, MDGAlloc, NULL);
 
-#ifdef ASSET_REFRESH
-    ModelAsset* asset = new ModelAsset(
+    void* assetLocation = mdlData - sizeof(ModelShared);
+    ModelShared* asset = new (assetLocation) ModelShared(
         device,
         textureCache,
         mdlData,
         mdgData
     );
-#else
-    void* assetLocation = mdlData - sizeof(ModelAsset);
-    ModelAsset* asset = new (assetLocation) ModelAsset(
-        device,
-        textureCache,
-        mdlData,
-        mdgData
-    );
-#endif
 
     free(mdgData);
 
     return asset;
 }
 
-
-const u8* ModelAsset::GetMDLData() const
+void ModelShared::Destroy(ModelShared* shared)
 {
-#ifdef ASSET_REFRESH
-    return m_data;
-#else
-    return (const u8*)(this + 1);
-#endif
+    shared->~ModelShared();
+    free((void*)shared);
 }
 
-GpuDevice& ModelAsset::GetGpuDevice() const
+int ModelShared::RefCount() const
+{
+    return m_refCount;
+}
+
+void ModelShared::AddRef()
+{
+    ++m_refCount;
+}
+
+void ModelShared::Release()
+{
+    ASSERT(m_refCount > 0);
+    --m_refCount;
+}
+
+const u8* ModelShared::GetMDLData() const
+{
+    return (const u8*)(this + 1);
+}
+
+GpuDevice& ModelShared::GetGpuDevice() const
 {
     return m_device;
 }
 
-GpuBufferID ModelAsset::GetVertexBuf() const
+GpuBufferID ModelShared::GetVertexBuf() const
 {
     return m_vertexBuf;
 }
 
-GpuBufferID ModelAsset::GetIndexBuf() const
+GpuBufferID ModelShared::GetIndexBuf() const
 {
     return m_indexBuf;
 }
 
-ModelAssetFactory::ModelAssetFactory(GpuDevice& device, TextureCache& textureCache)
-    : m_device(device)
-    , m_textureCache(textureCache)
-{}
-
-ModelAsset* ModelAssetFactory::Create(const char* path, FileLoader& loader)
+void ModelShared::SetFirstInstance(ModelInstance* instance)
 {
-    return ModelAsset::Create(m_device, m_textureCache, loader, path);
+    m_firstInstance = instance;
 }
 
-#ifdef ASSET_REFRESH
-void ModelAssetFactory::Refresh(ModelAsset* asset, const char* path, FileLoader& loader)
+ModelInstance* ModelShared::GetFirstInstance() const
 {
-    ASSERT(!"ModelAssetFactory::Refresh() not implemented");
+    return m_firstInstance;
 }
-#endif

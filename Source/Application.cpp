@@ -13,8 +13,6 @@
 
 #include "Texture/TextureAsset.h"
 
-#include "Model/ModelAsset.h"
-
 #include "OsWindow.h"
 
 static void OnWindowResize(const OsEvent& event, void* userdata)
@@ -61,10 +59,7 @@ Application::Application()
     , m_shaderCache(*m_gpuDevice, m_fileLoader)
     , m_textureCache(*m_gpuDevice, m_fileLoader)
 
-    , m_modelAssetFactory(*m_gpuDevice, m_textureCache)
-    , m_modelCache(m_fileLoader, m_modelAssetFactory)
-
-    , m_scene(*m_gpuDevice, m_samplerCache, m_shaderCache, m_modelCache)
+    , m_scene(*m_gpuDevice, m_fileLoader, m_samplerCache, m_shaderCache, m_textureCache)
     , m_camera()
     , m_teapot(NULL)
     , m_floor(NULL)
