@@ -7,7 +7,6 @@
 #include "Math/Vector3.h"
 
 #include "GpuDevice/GpuDrawItemWriter.h"
-#include "GpuDevice/GpuDeferredDeletionQueue.h"
 
 #include "Shader/ShaderAsset.h"
 
@@ -49,10 +48,6 @@ Application::Application()
     : m_window(CreateWindow(), &OsWindow::Destroy)
     , m_gpuDevice(CreateGpuDevice(*m_window), &GpuDevice::Destroy)
     , m_samplerCache(*m_gpuDevice)
-
-#ifdef ASSET_REFRESH
-    , m_gpuDeferredDeletionQueue()
-#endif
 
     , m_fileLoader()
 
@@ -133,9 +128,6 @@ void Application::Frame()
     m_scene.Update(updateInfo);
     m_scene.Render(viewport);
 
-#ifdef ASSET_REFRESH
-    m_gpuDeferredDeletionQueue.Update(*m_gpuDevice);
-#endif
     m_shaderCache.UpdateRefreshSystem();
     m_textureCache.UpdateRefreshSystem();
     m_gpuDevice->ScenePresent();

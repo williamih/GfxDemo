@@ -20,7 +20,6 @@
 		7A10CEA41C0070C000A6816F /* Vector3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE9D1C0070C000A6816F /* Vector3.cpp */; };
 		7A10CEA51C0070C000A6816F /* Vector4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE9F1C0070C000A6816F /* Vector4.cpp */; };
 		7A15D2C41BF9728E000DD053 /* Assets in Resources */ = {isa = PBXBuildFile; fileRef = 7A15D2C31BF9728E000DD053 /* Assets */; };
-		7A1EEFC41C54515600D68F49 /* GpuDeferredDeletionQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A1EEFC21C54515600D68F49 /* GpuDeferredDeletionQueue.cpp */; };
 		7A208EB61C013423002B4459 /* GpuDrawItemWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */; };
 		7A20A7FE1C6952A300E82F66 /* Path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A20A7FC1C6952A300E82F66 /* Path.cpp */; };
 		7A20A8011C69543C00E82F66 /* Str.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A20A7FF1C69543C00E82F66 /* Str.cpp */; };
@@ -33,7 +32,6 @@
 		7A7E6BD01D1C9C1D00DF7DCC /* GpuSamplerCache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A7E6BCE1D1C9C1D00DF7DCC /* GpuSamplerCache.cpp */; };
 		7A9264471C73CBF100F424FD /* ModelScene.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A9264451C73CBF100F424FD /* ModelScene.cpp */; };
 		7A978A671C61E1F800299AB1 /* GpuDrawItemPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A978A651C61E1F800299AB1 /* GpuDrawItemPool.cpp */; };
-		7AA0669D1C5449C3006278C8 /* Asset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AA0669C1C5449C3006278C8 /* Asset.cpp */; };
 		7AB95A051C25225600A71282 /* GpuMathUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AB95A031C25225600A71282 /* GpuMathUtils.cpp */; };
 		7AC5DFCA1B8AF1C700FC65B1 /* Application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AC5DFC81B8AF1C700FC65B1 /* Application.cpp */; };
 		7AD002021C5A123500AD3F39 /* FileLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AD002001C5A123500AD3F39 /* FileLoader.cpp */; };
@@ -55,7 +53,6 @@
 		7A060A091C5C43F200DDE30A /* Camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Camera.h; sourceTree = "<group>"; };
 		7A0B09401D20804F0080A4DB /* List.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = List.h; sourceTree = "<group>"; };
 		7A0CF6191C54C17200C7952C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
-		7A0FA8761C52D46F00EAC474 /* AssetCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssetCache.h; sourceTree = "<group>"; };
 		7A106EA51C56F767003B9E09 /* ShaderAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ShaderAsset.cpp; sourceTree = "<group>"; };
 		7A106EA61C56F767003B9E09 /* ShaderAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderAsset.h; sourceTree = "<group>"; };
 		7A10CE851C006FF200A6816F /* ModelShared.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ModelShared.cpp; sourceTree = "<group>"; };
@@ -76,8 +73,6 @@
 		7A10CE9F1C0070C000A6816F /* Vector4.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vector4.cpp; sourceTree = "<group>"; };
 		7A10CEA01C0070C000A6816F /* Vector4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Vector4.h; sourceTree = "<group>"; };
 		7A15D2C31BF9728E000DD053 /* Assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets; sourceTree = "<group>"; };
-		7A1EEFC21C54515600D68F49 /* GpuDeferredDeletionQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDeferredDeletionQueue.cpp; sourceTree = "<group>"; };
-		7A1EEFC31C54515600D68F49 /* GpuDeferredDeletionQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDeferredDeletionQueue.h; sourceTree = "<group>"; };
 		7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemWriter.cpp; sourceTree = "<group>"; };
 		7A208EB51C013423002B4459 /* GpuDrawItemWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemWriter.h; sourceTree = "<group>"; };
 		7A208EB71C014263002B4459 /* GpuDrawItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GpuDrawItem.h; sourceTree = "<group>"; };
@@ -106,8 +101,6 @@
 		7A975BC41CA68B0E00753831 /* BlitRT.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = BlitRT.metal; sourceTree = "<group>"; };
 		7A978A651C61E1F800299AB1 /* GpuDrawItemPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemPool.cpp; sourceTree = "<group>"; };
 		7A978A661C61E1F800299AB1 /* GpuDrawItemPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemPool.h; sourceTree = "<group>"; };
-		7AA0669B1C544657006278C8 /* Asset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Asset.h; sourceTree = "<group>"; };
-		7AA0669C1C5449C3006278C8 /* Asset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Asset.cpp; sourceTree = "<group>"; };
 		7AB95A031C25225600A71282 /* GpuMathUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuMathUtils.cpp; sourceTree = "<group>"; };
 		7AB95A041C25225600A71282 /* GpuMathUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuMathUtils.h; sourceTree = "<group>"; };
 		7AC2A7EE1D1E28010091D3CB /* AssetRefreshQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AssetRefreshQueue.h; sourceTree = "<group>"; };
@@ -175,9 +168,6 @@
 		7A0FA8751C52D46F00EAC474 /* Asset */ = {
 			isa = PBXGroup;
 			children = (
-				7A0FA8761C52D46F00EAC474 /* AssetCache.h */,
-				7AA0669B1C544657006278C8 /* Asset.h */,
-				7AA0669C1C5449C3006278C8 /* Asset.cpp */,
 				7AC2A7EE1D1E28010091D3CB /* AssetRefreshQueue.h */,
 			);
 			path = Asset;
@@ -251,8 +241,6 @@
 				7A38309F1C3879250073769C /* GpuShaderPermutations.h */,
 				7AEB7B3B1C37538A00EA12EA /* GpuShaderLoad.h */,
 				7AEB7B3A1C37538A00EA12EA /* GpuShaderLoad.cpp */,
-				7A1EEFC31C54515600D68F49 /* GpuDeferredDeletionQueue.h */,
-				7A1EEFC21C54515600D68F49 /* GpuDeferredDeletionQueue.cpp */,
 				7A978A661C61E1F800299AB1 /* GpuDrawItemPool.h */,
 				7A978A651C61E1F800299AB1 /* GpuDrawItemPool.cpp */,
 				7A7E6BCF1D1C9C1D00DF7DCC /* GpuSamplerCache.h */,
@@ -418,7 +406,6 @@
 				7AF6B8C31C574C28004C16C6 /* TextureAsset.cpp in Sources */,
 				7A10CE8F1C006FF200A6816F /* ModelInstance.cpp in Sources */,
 				7A060A0A1C5C43F200DDE30A /* Camera.cpp in Sources */,
-				7A1EEFC41C54515600D68F49 /* GpuDeferredDeletionQueue.cpp in Sources */,
 				7A0020FB1BF8239000A0B82F /* MacApplication.mm in Sources */,
 				7AEB7B391C373E6600EA12EA /* Model.metal in Sources */,
 				CA0732C81A43A62300770DE8 /* OsWindowMac.mm in Sources */,
@@ -445,7 +432,6 @@
 				7A4492031BF1E44100444DFC /* GpuDevice.cpp in Sources */,
 				7A208EB61C013423002B4459 /* GpuDrawItemWriter.cpp in Sources */,
 				7A10CE8D1C006FF200A6816F /* ModelShared.cpp in Sources */,
-				7AA0669D1C5449C3006278C8 /* Asset.cpp in Sources */,
 				7AF6B8C21C574C28004C16C6 /* DDSFile.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

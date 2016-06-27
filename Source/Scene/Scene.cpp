@@ -2,8 +2,6 @@
 
 #include <math.h>
 
-#include "Asset/AssetCache.h"
-
 #include "Model/ModelInstance.h"
 
 static const Vector3 s_dirToLight(0.0f, 0.0f, 1.0f);
