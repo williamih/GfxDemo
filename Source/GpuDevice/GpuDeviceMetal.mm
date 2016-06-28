@@ -15,6 +15,16 @@
 #define FOURCC(a, b, c, d) (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
 
 // -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
+
+const u32 STREAM_RING_BUF_SIZE = 2 * 1024 * 1024; // 2 MB
+
+// All streaming-mode buffers have their size rounded up to a multiple of this
+// number.
+const u32 STREAM_BUF_SIZE_MULTIPLE = 64;
+
+// -----------------------------------------------------------------------------
 // Lookup tables for miscellaneous types
 // -----------------------------------------------------------------------------
 
@@ -94,6 +104,9 @@ static const MTLResourceOptions s_bufferAccessModeToResourceOptions[] = {
 
     // GPU_BUFFER_ACCESS_DYNAMIC
     MTLResourceStorageModeManaged | MTLResourceCPUCacheModeWriteCombined,
+
+    // GPU_BUFFER_ACCESS_STREAM
+    0, // placeholder value only; stream-mode buffers don't use the lookup table
 };
 
 // -----------------------------------------------------------------------------
@@ -207,8 +220,12 @@ public:
                              const void* data,
                              unsigned size);
     void BufferDestroy(GpuBufferID bufferID);
+
     void* BufferGetContents(GpuBufferID bufferID);
     void BufferFlushRange(GpuBufferID bufferID, int start, int length);
+
+    void* BufferMap(GpuBufferID bufferID);
+    void BufferUnmap(GpuBufferID bufferID);
 
     // Textures
     bool TextureExists(GpuTextureID textureID) const;
@@ -338,9 +355,12 @@ private:
 #ifdef GPUDEVICE_DEBUG_MODE
         int dbg_refCount;
 #endif
+        // TODO: Could be worth compressing the size of this struct a bit more
         id<MTLBuffer> buffer;
         GpuBufferType type;
         GpuBufferAccessMode accessMode;
+        u32 size;
+        u32 streamBufOffset;
     };
 
     struct PipelineStateObj {
@@ -389,16 +409,22 @@ private:
     NSView* m_view;
     CGSize m_viewSize;
     int m_frameNumber;
+    int m_doubleBufferIndex;
 
     id<MTLDevice> m_device;
     id<MTLCommandQueue> m_commandQueue;
 
     id<MTLTexture> m_depthBufs[2];
-    int m_currDepthBufIndex;
     id<MTLCommandBuffer> m_commandBuffer;
     id<MTLCommandBuffer> m_prevCommandBuffer;
 
     id<CAMetalDrawable> m_currentDrawable;
+
+    // We always keep two copies of each buffer -- one for each frame.
+    // Hence the size of this vector is always even.
+    std::vector<id<MTLBuffer> > m_streamRingBufs;
+    u32 m_streamBufCursor;
+    int m_streamBufIndex;
 
     GpuShaderPermutations<PermutationApiData> m_permutations;
     IDLookupTable<ShaderProgram, GpuShaderProgramID::Type, 16, 16> m_shaderProgramTable;
@@ -419,6 +445,17 @@ private:
 };
 
 // -----------------------------------------------------------------------------
+// Static functions used throughout the code
+// -----------------------------------------------------------------------------
+
+static id<MTLBuffer> CreateStreamRingBuffer(id<MTLDevice> device)
+{
+    MTLResourceOptions options = MTLResourceStorageModeShared
+        | MTLResourceCPUCacheModeWriteCombined;
+    return [device newBufferWithLength:STREAM_RING_BUF_SIZE options:options];
+}
+
+// -----------------------------------------------------------------------------
 // GpuDeviceMetal implementation
 // -----------------------------------------------------------------------------
 
@@ -427,16 +464,20 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
     , m_view((NSView*)osViewHandle)
     , m_viewSize([m_view bounds].size)
     , m_frameNumber(0)
+    , m_doubleBufferIndex(0)
 
     , m_device(nil)
     , m_commandQueue(nil)
 
     , m_depthBufs()
-    , m_currDepthBufIndex(0)
     , m_commandBuffer(nil)
     , m_prevCommandBuffer(nil)
 
     , m_currentDrawable(nil)
+
+    , m_streamRingBufs()
+    , m_streamBufCursor(0)
+    , m_streamBufIndex()
 
     , m_permutations()
     , m_shaderProgramTable()
@@ -465,10 +506,19 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
     CreateOrDestroyDepthBuffers();
 
     m_commandQueue = [m_device newCommandQueue];
+
+    // Initialize with two ring buffers for streaming,
+    // i.e. one for each in-flight frame.
+    m_streamRingBufs.push_back(CreateStreamRingBuffer(m_device));
+    m_streamRingBufs.push_back(CreateStreamRingBuffer(m_device));
 }
 
 GpuDeviceMetal::~GpuDeviceMetal()
 {
+    for (size_t i = 0; i < m_streamRingBufs.size(); ++i) {
+        [m_streamRingBufs[i] release];
+    }
+
     [m_commandBuffer release];
     [m_prevCommandBuffer release];
 
@@ -629,22 +679,32 @@ GpuBufferID GpuDeviceMetal::BufferCreate(GpuBufferType type,
                                          const void* data,
                                          unsigned size)
 {
+    ASSERT((accessMode != GPU_BUFFER_ACCESS_STREAM ||
+           size <= STREAM_RING_BUF_SIZE)
+           && "Maximum size of stream-mode buffer exceeded");
+
     GpuBufferID bufferID(m_bufferTable.Add());
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
 #ifdef GPUDEVICE_DEBUG_MODE
     buffer.dbg_refCount = 0;
 #endif
 
-    MTLResourceOptions options = s_bufferAccessModeToResourceOptions[accessMode];
-    if (data) {
-        buffer.buffer = [m_device newBufferWithBytes:data
-                                              length:size
-                                             options:options];
-    } else {
-        buffer.buffer = [m_device newBufferWithLength:size options:options];
-    }
     buffer.type = type;
     buffer.accessMode = accessMode;
+    buffer.buffer = nil;
+    buffer.size = size;
+    buffer.streamBufOffset = 0;
+
+    if (accessMode != GPU_BUFFER_ACCESS_STREAM) {
+        MTLResourceOptions options = s_bufferAccessModeToResourceOptions[accessMode];
+        if (data) {
+            buffer.buffer = [m_device newBufferWithBytes:data
+                                                  length:size
+                                                 options:options];
+        } else {
+            buffer.buffer = [m_device newBufferWithLength:size options:options];
+        }
+    }
 
     ++m_dbg_bufferCount;
 
@@ -664,6 +724,7 @@ void GpuDeviceMetal::BufferDestroy(GpuBufferID bufferID)
 #endif
 
     [buffer.buffer release];
+
     m_bufferTable.Remove(bufferID);
 
     --m_dbg_bufferCount;
@@ -683,6 +744,66 @@ void GpuDeviceMetal::BufferFlushRange(GpuBufferID bufferID, int start, int lengt
     Buffer& buffer = m_bufferTable.Lookup(bufferID);
     ASSERT(buffer.accessMode == GPU_BUFFER_ACCESS_DYNAMIC);
     [buffer.buffer didModifyRange:NSMakeRange(start, length)];
+}
+
+static u32 RoundUp(u32 numToRound, u32 multiple)
+{
+    ASSERT(multiple != 0);
+    return ((numToRound + multiple - 1) / multiple) * multiple;
+}
+
+void* GpuDeviceMetal::BufferMap(GpuBufferID bufferID)
+{
+    ASSERT(BufferExists(bufferID));
+    Buffer& buffer = m_bufferTable.Lookup(bufferID);
+    ASSERT(buffer.accessMode == GPU_BUFFER_ACCESS_STREAM);
+
+    // Check: we should always have an even number of ring buffers.
+    ASSERT(m_streamRingBufs.size() % 2 == 0);
+    int numRingBuffersPerFrame = (int)(m_streamRingBufs.size() / 2);
+
+    u32 roundedSize = RoundUp(buffer.size, STREAM_BUF_SIZE_MULTIPLE);
+
+    // Can the incoming batch fit in the current ring buffer?
+    if (m_streamBufCursor + roundedSize > STREAM_RING_BUF_SIZE) {
+        // Move to a new ring buffer and reset the cursor.
+        ++m_streamBufIndex;
+        m_streamBufCursor = 0;
+
+        if (m_streamBufIndex == numRingBuffersPerFrame) {
+            // Need to allocate a new ring buffer.
+            // Actually, we allocate two ring buffers, one for each in-flight
+            // frame.
+            m_streamRingBufs.insert(m_streamRingBufs.begin() + numRingBuffersPerFrame,
+                                    CreateStreamRingBuffer(m_device));
+            m_streamRingBufs.push_back(CreateStreamRingBuffer(m_device));
+
+            // Update the count.
+            ++numRingBuffersPerFrame;
+        }
+    }
+
+    int ringBufArrayIndex = numRingBuffersPerFrame * m_doubleBufferIndex
+        + m_streamBufIndex;
+    id<MTLBuffer> ringBuf = m_streamRingBufs[ringBufArrayIndex];
+
+    void* result = (u8*)[ringBuf contents] + m_streamBufCursor;
+
+    [buffer.buffer release];
+    buffer.buffer = [ringBuf retain];
+    buffer.streamBufOffset = m_streamBufCursor;
+    m_streamBufCursor += roundedSize;
+
+    return result;
+}
+
+void GpuDeviceMetal::BufferUnmap(GpuBufferID bufferID)
+{
+    ASSERT(BufferExists(bufferID));
+    Buffer& buffer = m_bufferTable.Lookup(bufferID);
+    ASSERT(buffer.accessMode == GPU_BUFFER_ACCESS_STREAM);
+
+    // We don't actually need to do anything here.
 }
 
 bool GpuDeviceMetal::TextureExists(GpuTextureID textureID) const
@@ -1126,7 +1247,7 @@ id<MTLRenderCommandEncoder> GpuDeviceMetal::PreDraw(GpuRenderPassID passID,
         ASSERT(colorDesc.texture.width == m_deviceFormat.resolutionX);
         ASSERT(colorDesc.texture.height == m_deviceFormat.resolutionY);
 
-        id<MTLTexture> depthBuf = m_depthBufs[m_currDepthBufIndex];
+        id<MTLTexture> depthBuf = m_depthBufs[m_doubleBufferIndex];
         pass.descriptor.depthAttachment.texture = depthBuf;
         ASSERT(depthBuf.width == m_deviceFormat.resolutionX);
         ASSERT(depthBuf.height == m_deviceFormat.resolutionY);
@@ -1171,17 +1292,22 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
         const u16* vertexBuffers = item->VertexBuffers();
         for (int i = 0; i < item->nVertexBuffers; ++i) {
             Buffer& buf = m_bufferTable.LookupRaw(vertexBuffers[i]);
+            u32 totalOffset = vertexBufferOffsets[i] + buf.streamBufOffset;
             [encoder setVertexBuffer:buf.buffer
-                              offset:vertexBufferOffsets[i]
+                              offset:totalOffset
                              atIndex:(GPU_MAX_CBUFFERS + i)];
         }
 
         // Set cbuffers
         const u16* cbuffers = item->CBuffers();
         for (int i = 0; i < item->nCBuffers; ++i) {
-            id<MTLBuffer> buf = m_bufferTable.LookupRaw(cbuffers[i]).buffer;
-            [encoder setVertexBuffer:buf offset:0 atIndex:i];
-            [encoder setFragmentBuffer:buf offset:0 atIndex:i];
+            Buffer& buf = m_bufferTable.LookupRaw(cbuffers[i]);
+            [encoder setVertexBuffer:buf.buffer
+                              offset:buf.streamBufOffset
+                             atIndex:i];
+            [encoder setFragmentBuffer:buf.buffer
+                                offset:buf.streamBufOffset
+                               atIndex:i];
         }
 
         // Set textures
@@ -1236,8 +1362,12 @@ void GpuDeviceMetal::SceneBegin()
         m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
         ASSERT(m_currentDrawable);
 
-        // Switch to the other depth buffer.
-        m_currDepthBufIndex ^= 1;
+        // Switch to the other frame buffer.
+        m_doubleBufferIndex ^= 1;
+
+        // Reset the stream buffer index.
+        m_streamBufIndex = 0;
+        m_streamBufCursor = 0;
     }
 }
 
@@ -1333,6 +1463,12 @@ void* GpuDevice::BufferGetContents(GpuBufferID bufferID)
 
 void GpuDevice::BufferFlushRange(GpuBufferID bufferID, int start, int length)
 { Cast(this)->BufferFlushRange(bufferID, start, length); }
+
+void* GpuDevice::BufferMap(GpuBufferID bufferID)
+{ return Cast(this)->BufferMap(bufferID); }
+
+void GpuDevice::BufferUnmap(GpuBufferID bufferID)
+{ Cast(this)->BufferUnmap(bufferID); }
 
 bool GpuDevice::TextureExists(GpuTextureID textureID) const
 { return Cast(this)->TextureExists(textureID); }

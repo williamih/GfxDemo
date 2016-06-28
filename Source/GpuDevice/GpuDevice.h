@@ -124,8 +124,23 @@ enum GpuBufferType {
 };
 
 enum GpuBufferAccessMode {
+    // This should be used for buffers that have their data set when they
+    // are created, and then are >never< changed afterwards. It is not possible
+    // to update the values of a static buffer.
     GPU_BUFFER_ACCESS_STATIC,
+
+    // Intended for buffers that are updated on the majority of frames, and
+    // the maximum number of updates per frame is small and finite.
     GPU_BUFFER_ACCESS_DYNAMIC,
+
+    // Designed for buffers that are updated an unbounded number of times on
+    // >every< frame. Data in these buffers do not persist across frames; it is
+    // an >error< to try to draw from a stream-mode buffer in a frame in which
+    // it has not been updated.
+    // These may only be used for buffers whose size is >small<, for example
+    // in the hundreds of kilobytes range. If a larger dynamic buffer is
+    // required, use the GPU_BUFFER_ACCESS_DYNAMIC mode.
+    GPU_BUFFER_ACCESS_STREAM,
 };
 
 enum GpuPixelFormat {
@@ -315,8 +330,14 @@ public:
                              const void* data,
                              unsigned size);
     void BufferDestroy(GpuBufferID bufferID);
+
+    // Use on GPU_BUFFER_ACCESS_DYNAMIC buffers only.
     void* BufferGetContents(GpuBufferID bufferID);
     void BufferFlushRange(GpuBufferID bufferID, int start, int length);
+
+    // Use on GPU_BUFFER_ACCESS_STREAM buffers only.
+    void* BufferMap(GpuBufferID bufferID);
+    void BufferUnmap(GpuBufferID bufferID);
 
     // Textures
     bool TextureExists(GpuTextureID textureID) const;

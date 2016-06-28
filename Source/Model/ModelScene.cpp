@@ -103,7 +103,7 @@ ModelScene::ModelScene(
 
     m_sceneCBuffer = device.BufferCreate(
         GPU_BUFFER_TYPE_CONSTANT,
-        GPU_BUFFER_ACCESS_DYNAMIC,
+        GPU_BUFFER_ACCESS_STREAM,
         NULL,
         sizeof(SceneCBuffer)
     );
