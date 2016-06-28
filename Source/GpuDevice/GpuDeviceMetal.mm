@@ -395,6 +395,7 @@ private:
 
     id<MTLCommandQueue> m_commandQueue;
     id<MTLCommandBuffer> m_commandBuffer;
+    id<MTLCommandBuffer> m_prevCommandBuffer;
 
     id<CAMetalDrawable> m_currentDrawable;
 
@@ -431,6 +432,7 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
 
     , m_commandQueue(nil)
     , m_commandBuffer(nil)
+    , m_prevCommandBuffer(nil)
 
     , m_currentDrawable(nil)
 
@@ -463,6 +465,9 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
 
 GpuDeviceMetal::~GpuDeviceMetal()
 {
+    [m_commandBuffer release];
+    [m_prevCommandBuffer release];
+
     [m_commandQueue release];
     [m_device release];
 
@@ -1210,7 +1215,11 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
 void GpuDeviceMetal::SceneBegin()
 {
     @autoreleasepool {
+        [m_prevCommandBuffer waitUntilCompleted];
+        [m_prevCommandBuffer release];
+        m_prevCommandBuffer = m_commandBuffer;
         m_commandBuffer = [[m_commandQueue commandBuffer] retain];
+        [m_currentDrawable release];
         m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
         ASSERT(m_currentDrawable);
     }
@@ -1220,9 +1229,6 @@ void GpuDeviceMetal::ScenePresent()
 {
     [m_commandBuffer presentDrawable:m_currentDrawable];
     [m_commandBuffer commit];
-
-    [m_currentDrawable release];
-    [m_commandBuffer release];
 
     ++m_frameNumber;
 }
