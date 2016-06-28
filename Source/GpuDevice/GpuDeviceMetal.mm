@@ -382,7 +382,7 @@ private:
         id<MTLSamplerState> samplerState;
     };
 
-    void CreateOrDestroyDepthBuffer();
+    void CreateOrDestroyDepthBuffers();
     CAMetalLayer* GetCAMetalLayer() const;
 
     GpuDeviceFormat m_deviceFormat;
@@ -391,9 +391,10 @@ private:
     int m_frameNumber;
 
     id<MTLDevice> m_device;
-    id<MTLTexture> m_depthBuf;
-
     id<MTLCommandQueue> m_commandQueue;
+
+    id<MTLTexture> m_depthBufs[2];
+    int m_currDepthBufIndex;
     id<MTLCommandBuffer> m_commandBuffer;
     id<MTLCommandBuffer> m_prevCommandBuffer;
 
@@ -428,9 +429,10 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
     , m_frameNumber(0)
 
     , m_device(nil)
-    , m_depthBuf(nil)
-
     , m_commandQueue(nil)
+
+    , m_depthBufs()
+    , m_currDepthBufIndex(0)
     , m_commandBuffer(nil)
     , m_prevCommandBuffer(nil)
 
@@ -451,6 +453,8 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
     , m_dbg_renderPassCount(0)
     , m_dbg_inputLayoutCount(0)
 {
+    m_depthBufs[0] = m_depthBufs[1] = nil;
+
     if (![[m_view layer] isKindOfClass:[CAMetalLayer class]])
         FATAL("GpuDeviceMetal: View needs to have a CAMetalLayer");
 
@@ -458,7 +462,7 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
     GetCAMetalLayer().device = m_device;
     GetCAMetalLayer().drawableSize = CGSizeMake(format.resolutionX, format.resolutionY);
     GetCAMetalLayer().pixelFormat = s_metalColorPixelFormats[format.pixelColorFormat];
-    CreateOrDestroyDepthBuffer();
+    CreateOrDestroyDepthBuffers();
 
     m_commandQueue = [m_device newCommandQueue];
 }
@@ -467,6 +471,9 @@ GpuDeviceMetal::~GpuDeviceMetal()
 {
     [m_commandBuffer release];
     [m_prevCommandBuffer release];
+
+    [m_depthBufs[0] release];
+    [m_depthBufs[1] release];
 
     [m_commandQueue release];
     [m_device release];
@@ -508,13 +515,12 @@ GpuDeviceMetal::~GpuDeviceMetal()
     }
 }
 
-void GpuDeviceMetal::CreateOrDestroyDepthBuffer()
+void GpuDeviceMetal::CreateOrDestroyDepthBuffers()
 {
-    // Destroy the current depth buffer, if one already exists
-    if (m_depthBuf) {
-        [m_depthBuf release];
-        m_depthBuf = nil;
-    }
+    // Release the current depth buffers.
+    [m_depthBufs[0] release];
+    [m_depthBufs[1] release];
+    m_depthBufs[0] = m_depthBufs[1] = nil;
 
     // If the client didn't request a depth buffer, then we are done.
     if (m_deviceFormat.pixelDepthFormat == GPU_PIXEL_DEPTH_FORMAT_NONE)
@@ -529,7 +535,9 @@ void GpuDeviceMetal::CreateOrDestroyDepthBuffer()
                                                           mipmapped:NO];
     desc.storageMode = MTLStorageModePrivate;
     desc.usage |= MTLTextureUsageRenderTarget;
-    m_depthBuf = [m_device newTextureWithDescriptor:desc];
+
+    m_depthBufs[0] = [m_device newTextureWithDescriptor:desc];
+    m_depthBufs[1] = [m_device newTextureWithDescriptor:desc];
 }
 
 CAMetalLayer* GpuDeviceMetal::GetCAMetalLayer() const
@@ -542,7 +550,7 @@ void GpuDeviceMetal::SetFormat(const GpuDeviceFormat& format)
     m_deviceFormat = format;
     GetCAMetalLayer().drawableSize = CGSizeMake(format.resolutionX, format.resolutionY);
     GetCAMetalLayer().pixelFormat = s_metalColorPixelFormats[format.pixelColorFormat];
-    CreateOrDestroyDepthBuffer();
+    CreateOrDestroyDepthBuffers();
 }
 
 const GpuDeviceFormat& GpuDeviceMetal::GetFormat() const
@@ -563,7 +571,7 @@ void GpuDeviceMetal::OnWindowResized()
     }
     m_viewSize = newSize;
 
-    CreateOrDestroyDepthBuffer();
+    CreateOrDestroyDepthBuffers();
 }
 
 bool GpuDeviceMetal::ShaderProgramExists(GpuShaderProgramID shaderProgramID) const
@@ -1065,7 +1073,8 @@ GpuRenderPassID GpuDeviceMetal::RenderPassCreate(const GpuRenderPassDesc& pass)
 
     MTLRenderPassDepthAttachmentDescriptor* depthDesc = nil;
 
-    if (m_depthBuf != nil || pass.depthStencilTarget != 0) {
+    if (m_deviceFormat.pixelDepthFormat != GPU_PIXEL_DEPTH_FORMAT_NONE
+        || pass.depthStencilTarget != 0) {
         depthDesc = [[[MTLRenderPassDepthAttachmentDescriptor alloc] init] autorelease];
         depthDesc.clearDepth = pass.clearDepth;
         depthDesc.loadAction = s_metalLoadActions[pass.depthStencilLoadAction];
@@ -1117,9 +1126,10 @@ id<MTLRenderCommandEncoder> GpuDeviceMetal::PreDraw(GpuRenderPassID passID,
         ASSERT(colorDesc.texture.width == m_deviceFormat.resolutionX);
         ASSERT(colorDesc.texture.height == m_deviceFormat.resolutionY);
 
-        pass.descriptor.depthAttachment.texture = m_depthBuf;
-        ASSERT(m_depthBuf.width == m_deviceFormat.resolutionX);
-        ASSERT(m_depthBuf.height == m_deviceFormat.resolutionY);
+        id<MTLTexture> depthBuf = m_depthBufs[m_currDepthBufIndex];
+        pass.descriptor.depthAttachment.texture = depthBuf;
+        ASSERT(depthBuf.width == m_deviceFormat.resolutionX);
+        ASSERT(depthBuf.height == m_deviceFormat.resolutionY);
     }
 
     id<MTLRenderCommandEncoder> encoder;
@@ -1217,11 +1227,17 @@ void GpuDeviceMetal::SceneBegin()
     @autoreleasepool {
         [m_prevCommandBuffer waitUntilCompleted];
         [m_prevCommandBuffer release];
+
         m_prevCommandBuffer = m_commandBuffer;
+
         m_commandBuffer = [[m_commandQueue commandBuffer] retain];
+
         [m_currentDrawable release];
         m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
         ASSERT(m_currentDrawable);
+
+        // Switch to the other depth buffer.
+        m_currDepthBufIndex ^= 1;
     }
 }
 
