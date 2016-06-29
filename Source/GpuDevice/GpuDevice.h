@@ -325,17 +325,16 @@ public:
 
     // Buffers
     bool BufferExists(GpuBufferID bufferID) const;
+    // N.B. The maxUpdatesPerFrame parameter only applies for buffers with the
+    // access mode GPU_BUFFER_ACCESS_DYNAMIC. For other access modes, the value
+    // of the parameter has no meaning.
     GpuBufferID BufferCreate(GpuBufferType type,
                              GpuBufferAccessMode accessMode,
                              const void* data,
-                             unsigned size);
+                             unsigned size,
+                             int maxUpdatesPerFrame);
     void BufferDestroy(GpuBufferID bufferID);
-
-    // Use on GPU_BUFFER_ACCESS_DYNAMIC buffers only.
-    void* BufferGetContents(GpuBufferID bufferID);
-    void BufferFlushRange(GpuBufferID bufferID, int start, int length);
-
-    // Use on GPU_BUFFER_ACCESS_STREAM buffers only.
+    // Use on GPU_BUFFER_ACCESS_DYNAMIC and GPU_BUFFER_ACCESS_STREAM buffers only.
     void* BufferMap(GpuBufferID bufferID);
     void BufferUnmap(GpuBufferID bufferID);
 

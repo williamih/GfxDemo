@@ -87,7 +87,8 @@ ModelInstance::ModelInstance(ModelScene& scene, ModelShared* shared, u32 flags)
         GPU_BUFFER_TYPE_CONSTANT,
         GPU_BUFFER_ACCESS_DYNAMIC,
         NULL,
-        sizeof(ModelInstanceCBuffer)
+        sizeof(ModelInstanceCBuffer),
+        1 // maxUpdatesPerFrame
     );
 
     RecreateDrawItems();
@@ -141,7 +142,7 @@ void ModelInstance::Update(const Matrix44& worldTransform,
                            float glossiness)
 {
     GpuDevice& dev = m_shared->GetGpuDevice();
-    ModelInstanceCBuffer* buf = (ModelInstanceCBuffer*)dev.BufferGetContents(m_cbuffer);
+    ModelInstanceCBuffer* buf = (ModelInstanceCBuffer*)dev.BufferMap(m_cbuffer);
 
     Matrix33 normalTransform = worldTransform.UpperLeft3x3().Inverse().Transpose();
 
@@ -156,7 +157,7 @@ void ModelInstance::Update(const Matrix44& worldTransform,
     buf->specularColorAndGlossiness[2] = specularColor.z;
     buf->specularColorAndGlossiness[3] = glossiness;
 
-    dev.BufferFlushRange(m_cbuffer, 0, sizeof(ModelInstanceCBuffer));
+    dev.BufferUnmap(m_cbuffer);
 }
 
 void ModelInstance::RecreateDrawItems()

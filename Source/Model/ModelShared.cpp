@@ -126,14 +126,16 @@ ModelShared::ModelShared(
         GPU_BUFFER_TYPE_VERTEX,
         GPU_BUFFER_ACCESS_STATIC,
         mdgData + mdgHeader->ofsVertices,
-        mdgHeader->nVertices * sizeof(Vertex)
+        mdgHeader->nVertices * sizeof(Vertex),
+        0 // maxUpdatesPerFrame (unused)
     );
 
     m_indexBuf = device.BufferCreate(
         GPU_BUFFER_TYPE_INDEX,
         GPU_BUFFER_ACCESS_STATIC,
         mdgData + mdgHeader->ofsIndices,
-        mdgHeader->nIndices * sizeof(u32)
+        mdgHeader->nIndices * sizeof(u32),
+        0 // maxUpdatesPerFrame (unused)
     );
 
     MDGTextureInfo* textures = (MDGTextureInfo*)(mdgData + mdgHeader->ofsTextures);

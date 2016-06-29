@@ -68,7 +68,8 @@ RenderTargetDisplay::RenderTargetDisplay(
         GPU_BUFFER_TYPE_VERTEX,
         GPU_BUFFER_ACCESS_STATIC,
         vertices,
-        sizeof vertices
+        sizeof vertices,
+        0 // maxUpdatesPerFrame (unused)
     );
 
     GpuVertexAttribute attribs[] = {

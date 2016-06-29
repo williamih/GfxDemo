@@ -105,7 +105,8 @@ ModelScene::ModelScene(
         GPU_BUFFER_TYPE_CONSTANT,
         GPU_BUFFER_ACCESS_STREAM,
         NULL,
-        sizeof(SceneCBuffer)
+        sizeof(SceneCBuffer),
+        0 // maxUpdatesPerFrame (unused)
     );
 
     m_defaultTexture = CreateDefaultWhiteTexture(device);
