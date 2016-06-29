@@ -523,6 +523,8 @@ GpuDeviceMetal::GpuDeviceMetal(const GpuDeviceFormat& format, void* osViewHandle
 
     m_commandQueue = [m_device newCommandQueue];
 
+    m_commandBuffer = [[m_commandQueue commandBuffer] retain];
+
     // Initialize with two ring buffers for streaming,
     // i.e. one for each in-flight frame.
     m_streamRingBufs.push_back(CreateStreamRingBuffer(m_device));
@@ -690,6 +692,74 @@ bool GpuDeviceMetal::BufferExists(GpuBufferID bufferID) const
     return m_bufferTable.Has(bufferID);
 }
 
+static id<MTLBuffer> CreateStaticBuffer(id<MTLDevice> device,
+                                        id<MTLCommandBuffer> commandBuffer,
+                                        const void* data, unsigned size)
+{
+    MTLResourceOptions options =
+        MTLResourceStorageModePrivate | MTLResourceCPUCacheModeDefaultCache;
+
+    if (data == NULL)
+        return [device newBufferWithLength:size options:options];
+
+    // Create a shared-mode buffer, fill it with data and then blit it into a
+    // private-mode buffer.
+
+    MTLResourceOptions sharedOptions =
+        MTLResourceStorageModeShared | MTLResourceCPUCacheModeDefaultCache;
+
+    id<MTLBuffer> sharedBuffer = [device newBufferWithBytes:data
+                                                     length:size
+                                                    options:sharedOptions];
+
+    id<MTLBuffer> result = [device newBufferWithLength:size options:options];
+
+    id<MTLBlitCommandEncoder> encoder = [commandBuffer blitCommandEncoder];
+    [encoder copyFromBuffer:sharedBuffer
+               sourceOffset:0
+                   toBuffer:result
+          destinationOffset:0
+                       size:size];
+    [encoder endEncoding];
+
+    [sharedBuffer release];
+
+    return result;
+}
+
+// TODO: it could be worth using MTLResourceStorageModeManaged instead
+// of the 'shared' mode in some cases for dynamic buffers.
+// Investigate in which situations this could be beneficial.
+static id<MTLBuffer> CreateDynamicBuffer(id<MTLDevice> device,
+                                         GpuBufferType type,
+                                         int maxUpdatesPerFrame,
+                                         const void* data, unsigned size)
+{
+    MTLResourceOptions options =
+        MTLResourceStorageModeShared | MTLResourceCPUCacheModeWriteCombined;
+
+    u32 roundedSize = RoundUp(size, s_bufferAlignments[type]);
+    u32 padding = roundedSize - size;
+
+    int numCopies = FRAMES_IN_FLIGHT * maxUpdatesPerFrame;
+    NSUInteger physicalLength = size + (numCopies - 1) * roundedSize;
+
+    id<MTLBuffer> buffer = [device newBufferWithLength:physicalLength
+                                               options:options];
+
+    if (data != NULL) {
+        u8* contents = (u8*)[buffer contents];
+        for (int i = 0; i < numCopies - 1; ++i) {
+            memcpy(contents, data, size);
+            memset(contents + size, 0, padding);
+            contents += roundedSize;
+        }
+        memcpy(contents, data, size);
+    }
+
+    return buffer;
+}
+
 GpuBufferID GpuDeviceMetal::BufferCreate(GpuBufferType type,
                                          GpuBufferAccessMode accessMode,
                                          const void* data,
@@ -717,47 +787,14 @@ GpuBufferID GpuDeviceMetal::BufferCreate(GpuBufferType type,
     buffer.bufOffset = 0;
 
     switch (accessMode) {
-        // TODO: use MTLResourceStorageModePrivate for static buffers and
-        // textures. Need to first create in shared memory, and then blit into
-        // GPU memory.
-        case GPU_BUFFER_ACCESS_STATIC: {
-            MTLResourceOptions options = MTLResourceStorageModeManaged | MTLResourceCPUCacheModeDefaultCache;
-            if (data != NULL) {
-                buffer.buffer = [m_device newBufferWithBytes:data
-                                                      length:size
-                                                     options:options];
-            } else {
-                buffer.buffer = [m_device newBufferWithLength:size options:options];
-            }
+        case GPU_BUFFER_ACCESS_STATIC:
+            buffer.buffer = CreateStaticBuffer(m_device, m_commandBuffer,
+                                               data, size);
             break;
-        }
-        // TODO: it could be worth using MTLResourceStorageModeManaged instead
-        // of the 'shared' mode in some cases for dynamic buffers.
-        // Investigate in which situations this could be beneficial.
-        case GPU_BUFFER_ACCESS_DYNAMIC: {
-            MTLResourceOptions options = MTLResourceStorageModeShared | MTLResourceCPUCacheModeWriteCombined;
-
-            u32 roundedSize = RoundUp(size, s_bufferAlignments[type]);
-            u32 padding = roundedSize - size;
-
-            int numCopies = FRAMES_IN_FLIGHT * maxUpdatesPerFrame;
-            NSUInteger physicalLength = size + (numCopies - 1) * roundedSize;
-
-            buffer.buffer = [m_device newBufferWithLength:physicalLength
-                                                  options:options];
-
-            if (data != NULL) {
-                u8* contents = (u8*)[buffer.buffer contents];
-                for (int i = 0; i < numCopies - 1; ++i) {
-                    memcpy(contents, data, size);
-                    memset(contents + size, 0, padding);
-                    contents += roundedSize;
-                }
-                memcpy(contents, data, size);
-            }
-
+        case GPU_BUFFER_ACCESS_DYNAMIC:
+            buffer.buffer = CreateDynamicBuffer(m_device, type,
+                                                maxUpdatesPerFrame, data, size);
             break;
-        }
         case GPU_BUFFER_ACCESS_STREAM:
             break; // Don't need to do anything here.
         default:
@@ -1454,13 +1491,6 @@ void GpuDeviceMetal::Draw(const GpuDrawItem* const* items,
 void GpuDeviceMetal::SceneBegin()
 {
     @autoreleasepool {
-        [m_prevCommandBuffer waitUntilCompleted];
-        [m_prevCommandBuffer release];
-
-        m_prevCommandBuffer = m_commandBuffer;
-
-        m_commandBuffer = [[m_commandQueue commandBuffer] retain];
-
         [m_currentDrawable release];
         m_currentDrawable = [[GetCAMetalLayer() nextDrawable] retain];
         ASSERT(m_currentDrawable);
@@ -1478,6 +1508,13 @@ void GpuDeviceMetal::ScenePresent()
 {
     [m_commandBuffer presentDrawable:m_currentDrawable];
     [m_commandBuffer commit];
+
+    [m_prevCommandBuffer waitUntilCompleted];
+    [m_prevCommandBuffer release];
+
+    m_prevCommandBuffer = m_commandBuffer;
+
+    m_commandBuffer = [[m_commandQueue commandBuffer] retain];
 
     ++m_frameNumber;
 }
