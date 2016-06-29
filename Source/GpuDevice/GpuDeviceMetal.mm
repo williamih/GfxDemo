@@ -20,9 +20,16 @@
 
 const u32 STREAM_RING_BUF_SIZE = 2 * 1024 * 1024; // 2 MB
 
-// All streaming-mode buffers have their size rounded up to a multiple of this
-// number.
-const u32 STREAM_BUF_SIZE_MULTIPLE = 64;
+// All streaming-mode and dynamic-mode buffers have their size rounded up to a
+// multiple of this number of bytes.
+// Note: As per the MTLRenderCommandEncoder documentation, only a 16 byte
+// alignment is required. However, we use a 64 byte alignment as this is
+// believed to be more optimal.
+const u32 BUF_ALIGNMENT = 64;
+
+// Alignment for constant buffers. The value of 256 bytes is required, as
+// specified by the MTLRenderCommandEncoder documentation.
+const u32 CONSTANT_BUF_ALIGNMENT = 256;
 
 // -----------------------------------------------------------------------------
 // Lookup tables for miscellaneous types
@@ -107,6 +114,12 @@ static const MTLResourceOptions s_bufferAccessModeToResourceOptions[] = {
 
     // GPU_BUFFER_ACCESS_STREAM
     0, // placeholder value only; stream-mode buffers don't use the lookup table
+};
+
+static const u32 s_bufferAlignments[] = {
+    BUF_ALIGNMENT, // GPU_BUFFER_TYPE_VERTEX
+    BUF_ALIGNMENT, // GPU_BUFFER_TYPE_INDEX
+    CONSTANT_BUF_ALIGNMENT, // GPU_BUFFER_TYPE_CONSTANT
 };
 
 // -----------------------------------------------------------------------------
@@ -455,6 +468,12 @@ static id<MTLBuffer> CreateStreamRingBuffer(id<MTLDevice> device)
     return [device newBufferWithLength:STREAM_RING_BUF_SIZE options:options];
 }
 
+static u32 RoundUp(u32 numToRound, u32 multiple)
+{
+    ASSERT(multiple != 0);
+    return ((numToRound + multiple - 1) / multiple) * multiple;
+}
+
 // -----------------------------------------------------------------------------
 // GpuDeviceMetal implementation
 // -----------------------------------------------------------------------------
@@ -746,12 +765,6 @@ void GpuDeviceMetal::BufferFlushRange(GpuBufferID bufferID, int start, int lengt
     [buffer.buffer didModifyRange:NSMakeRange(start, length)];
 }
 
-static u32 RoundUp(u32 numToRound, u32 multiple)
-{
-    ASSERT(multiple != 0);
-    return ((numToRound + multiple - 1) / multiple) * multiple;
-}
-
 void* GpuDeviceMetal::BufferMap(GpuBufferID bufferID)
 {
     ASSERT(BufferExists(bufferID));
@@ -762,7 +775,9 @@ void* GpuDeviceMetal::BufferMap(GpuBufferID bufferID)
     ASSERT(m_streamRingBufs.size() % 2 == 0);
     int numRingBuffersPerFrame = (int)(m_streamRingBufs.size() / 2);
 
-    u32 roundedSize = RoundUp(buffer.size, STREAM_BUF_SIZE_MULTIPLE);
+    // Round up the size so that subsequent offsets are aligned to a multiple
+    // of the appropriate value.
+    u32 roundedSize = RoundUp(buffer.size, s_bufferAlignments[buffer.type]);
 
     // Can the incoming batch fit in the current ring buffer?
     if (m_streamBufCursor + roundedSize > STREAM_RING_BUF_SIZE) {
