@@ -105,14 +105,20 @@ ModelShared::ModelShared(
     GpuDevice& device,
     TextureCache& textureCache,
     u8* mdlData,
-    u8* mdgData
+    u8* mdgData,
+    const char* path
 )
-    : m_device(device)
+    : m_link()
+
+    , m_device(device)
     , m_vertexBuf(0)
     , m_indexBuf(0)
     , m_firstInstance(NULL)
     , m_refCount(0)
+    , m_path()
 {
+    StrCopy(m_path, sizeof m_path, path);
+
     MDLHeader* mdlHeader = (MDLHeader*)GetMDLData();
     if (memcmp(mdlHeader->code, "MODL", 4) != 0)
         FATAL("Model has incorrect header code");
@@ -194,7 +200,7 @@ ModelShared* ModelShared::Create(
     u8* mdlData;
     loader.Load(path, &mdlData, NULL, MDLAlloc, NULL);
 
-    char mdgPath[260];
+    char mdgPath[MAX_PATH_LENGTH];
     PathReplaceExtension(mdgPath, sizeof mdgPath, path, ".mdg");
 
     u8* mdgData;
@@ -205,7 +211,8 @@ ModelShared* ModelShared::Create(
         device,
         textureCache,
         mdlData,
-        mdgData
+        mdgData,
+        path
     );
 
     free(mdgData);
@@ -233,6 +240,11 @@ void ModelShared::Release()
 {
     ASSERT(m_refCount > 0);
     --m_refCount;
+}
+
+const char* ModelShared::GetPath() const
+{
+    return m_path;
 }
 
 const u8* ModelShared::GetMDLData() const

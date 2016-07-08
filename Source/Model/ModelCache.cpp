@@ -1,16 +1,28 @@
 #include "Model/ModelCache.h"
 #include "Core/Macros.h"
-#include "Model/ModelShared.h"
 #include "Model/ModelInstance.h"
 
+namespace {
+    struct GetSharedKey {
+        HashKey_Str operator()(ModelShared* shared) const
+        {
+            HashKey_Str key;
+            key.str = shared->GetPath();
+            return key;
+        }
+    };
+}
+
 ModelCache::ModelCache()
-    : m_map()
+    : m_list()
+    , m_hash()
 {}
 
 ModelCache::~ModelCache()
 {
     RemoveUnused();
-    ASSERT(m_map.empty());
+    ASSERT(m_list.Head() == NULL);
+    ASSERT(m_hash.Count() == 0);
 }
 
 ModelShared* ModelCache::Get(
@@ -20,15 +32,16 @@ ModelShared* ModelCache::Get(
     const char* path
 )
 {
-    std::string strPath(path);
+    HashKey_Str key;
+    key.str = path;
 
-    auto iter = m_map.find(strPath);
-    if (iter != m_map.end())
-        return iter->second;
+    if (ModelShared* const* ppShared = m_hash.Get(key, GetSharedKey()))
+        return *ppShared;
 
     ModelShared* shared = ModelShared::Create(device, textureCache, loader, path);
 
-    m_map[path] = shared;
+    m_list.InsertTail(shared);
+    m_hash.Insert(shared, GetSharedKey());
     
     return shared;
 }
@@ -40,13 +53,14 @@ void ModelCache::Reload(
     const char* path
 )
 {
-    std::string strPath(path);
+    HashKey_Str key;
+    key.str = path;
 
-    auto iter = m_map.find(strPath);
-    if (iter == m_map.end())
+    ModelShared* const* ppShared = m_hash.Get(key, GetSharedKey());
+    if (!ppShared)
         return;
 
-    ModelShared* shared = iter->second;
+    ModelShared* shared = *ppShared;
 
     ModelShared* successor = ModelShared::Create(device, textureCache, loader, path);
 
@@ -55,23 +69,25 @@ void ModelCache::Reload(
         instance->Reload(successor);
     }
 
-    m_map[strPath] = successor;
+    m_list.InsertTail(successor);
+    m_hash.Insert(successor, GetSharedKey());
 
     ASSERT(shared->RefCount() == 0);
-    ModelShared::Destroy(shared);
+    ModelShared::Destroy(shared); // Automatically unlinks from the list
 }
 
 void ModelCache::RemoveUnused()
 {
-    auto iter = m_map.begin();
-    auto end = m_map.end();
-    while (iter != end) {
-        auto next = iter;
-        ++next;
-        if (iter->second->RefCount() == 0) {
-            ModelShared::Destroy(iter->second);
-            m_map.erase(iter);
+    for (ModelShared* shared = m_list.Head(); shared; ) {
+        ModelShared* next = shared->m_link.Next();
+
+        if (shared->RefCount() == 0) {
+            HashKey_Str key;
+            key.str = shared->GetPath();
+            ASSERT(m_hash.Delete(key, GetSharedKey()));
+            ModelShared::Destroy(shared);
         }
-        iter = next;
+
+        shared = next;
     }
 }

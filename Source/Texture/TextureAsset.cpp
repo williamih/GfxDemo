@@ -5,6 +5,17 @@
 
 #include "Texture/DDSFile.h"
 
+namespace {
+    struct GetTextureKey {
+        HashKey_Str operator()(TextureAsset* texture) const
+        {
+            HashKey_Str key;
+            key.str = texture->GetPath();
+            return key;
+        }
+    };
+}
+
 const int REFRESH_STATUS_MASK = 0x80000000;
 const int REF_COUNT_MASK = ~(REFRESH_STATUS_MASK);
 
@@ -60,7 +71,9 @@ static GpuTextureID CreateTexture(GpuDevice& device, DDSFile& file)
 }
 
 TextureAsset::TextureAsset(GpuDevice& device, DDSFile& file)
-    : m_device(device)
+    : m_link()
+
+    , m_device(device)
     , m_texture(CreateTexture(device, file))
     , m_refCountAndRefreshStatus(0)
 {}
@@ -91,6 +104,11 @@ void TextureAsset::Release()
     --m_refCountAndRefreshStatus;
 }
 
+const char* TextureAsset::GetPath() const
+{
+    return (const char*)(this + 1);
+}
+
 GpuTextureID TextureAsset::Refresh(DDSFile& file)
 {
     GpuTextureID oldTex = m_texture;
@@ -108,6 +126,25 @@ void TextureAsset::ClearRefreshedStatus()
     m_refCountAndRefreshStatus &= ~(REFRESH_STATUS_MASK);
 }
 
+TextureAsset* TextureAsset::Create(GpuDevice& device, DDSFile& file,
+                                   const char* path)
+{
+    size_t pathLen = StrLen(path) + 1; // includes the null terminator ( + 1 )
+    void* memory = malloc(sizeof(TextureAsset) + pathLen);
+
+    // Copy over the path
+    memcpy((u8*)memory + sizeof(TextureAsset), path, pathLen);
+
+    // Create the texture
+    return new (memory) TextureAsset(device, file);
+}
+
+void TextureAsset::Destroy(TextureAsset* texture)
+{
+    texture->~TextureAsset();
+    free(texture);
+}
+
 static void* Alloc(u32 size, void* userdata)
 {
     return malloc(size);
@@ -121,29 +158,30 @@ static void Destroy(void* ptr, void* userdata)
 TextureCache::TextureCache(GpuDevice& device, FileLoader& loader)
     : m_device(device)
     , m_fileLoader(loader)
-    , m_textures()
-    , m_refreshQueue(&TextureCache::RefreshPerform, &TextureCache::RefreshFinalize, (void*)this)
+
+    , m_textureList()
+    , m_textureHash()
+
+    , m_refreshQueue(&TextureCache::RefreshPerform,
+                     &TextureCache::RefreshFinalize, (void*)this)
 {}
 
 TextureCache::~TextureCache()
 {
     m_refreshQueue.Clear();
 
-    auto iter = m_textures.begin();
-    auto end = m_textures.end();
-    for ( ; iter != end; ++iter) {
-        ASSERT(iter->second->RefCount() == 0);
-        delete iter->second;
-    }
+    RemoveUnusedTextures();
+    ASSERT(m_textureList.Head() == NULL);
+    ASSERT(m_textureHash.Count() == 0);
 }
 
 TextureAsset* TextureCache::FindOrLoad(const char* path)
 {
-    std::string strPath(path);
+    HashKey_Str key;
+    key.str = path;
 
-    auto iter = m_textures.find(strPath);
-    if (iter != m_textures.end())
-        return iter->second;
+    if (TextureAsset* const* ppTexture = m_textureHash.Get(key, GetTextureKey()))
+        return *ppTexture;
 
     u8* data;
     u32 size;
@@ -151,21 +189,40 @@ TextureAsset* TextureCache::FindOrLoad(const char* path)
 
     DDSFile file(data, size, path, &Destroy, NULL);
 
-    TextureAsset* texture = new TextureAsset(m_device, file);
+    TextureAsset* texture = TextureAsset::Create(m_device, file, path);
 
-    m_textures[path] = texture;
+    m_textureList.InsertTail(texture);
+    m_textureHash.Insert(texture, GetTextureKey());
 
     return texture;
 }
 
+void TextureCache::RemoveUnusedTextures()
+{
+    for (TextureAsset* texture = m_textureList.Head(); texture; ) {
+        TextureAsset* next = texture->m_link.Next();
+
+        if (texture->RefCount() == 0) {
+            HashKey_Str key;
+            key.str = texture->GetPath();
+            ASSERT(m_textureHash.Delete(key, GetTextureKey()));
+            TextureAsset::Destroy(texture);
+        }
+
+        texture = next;
+    }
+}
+
 void TextureCache::Refresh(const char* path)
 {
-    std::string strPath(path);
+    HashKey_Str key;
+    key.str = path;
 
-    auto iter = m_textures.find(path);
-    if (iter == m_textures.end())
+    TextureAsset* const* ppTexture = m_textureHash.Get(key, GetTextureKey());
+    if (!ppTexture)
         return;
-    TextureAsset* texture = iter->second;
+
+    TextureAsset* texture = *ppTexture;
 
     texture->AddRef();
     m_refreshQueue.QueueRefresh(texture, path);

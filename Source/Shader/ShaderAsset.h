@@ -1,8 +1,9 @@
 #ifndef SHADER_SHADERASSET_H
 #define SHADER_SHADERASSET_H
 
-#include <string>
-#include <unordered_map>
+#include "Core/List.h"
+#include "Core/Hash.h"
+#include "Core/HashTypes.h"
 #include "GpuDevice/GpuDevice.h"
 #include "Asset/AssetRefreshQueue.h"
 
@@ -10,25 +11,32 @@ class FileLoader;
 
 class ShaderAsset {
 public:
-    ShaderAsset(GpuDevice& device, const char* data, size_t length);
-    ~ShaderAsset();
-
     GpuShaderProgramID GetGpuShaderProgramID() const;
 
     int RefCount() const;
     void AddRef();
     void Release();
 
+    const char* GetName() const;
+
     // Returns the old shader program ID
-    GpuShaderProgramID Refresh(const char* data, size_t length);
+    GpuShaderProgramID Refresh(FileLoader& loader);
     bool PollRefreshed() const;
 
+    // For use by the ShaderCache class -- these shouldn't need to be called
+    // by user code.
+    void ClearRefreshedStatus();
+    static ShaderAsset* Create(GpuDevice& device, FileLoader& loader,
+                               const char* name);
+    static void Destroy(ShaderAsset* shader);
+
+    LIST_LINK(ShaderAsset) m_link;
+
 private:
+    ShaderAsset(GpuDevice& device, FileLoader& loader, const char* name);
+    ~ShaderAsset();
     ShaderAsset(const ShaderAsset&);
     ShaderAsset& operator=(const ShaderAsset&);
-
-    friend class ShaderCache;
-    void ClearRefreshedStatus();
 
     GpuDevice& m_device;
     GpuShaderProgramID m_shaderProgram;
@@ -41,6 +49,9 @@ public:
     ~ShaderCache();
 
     ShaderAsset* FindOrLoad(const char* name);
+
+    void RemoveUnusedShaders();
+
     void Refresh(const char* name);
     void UpdateRefreshSystem();
 
@@ -57,7 +68,10 @@ private:
 
     GpuDevice& m_device;
     FileLoader& m_fileLoader;
-    std::unordered_map<std::string, ShaderAsset*> m_shaders;
+
+    LIST_DECLARE(ShaderAsset, m_link) m_shaderList;
+    THash<HashKey_Str, ShaderAsset*> m_shaderHash;
+
     AssetRefreshQueue<ShaderAsset, GpuShaderProgramID> m_refreshQueue;
 };
 

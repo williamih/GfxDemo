@@ -3,17 +3,49 @@
 #include <stdlib.h>
 
 #include "Core/Macros.h"
+#include "Core/Str.h"
 #include "Core/FileLoader.h"
+
+namespace {
+    struct GetShaderKey {
+        HashKey_Str operator()(ShaderAsset* shader) const
+        {
+            HashKey_Str key;
+            key.str = shader->GetName();
+            return key;
+        }
+    };
+}
 
 const int REFRESH_STATUS_MASK = 0x80000000;
 const int REF_COUNT_MASK = ~(REFRESH_STATUS_MASK);
 
-ShaderAsset::ShaderAsset(GpuDevice& device, const char* data, size_t length)
-    : m_device(device)
+const int SHADER_MAX_PATH_LENGTH = 260;
+
+static void* Alloc(u32 size, void*) { return malloc(size); }
+
+static void PrintFullPath(char* dst, size_t dstChars, const char* shaderName)
+{
+    StrPrintf(dst, dstChars, "%s_MTL.shd", shaderName);
+}
+
+ShaderAsset::ShaderAsset(GpuDevice& device, FileLoader& loader, const char* name)
+    : m_link()
+
+    , m_device(device)
     , m_shaderProgram(0)
     , m_refCountAndRefreshStatus(0)
 {
-    m_shaderProgram = device.ShaderProgramCreate(data, length);
+    char fullPath[SHADER_MAX_PATH_LENGTH];
+    PrintFullPath(fullPath, sizeof fullPath, name);
+
+    u8* data;
+    u32 size;
+    loader.Load(fullPath, &data, &size, Alloc, NULL);
+
+    m_shaderProgram = device.ShaderProgramCreate((const char*)data, (size_t)size);
+
+    free(data);
 }
 
 ShaderAsset::~ShaderAsset()
@@ -42,10 +74,26 @@ void ShaderAsset::Release()
     --m_refCountAndRefreshStatus;
 }
 
-GpuShaderProgramID ShaderAsset::Refresh(const char* data, size_t length)
+const char* ShaderAsset::GetName() const
+{
+    return (const char*)(this + 1);
+}
+
+GpuShaderProgramID ShaderAsset::Refresh(FileLoader& loader)
 {
     GpuShaderProgramID old = m_shaderProgram;
-    m_shaderProgram = m_device.ShaderProgramCreate(data, length);
+
+    char fullPath[SHADER_MAX_PATH_LENGTH];
+    PrintFullPath(fullPath, sizeof fullPath, GetName());
+
+    u8* data;
+    u32 size;
+    loader.Load(fullPath, &data, &size, Alloc, NULL);
+
+    m_shaderProgram = m_device.ShaderProgramCreate((const char*)data, (size_t)size);
+
+    free(data);
+
     m_refCountAndRefreshStatus |= REFRESH_STATUS_MASK;
     return old;
 }
@@ -60,64 +108,90 @@ void ShaderAsset::ClearRefreshedStatus()
     m_refCountAndRefreshStatus &= ~(REFRESH_STATUS_MASK);
 }
 
+ShaderAsset* ShaderAsset::Create(GpuDevice& device, FileLoader& loader,
+                                 const char* path)
+{
+    size_t pathLen = StrLen(path) + 1; // include null terminator ( + 1 )
+    void* memory = malloc(sizeof(ShaderAsset) + pathLen);
+
+    // Copy over the path
+    memcpy((u8*)memory + sizeof(ShaderAsset), path, pathLen);
+
+    // Create the shader
+    return new (memory) ShaderAsset(device, loader, path);
+}
+
+void ShaderAsset::Destroy(ShaderAsset* shader)
+{
+    shader->~ShaderAsset();
+    free(shader);
+}
+
 ShaderCache::ShaderCache(GpuDevice& device, FileLoader& loader)
     : m_device(device)
     , m_fileLoader(loader)
-    , m_shaders()
-    , m_refreshQueue(&ShaderCache::RefreshPerform, &ShaderCache::RefreshFinalize, (void*)this)
+
+    , m_shaderList()
+    , m_shaderHash()
+
+    , m_refreshQueue(&ShaderCache::RefreshPerform,
+                     &ShaderCache::RefreshFinalize, (void*)this)
 {}
 
 ShaderCache::~ShaderCache()
 {
     m_refreshQueue.Clear();
 
-    auto iter = m_shaders.begin();
-    auto end = m_shaders.end();
-    for ( ; iter != end; ++iter) {
-        ASSERT(iter->second->RefCount() == 0);
-        delete iter->second;
-    }
+    RemoveUnusedShaders();
+    ASSERT(m_shaderList.Head() == NULL);
+    ASSERT(m_shaderHash.Count() == 0);
 }
-
-static std::string GetPath(const char* name)
-{
-    return name + std::string("_MTL.shd");
-}
-
-static void* Alloc(u32 size, void*) { return malloc(size); }
 
 ShaderAsset* ShaderCache::FindOrLoad(const char* name)
 {
-    std::string path(GetPath(name));
+    HashKey_Str key;
+    key.str = name;
 
-    auto iter = m_shaders.find(path);
-    if (iter != m_shaders.end())
-        return iter->second;
+    if (ShaderAsset* const* ppShader = m_shaderHash.Get(key, GetShaderKey()))
+        return *ppShader;
 
-    u8* data;
-    u32 size;
-    m_fileLoader.Load(path.c_str(), &data, &size, Alloc, NULL);
+    ShaderAsset* shader = ShaderAsset::Create(m_device, m_fileLoader, name);
 
-    ShaderAsset* shader = new ShaderAsset(m_device, (const char*)data, (size_t)size);
-
-    free(data);
-
-    m_shaders[path] = shader;
+    m_shaderList.InsertTail(shader);
+    m_shaderHash.Insert(shader, GetShaderKey());
 
     return shader;
 }
 
+void ShaderCache::RemoveUnusedShaders()
+{
+    for (ShaderAsset* shader = m_shaderList.Head(); shader; ) {
+        ShaderAsset* next = shader->m_link.Next();
+
+        if (shader->RefCount() == 0) {
+            HashKey_Str key;
+            key.str = shader->GetName();
+            ASSERT(m_shaderHash.Delete(key, GetShaderKey()));
+            ShaderAsset::Destroy(shader);
+        }
+
+        shader = next;
+    }
+}
+
 void ShaderCache::Refresh(const char* name)
 {
-    std::string path(GetPath(name));
+    HashKey_Str key;
+    key.str = name;
 
-    auto iter = m_shaders.find(path);
-    if (iter == m_shaders.end())
+    ShaderAsset* const* ppShader = m_shaderHash.Get(key, GetShaderKey());
+    if (!ppShader)
         return;
-    ShaderAsset* shader = iter->second;
+
+    ShaderAsset* shader = *ppShader;
 
     shader->AddRef();
-    m_refreshQueue.QueueRefresh(shader, path.c_str());
+    m_refreshQueue.QueueRefresh(shader, name);
 }
 
 void ShaderCache::UpdateRefreshSystem()
@@ -131,13 +205,7 @@ GpuShaderProgramID ShaderCache::RefreshPerform(ShaderAsset* shader,
 {
     ShaderCache* self = (ShaderCache*)userdata;
 
-    u8* data;
-    u32 size;
-    self->m_fileLoader.Load(path, &data, &size, Alloc, NULL);
-
-    GpuShaderProgramID old = shader->Refresh((const char*)data, (size_t)size);
-
-    free(data);
+    GpuShaderProgramID old = shader->Refresh(self->m_fileLoader);
 
     return old;
 }
@@ -150,6 +218,7 @@ void ShaderCache::RefreshFinalize(ShaderAsset* shader,
 
     if (oldProgram != GpuShaderProgramID())
         self->m_device.ShaderProgramDestroy(oldProgram);
+
     shader->ClearRefreshedStatus();
     shader->Release();
 }
