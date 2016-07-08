@@ -191,7 +191,7 @@ void ShaderCache::Refresh(const char* name)
     ShaderAsset* shader = *ppShader;
 
     shader->AddRef();
-    m_refreshQueue.QueueRefresh(shader, name);
+    m_refreshQueue.QueueRefresh(shader);
 }
 
 void ShaderCache::UpdateRefreshSystem()
@@ -200,7 +200,6 @@ void ShaderCache::UpdateRefreshSystem()
 }
 
 GpuShaderProgramID ShaderCache::RefreshPerform(ShaderAsset* shader,
-                                               const char* path,
                                                void* userdata)
 {
     ShaderCache* self = (ShaderCache*)userdata;

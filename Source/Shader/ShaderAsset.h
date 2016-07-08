@@ -60,7 +60,7 @@ private:
     ShaderCache& operator=(const ShaderCache&);
 
     static GpuShaderProgramID RefreshPerform(
-        ShaderAsset* shader, const char* path, void* userdata
+        ShaderAsset* shader, void* userdata
     );
     static void RefreshFinalize(
         ShaderAsset* shader, GpuShaderProgramID oldProgram, void* userdata

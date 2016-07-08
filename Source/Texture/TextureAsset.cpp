@@ -225,7 +225,7 @@ void TextureCache::Refresh(const char* path)
     TextureAsset* texture = *ppTexture;
 
     texture->AddRef();
-    m_refreshQueue.QueueRefresh(texture, path);
+    m_refreshQueue.QueueRefresh(texture);
 }
 
 void TextureCache::UpdateRefreshSystem()
@@ -234,10 +234,11 @@ void TextureCache::UpdateRefreshSystem()
 }
 
 GpuTextureID TextureCache::RefreshPerform(TextureAsset* texture,
-                                          const char* path,
                                           void* userdata)
 {
     TextureCache* self = (TextureCache*)userdata;
+
+    const char* path = texture->GetPath();
 
     u8* data;
     u32 size;

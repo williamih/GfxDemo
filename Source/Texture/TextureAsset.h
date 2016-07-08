@@ -60,7 +60,7 @@ private:
     TextureCache& operator=(const TextureCache&);
 
     static GpuTextureID RefreshPerform(
-        TextureAsset* texture, const char* path, void* userdata
+        TextureAsset* texture, void* userdata
     );
     static void RefreshFinalize(
         TextureAsset* texture, GpuTextureID oldProgram, void* userdata
