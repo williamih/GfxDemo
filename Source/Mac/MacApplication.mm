@@ -37,8 +37,9 @@ void MacApplication::Initialize()
     [MacCocoaApplication sharedApplication];
     [NSApp loadNib];
 
-    NSString* resourcePath = [[NSBundle mainBundle] resourcePath];
-    [[NSFileManager defaultManager] changeCurrentDirectoryPath:resourcePath];
+    NSString* bundlePath = [[NSBundle mainBundle] bundlePath];
+    NSString* appDir = [bundlePath stringByDeletingLastPathComponent];
+    [[NSFileManager defaultManager] changeCurrentDirectoryPath:appDir];
 }
 
 void MacApplication::RegisterOnQuit(void (*callback)(void*), void* userdata)

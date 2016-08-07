@@ -19,7 +19,6 @@
 		7A10CEA31C0070C000A6816F /* Quaternion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE9B1C0070C000A6816F /* Quaternion.cpp */; };
 		7A10CEA41C0070C000A6816F /* Vector3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE9D1C0070C000A6816F /* Vector3.cpp */; };
 		7A10CEA51C0070C000A6816F /* Vector4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A10CE9F1C0070C000A6816F /* Vector4.cpp */; };
-		7A15D2C41BF9728E000DD053 /* Assets in Resources */ = {isa = PBXBuildFile; fileRef = 7A15D2C31BF9728E000DD053 /* Assets */; };
 		7A208EB61C013423002B4459 /* GpuDrawItemWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */; };
 		7A20A7FE1C6952A300E82F66 /* Path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A20A7FC1C6952A300E82F66 /* Path.cpp */; };
 		7A20A8011C69543C00E82F66 /* Str.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A20A7FF1C69543C00E82F66 /* Str.cpp */; };
@@ -73,7 +72,6 @@
 		7A10CE9E1C0070C000A6816F /* Vector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Vector3.h; sourceTree = "<group>"; };
 		7A10CE9F1C0070C000A6816F /* Vector4.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vector4.cpp; sourceTree = "<group>"; };
 		7A10CEA01C0070C000A6816F /* Vector4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Vector4.h; sourceTree = "<group>"; };
-		7A15D2C31BF9728E000DD053 /* Assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Assets; sourceTree = "<group>"; };
 		7A208EB41C013423002B4459 /* GpuDrawItemWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GpuDrawItemWriter.cpp; sourceTree = "<group>"; };
 		7A208EB51C013423002B4459 /* GpuDrawItemWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuDrawItemWriter.h; sourceTree = "<group>"; };
 		7A208EB71C014263002B4459 /* GpuDrawItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GpuDrawItem.h; sourceTree = "<group>"; };
@@ -292,7 +290,6 @@
 				7AEAF2021BF81E7E00620EB0 /* Cocoa.framework */,
 				7AEAF2041BF81E9300620EB0 /* QuartzCore.framework */,
 				7A4492061BF1E63500444DFC /* Metal.framework */,
-				7A15D2C31BF9728E000DD053 /* Assets */,
 				7A15D2BE1BF97289000DD053 /* Shaders */,
 				CA0085181A43A21800E2A102 /* Source */,
 				CA0085191A43A21800E2A102 /* Supporting Files */,
@@ -350,6 +347,7 @@
 				CA0085121A43A21800E2A102 /* Sources */,
 				CA0085131A43A21800E2A102 /* Frameworks */,
 				CA0085141A43A21800E2A102 /* Resources */,
+				7AF173F01D5746A80056427E /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -398,11 +396,26 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA0085241A43A21800E2A102 /* MainMenu.xib in Resources */,
-				7A15D2C41BF9728E000DD053 /* Assets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		7AF173F01D5746A80056427E /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "rm -f $CONFIGURATION_BUILD_DIR/Assets\nln -s $SRCROOT/Assets $CONFIGURATION_BUILD_DIR/Assets";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		CA0085121A43A21800E2A102 /* Sources */ = {
