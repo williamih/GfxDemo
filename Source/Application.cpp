@@ -14,6 +14,8 @@
 
 #include "OsWindow.h"
 
+const char* const ASSET_BASE_PATH = "Assets";
+
 static void OnWindowResize(const OsEvent& event, void* userdata)
 {
     ((GpuDevice*)userdata)->OnWindowResized();
@@ -49,7 +51,7 @@ Application::Application()
     , m_gpuDevice(CreateGpuDevice(*m_window), &GpuDevice::Destroy)
     , m_samplerCache(*m_gpuDevice)
 
-    , m_fileLoader()
+    , m_fileLoader(ASSET_BASE_PATH)
 
     , m_shaderCache(*m_gpuDevice, m_fileLoader)
     , m_textureCache(*m_gpuDevice, m_fileLoader)
@@ -60,9 +62,9 @@ Application::Application()
     , m_floor(NULL)
     , m_angle(0.0f)
 {
-    m_teapot = m_scene.AddModelInstance("Assets/Models/Teapot.mdl");
-    m_floor = m_scene.AddModelInstance("Assets/Models/Floor.mdl");
-    m_scene.SetSkybox("Assets/Models/Skybox.mdl");
+    m_teapot = m_scene.AddModelInstance("Models\\Teapot.mdl");
+    m_floor = m_scene.AddModelInstance("Models\\Floor.mdl");
+    m_scene.SetSkybox("Models\\Skybox.mdl");
     m_samplerCache.SetFilterQuality(GpuSamplerCache::ANISOTROPIC, 16);
 
     Matrix44 floorTransform(1.0f, 0.0f, 0.0f, 0.0f,
@@ -187,5 +189,5 @@ void Application::OnMouseDragged(const OsEvent& event, void* userdata)
 
 void Application::RefreshModelShader()
 {
-    m_shaderCache.Refresh("Assets/Shaders/Model");
+    m_shaderCache.Refresh("Shaders\\Model");
 }

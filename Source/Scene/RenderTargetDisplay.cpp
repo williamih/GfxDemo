@@ -30,7 +30,7 @@ RenderTargetDisplay::RenderTargetDisplay(
 )
     : m_device(device)
     , m_samplerCache(samplerCache)
-    , m_shader(shaderCache.FindOrLoad("Assets/Shaders/BlitRT"))
+    , m_shader(shaderCache.FindOrLoad("Shaders\\BlitRT"))
     , m_renderPass()
     , m_vertexBuf()
     , m_inputLayout()

@@ -95,10 +95,10 @@ ModelScene::ModelScene(
     , m_inputLayout(0)
     , m_PSOs()
 {
-    m_modelShader = shaderCache.FindOrLoad("Assets/Shaders/Model");
+    m_modelShader = shaderCache.FindOrLoad("Shaders\\Model");
     m_modelShader->AddRef();
 
-    m_skyboxShader = shaderCache.FindOrLoad("Assets/Shaders/Skybox");
+    m_skyboxShader = shaderCache.FindOrLoad("Shaders\\Skybox");
     m_skyboxShader->AddRef();
 
     m_sceneCBuffer = device.BufferCreate(

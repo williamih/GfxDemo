@@ -87,7 +87,7 @@ void Scene::SetSkybox(const char* path)
 {
     if (m_skybox)
         m_modelScene.DestroyModelInstance(m_skybox);
-    m_skybox = m_modelScene.CreateModelInstance("Assets/Models/Skybox.mdl",
+    m_skybox = m_modelScene.CreateModelInstance("Models\\Skybox.mdl",
                                                 ModelInstance::FLAG_SKYBOX);
     m_skybox->Update(Matrix44(), Vector3(1.0f, 1.0f, 1.0f), Vector3(), 1.0f);
 }

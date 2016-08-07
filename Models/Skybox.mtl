@@ -4,28 +4,28 @@ Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 Ni 1.00
-map_Kd Assets/Textures/Skybox/Bot.dds
+map_Kd Textures\Skybox\Bot.dds
 newmtl skyboxEastFace
 illum 4
 Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 Ni 1.00
-map_Kd Assets/Textures/Skybox/East.dds
+map_Kd Textures\Skybox\East.dds
 newmtl skyboxNorthFace
 illum 4
 Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 Ni 1.00
-map_Kd Assets/Textures/Skybox/North.dds
+map_Kd Textures\Skybox\North.dds
 newmtl skyboxSouthFace
 illum 4
 Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 map_Kd floor_color.png
-map_Kd Assets/Textures/Skybox/South.dds
+map_Kd Textures\Skybox\South.dds
 Ni 1.00
 newmtl skyboxTopFace
 illum 4
@@ -33,11 +33,11 @@ Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 Ni 1.00
-map_Kd Assets/Textures/Skybox/Top.dds
+map_Kd Textures\Skybox\Top.dds
 newmtl skyboxWestFace
 illum 4
 Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 Ni 1.00
-map_Kd Assets/Textures/Skybox/West.dds
+map_Kd Textures\Skybox\West.dds
