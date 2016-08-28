@@ -137,9 +137,14 @@ enum GpuBufferAccessMode {
     // >every< frame. Data in these buffers do not persist across frames; it is
     // an >error< to try to draw from a stream-mode buffer in a frame in which
     // it has not been updated.
+    //
     // These may only be used for buffers whose size is >small<, for example
     // in the hundreds of kilobytes range. If a larger dynamic buffer is
     // required, use the GPU_BUFFER_ACCESS_DYNAMIC mode.
+    //
+    // Another benefit of this access mode is that -- unlike the other modes --
+    // stream-mode buffers may be resized. This is done via the
+    // GpuDevice::BufferStreamResize() function.
     GPU_BUFFER_ACCESS_STREAM,
 };
 
@@ -334,6 +339,13 @@ public:
                              unsigned size,
                              int maxUpdatesPerFrame);
     void BufferDestroy(GpuBufferID bufferID);
+
+    // Can only be used on GPU_BUFFER_ACCESS_STREAM buffers.
+    // Resizing the buffer does >not< affect the results of any draw calls
+    // currently in-progress on the buffer. Changing the size only has effect
+    // when the buffer is next mapped/modified.
+    void BufferStreamResize(GpuBufferID bufferID, unsigned newSize);
+
     // Use on GPU_BUFFER_ACCESS_DYNAMIC and GPU_BUFFER_ACCESS_STREAM buffers only.
     void* BufferMap(GpuBufferID bufferID);
     void BufferUnmap(GpuBufferID bufferID);

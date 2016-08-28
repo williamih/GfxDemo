@@ -226,6 +226,7 @@ public:
                              unsigned size,
                              int maxUpdatesPerFrame);
     void BufferDestroy(GpuBufferID bufferID);
+    void BufferStreamResize(GpuBufferID bufferID, unsigned newSize);
 
 private:
     void* DynamicBufferMap(GpuBufferID bufferID);
@@ -805,6 +806,15 @@ GpuBufferID GpuDeviceMetal::BufferCreate(GpuBufferType type,
     ++m_dbg_bufferCount;
 
     return bufferID;
+}
+
+void GpuDeviceMetal::BufferStreamResize(GpuBufferID bufferID, unsigned newSize)
+{
+    ASSERT(BufferExists(bufferID));
+    Buffer& buffer = m_bufferTable.Lookup(bufferID);
+    ASSERT(buffer.accessMode == GPU_BUFFER_ACCESS_STREAM);
+
+    buffer.size = newSize;
 }
 
 void GpuDeviceMetal::BufferDestroy(GpuBufferID bufferID)
@@ -1598,6 +1608,9 @@ GpuBufferID GpuDevice::BufferCreate(GpuBufferType type,
 
 void GpuDevice::BufferDestroy(GpuBufferID bufferID)
 { Cast(this)->BufferDestroy(bufferID); }
+
+void GpuDevice::BufferStreamResize(GpuBufferID bufferID, unsigned newSize)
+{ Cast(this)->BufferStreamResize(bufferID, newSize); }
 
 void* GpuDevice::BufferMap(GpuBufferID bufferID)
 { return Cast(this)->BufferMap(bufferID); }
