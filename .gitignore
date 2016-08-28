@@ -1,4 +1,7 @@
 .DS_Store
 Assets/Models/*
 Assets/Shaders/*
-xcuserdata
+*.xcodeproj
+*.xcworkspace
+bin/*
+obj/*
