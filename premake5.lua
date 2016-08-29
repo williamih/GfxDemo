@@ -23,7 +23,7 @@ project "GfxDemo"
         optimize "On"
 
     filter "platforms:OSX"
-        files { "Source/**.m", "Source/**.mm", "**.xib", "Source/Info.plist" }
+        files { "Source/**.m", "Source/**.mm", "Mac/**.xib", "Mac/Info.plist" }
         architecture "x64"
         links {
             "Cocoa.framework",
