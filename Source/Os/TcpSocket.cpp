@@ -5,12 +5,18 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <fcntl.h>
+#include <poll.h>
 
 #include "Core/Macros.h"
 
-static void ProcessSocketError()
+const u32 FLAG_NONBLOCKING = 1;
+const u32 FLAG_CONNECTED = 2;
+const u32 FLAG_CONNECTION_IN_PROGRESS = 4;
+
+static void ProcessSocketError(int error)
 {
-    switch (errno) {
+    switch (error) {
         // Errors that should not occur -- indicating a programming error in
         // this file.
         case EAGAIN:
@@ -35,7 +41,7 @@ static void ProcessSocketError()
         // errors should not occur
         case ENOENT:
         case ENOTDIR:
-            FATAL("TcpSocket: programming error: %s", strerror(errno));
+            FATAL("TcpSocket: programming error: %s", strerror(error));
             break;
 
         // Errors relating to the address
@@ -69,21 +75,36 @@ static void ProcessSocketError()
             break;
 
         default:
-            FATAL("TcpSocket: error: %s", strerror(errno));
+            FATAL("TcpSocket: error: %s", strerror(error));
             break;
     }
 }
 
-TcpSocket::TcpSocket()
+TcpSocket::TcpSocket(BlockingMode blockingMode)
     : m_handle(-1)
-{}
+    , m_flags((blockingMode == NONBLOCKING) ? FLAG_NONBLOCKING : 0)
+{
+    if (blockingMode == NONBLOCKING) {
+        int flags = fcntl(m_handle, F_GETFL, 0);
+        if (flags < 0)
+            FATAL("fcntl");
+        flags |= O_NONBLOCK;
+        if (fcntl(m_handle, F_SETFL, flags) != 0)
+            FATAL("fcntl");
+    }
+}
 
 TcpSocket::~TcpSocket()
 {
     Disconnect();
 }
 
-bool TcpSocket::Connect(u32 address, u16 port)
+TcpSocket::BlockingMode TcpSocket::GetBlockingMode() const
+{
+    return (m_flags & FLAG_NONBLOCKING) ? NONBLOCKING : BLOCKING;
+}
+
+TcpSocket::SocketResult TcpSocket::Connect(u32 address, u16 port)
 {
     ASSERT(!IsConnected());
     Create();
@@ -97,14 +118,20 @@ bool TcpSocket::Connect(u32 address, u16 port)
         if (connect(m_handle, (sockaddr*)&addr, sizeof addr) != 0) {
             if (errno == EINTR)
                 continue;
-            ProcessSocketError();
+            // TODO: Do we need to check for EWOULDBLOCK as well?
+            if (errno == EINPROGRESS || errno == EWOULDBLOCK) {
+                m_flags |= FLAG_CONNECTION_IN_PROGRESS;
+                return WOULDBLOCK;
+            }
+            ProcessSocketError(errno);
             Disconnect();
-            return false;
+            return FAILURE;
         }
         break;
     }
 
-    return true;
+    m_flags |= FLAG_CONNECTED;
+    return SUCCESS;
 }
 
 void TcpSocket::Disconnect()
@@ -114,14 +141,56 @@ void TcpSocket::Disconnect()
             FATAL("close");
         m_handle = -1;
     }
+    m_flags &= ~(FLAG_CONNECTED);
+}
+
+TcpSocket::PollConnectionResult TcpSocket::PollNonblockingConnect()
+{
+    ASSERT(m_flags & FLAG_CONNECTION_IN_PROGRESS);
+
+    fd_set writefds;
+    FD_ZERO(&writefds);
+    FD_SET(m_handle, &writefds);
+
+    timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+
+    int ret = select(1, NULL, &writefds, NULL, &tv);
+    if (ret == 0)
+        return CONNECTION_IN_PROGRESS;
+
+    if (ret == -1)
+        FATAL("select: %s\n", strerror(errno));
+
+    m_flags &= ~(FLAG_CONNECTION_IN_PROGRESS);
+
+    int error = 0;
+    socklen_t len = sizeof error;
+    int retval = getsockopt(m_handle, SOL_SOCKET, SO_ERROR, &error, &len);
+    if (retval != 0)
+        FATAL("getsockopt: %s", strerror(retval));
+
+    if (error == 0) {
+        m_flags |= FLAG_CONNECTED;
+        return CONNECTION_SUCCEEDED;
+    } else {
+        ProcessSocketError(error);
+        return CONNECTION_ERROR;
+    }
+}
+
+bool TcpSocket::IsConnectionInProgress() const
+{
+    return (m_flags & FLAG_CONNECTION_IN_PROGRESS) != 0;
 }
 
 bool TcpSocket::IsConnected() const
 {
-    return m_handle != -1;
+    return (m_flags & FLAG_CONNECTED) != 0;
 }
 
-bool TcpSocket::Send(const void* data, size_t bytes)
+TcpSocket::SocketResult TcpSocket::Send(const void* data, size_t bytes)
 {
     ASSERT(IsConnected());
     size_t remaining = bytes;
@@ -131,17 +200,19 @@ bool TcpSocket::Send(const void* data, size_t bytes)
         if (sent == -1) {
             if (errno == EINTR)
                 continue;
-            ProcessSocketError();
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                return WOULDBLOCK;
+            ProcessSocketError(errno);
             Disconnect();
-            return false;
+            return FAILURE;
         }
         remaining -= (size_t)sent;
         p = (const u8*)p + (size_t)sent;
     }
-    return true;
+    return SUCCESS;
 }
 
-bool TcpSocket::Recv(void* buf, size_t bufLen, size_t* received)
+TcpSocket::SocketResult TcpSocket::Recv(void* buf, size_t bufLen, size_t* received)
 {
     ASSERT(IsConnected());
     ssize_t ret;
@@ -150,9 +221,11 @@ bool TcpSocket::Recv(void* buf, size_t bufLen, size_t* received)
         if (ret == -1) {
             if (errno == EINTR)
                 continue;
-            ProcessSocketError();
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                return WOULDBLOCK;
+            ProcessSocketError(errno);
             Disconnect();
-            return false;
+            return FAILURE;
         }
         break;
     }
@@ -160,7 +233,7 @@ bool TcpSocket::Recv(void* buf, size_t bufLen, size_t* received)
         Disconnect(); // orderly shutdown on remote end
     if (received)
         *received = (size_t)ret;
-    return true;
+    return SUCCESS;
 }
 
 void TcpSocket::Create()
