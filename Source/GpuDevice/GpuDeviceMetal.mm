@@ -1,3 +1,5 @@
+#ifdef GPUDEVICE_API_METAL
+
 #include "GpuDevice/GpuDevice.h"
 
 #include <stdio.h>
@@ -1735,3 +1737,5 @@ Matrix44 GpuDevice::TransformCreatePerspective(float left, float right,
                     0.0f, 0.0f, C, D,
                     0.0f, 0.0f, -1.0f, 0.0f);
 }
+
+#endif // GPUDEVICE_API_METAL
