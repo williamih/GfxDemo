@@ -41,12 +41,12 @@ public:
         for (size_t i = 0; i < m_refreshList.size(); ) {
             RefreshInfo& info = m_refreshList[i];
             if (info.old != TValue()) {
-                info.old = m_refresh(info.asset, m_userdata);
-                ++i;
-            } else {
                 m_finalize(info.asset, info.old, m_userdata);
                 m_refreshList[i] = m_refreshList.back();
                 m_refreshList.pop_back();
+            } else {
+                info.old = m_refresh(info.asset, m_userdata);
+                ++i;
             }
         }
     }
