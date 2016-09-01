@@ -28,6 +28,7 @@ public:
     explicit TcpSocket(BlockingMode blockingMode);
     ~TcpSocket();
 
+    OsHandle GetOsHandle() const;
     BlockingMode GetBlockingMode() const;
 
     SocketResult Connect(u32 address, u16 port);

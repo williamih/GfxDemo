@@ -99,6 +99,11 @@ TcpSocket::~TcpSocket()
     Disconnect();
 }
 
+TcpSocket::OsHandle TcpSocket::GetOsHandle() const
+{
+    return m_handle;
+}
+
 TcpSocket::BlockingMode TcpSocket::GetBlockingMode() const
 {
     return (m_flags & FLAG_NONBLOCKING) ? NONBLOCKING : BLOCKING;
