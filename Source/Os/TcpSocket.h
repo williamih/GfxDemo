@@ -25,11 +25,13 @@ public:
 
     typedef int OsHandle;
 
-    explicit TcpSocket(BlockingMode blockingMode);
+    TcpSocket();
     ~TcpSocket();
 
     OsHandle GetOsHandle() const;
+
     BlockingMode GetBlockingMode() const;
+    void SetBlockingMode(BlockingMode blockingMode);
 
     SocketResult Connect(u32 address, u16 port);
     void Disconnect();

@@ -80,18 +80,10 @@ static void ProcessSocketError(int error)
     }
 }
 
-TcpSocket::TcpSocket(BlockingMode blockingMode)
+TcpSocket::TcpSocket()
     : m_handle(-1)
-    , m_flags((blockingMode == NONBLOCKING) ? FLAG_NONBLOCKING : 0)
+    , m_flags(0)
 {
-    if (blockingMode == NONBLOCKING) {
-        int flags = fcntl(m_handle, F_GETFL, 0);
-        if (flags < 0)
-            FATAL("fcntl");
-        flags |= O_NONBLOCK;
-        if (fcntl(m_handle, F_SETFL, flags) != 0)
-            FATAL("fcntl");
-    }
 }
 
 TcpSocket::~TcpSocket()
@@ -107,6 +99,24 @@ TcpSocket::OsHandle TcpSocket::GetOsHandle() const
 TcpSocket::BlockingMode TcpSocket::GetBlockingMode() const
 {
     return (m_flags & FLAG_NONBLOCKING) ? NONBLOCKING : BLOCKING;
+}
+
+void TcpSocket::SetBlockingMode(BlockingMode blockingMode)
+{
+    Create();
+
+    int flags = fcntl(m_handle, F_GETFL, 0);
+    if (flags < 0)
+        FATAL("fcntl");
+    if (blockingMode == NONBLOCKING) {
+        flags |= O_NONBLOCK;
+        m_flags |= FLAG_NONBLOCKING;
+    } else {
+        flags &= ~(O_NONBLOCK);
+        m_flags &= ~(FLAG_NONBLOCKING);
+    }
+    if (fcntl(m_handle, F_SETFL, flags) != 0)
+        FATAL("fcntl");
 }
 
 TcpSocket::SocketResult TcpSocket::Connect(u32 address, u16 port)
@@ -254,10 +264,11 @@ TcpSocket::SocketResult TcpSocket::Recv(void* buf, size_t bufLen, size_t* receiv
 
 void TcpSocket::Create()
 {
-    ASSERT(!IsConnected());
-    m_handle = socket(PF_INET, SOCK_STREAM, 0);
-    if (m_handle == -1)
-        FATAL("Failed to create socket: %s", strerror(errno));
+    if (m_handle == -1) {
+        m_handle = socket(PF_INET, SOCK_STREAM, 0);
+        if (m_handle == -1)
+            FATAL("Failed to create socket: %s", strerror(errno));
+    }
 }
 
 bool TcpSocket::Bind(u32 address, u16 port)
