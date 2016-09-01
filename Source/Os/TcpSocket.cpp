@@ -223,25 +223,28 @@ bool TcpSocket::Send(const void* data, size_t bytes, size_t* sent)
 TcpSocket::SocketResult TcpSocket::Recv(void* buf, size_t bufLen, size_t* received)
 {
     ASSERT(IsConnected());
+    SocketResult result = SUCCESS;
     ssize_t ret;
     for (;;) {
         ret = recv(m_handle, buf, bufLen, 0);
         if (ret == -1) {
             if (errno == EINTR)
                 continue;
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                return WOULDBLOCK;
-            ProcessSocketError(errno);
-            Disconnect();
-            return FAILURE;
+            else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                result = WOULDBLOCK;
+            } else {
+                ProcessSocketError(errno);
+                Disconnect();
+                result = FAILURE;
+            }
         }
         break;
     }
     if (ret == 0)
         Disconnect(); // orderly shutdown on remote end
     if (received)
-        *received = (size_t)ret;
-    return SUCCESS;
+        *received = (result == SUCCESS) ? (size_t)ret : 0;
+    return result;
 }
 
 void TcpSocket::Create()
