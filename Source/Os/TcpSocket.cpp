@@ -254,3 +254,33 @@ void TcpSocket::Create()
     if (m_handle == -1)
         FATAL("Failed to create socket: %s", strerror(errno));
 }
+
+bool TcpSocket::Bind(u32 address, u16 port)
+{
+    Create();
+
+    sockaddr_in addr;
+    memset(&addr, 0, sizeof addr);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = htonl(address);
+
+    if (bind(m_handle, (sockaddr*)&addr, sizeof addr) == -1) {
+        ProcessSocketError(errno);
+        Disconnect();
+        return false;
+    }
+
+    return true;
+}
+
+bool TcpSocket::Listen(int backlog)
+{
+    if (listen(m_handle, backlog) == -1) {
+        ProcessSocketError(errno);
+        Disconnect();
+        return false;
+    }
+
+    return true;
+}

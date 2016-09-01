@@ -38,6 +38,10 @@ public:
 
     bool Send(const void* data, size_t bytes, size_t* sent);
     SocketResult Recv(void* buf, size_t bufLen, size_t* received);
+
+    bool Bind(u32 address, u16 port);
+    bool Listen(int backlog);
+
 private:
     TcpSocket(const TcpSocket&);
     TcpSocket& operator=(const TcpSocket&);
