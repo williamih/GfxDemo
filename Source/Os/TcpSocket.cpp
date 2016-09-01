@@ -11,6 +11,7 @@
 #include "Core/Macros.h"
 
 const u32 FLAG_NONBLOCKING = 1;
+const u32 FLAG_LISTENING = 2;
 
 static void ProcessSocketError(int error)
 {
@@ -238,6 +239,12 @@ void TcpSocket::Create()
     }
 }
 
+void TcpSocket::Create(OsHandle handle)
+{
+    ASSERT(m_handle == -1);
+    m_handle = handle;
+}
+
 bool TcpSocket::Bind(u32 address, u16 port)
 {
     Create();
@@ -266,6 +273,27 @@ bool TcpSocket::Listen(int backlog)
         Disconnect();
         return false;
     }
+
+    m_flags |= FLAG_LISTENING;
+
+    return true;
+}
+
+bool TcpSocket::Accept(TcpSocket* socket)
+{
+    ASSERT(socket);
+    ASSERT(m_handle != -1);
+    ASSERT(m_flags & FLAG_LISTENING);
+
+    int fd = accept(m_handle, NULL, NULL);
+    if (fd == -1) {
+        ProcessSocketError(m_handle);
+        Disconnect();
+        return false;
+    }
+
+    socket->Disconnect();
+    socket->Create(fd);
 
     return true;
 }

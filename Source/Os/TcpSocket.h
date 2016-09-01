@@ -36,12 +36,14 @@ public:
 
     bool Bind(u32 address, u16 port);
     bool Listen(int backlog);
+    bool Accept(TcpSocket* socket);
 
 private:
     TcpSocket(const TcpSocket&);
     TcpSocket& operator=(const TcpSocket&);
 
     void Create();
+    void Create(OsHandle handle);
 
     OsHandle m_handle;
     u32 m_flags;
