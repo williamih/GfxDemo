@@ -190,26 +190,34 @@ bool TcpSocket::IsConnected() const
     return (m_flags & FLAG_CONNECTED) != 0;
 }
 
-TcpSocket::SocketResult TcpSocket::Send(const void* data, size_t bytes)
+bool TcpSocket::Send(const void* data, size_t bytes, size_t* sent)
 {
     ASSERT(IsConnected());
+
+    bool succeeded = true;
     size_t remaining = bytes;
-    const void* p = data;
+    const u8* p = (const u8*)data;
+
     while (remaining > 0) {
-        ssize_t sent = send(m_handle, p, remaining, 0);
-        if (sent == -1) {
+        ssize_t bytesJustSent = send(m_handle, p, remaining, 0);
+        if (bytesJustSent == -1) {
             if (errno == EINTR)
                 continue;
             if (errno == EAGAIN || errno == EWOULDBLOCK)
-                return WOULDBLOCK;
+                break;
             ProcessSocketError(errno);
             Disconnect();
-            return FAILURE;
+            succeeded = false;
+            break;
         }
-        remaining -= (size_t)sent;
-        p = (const u8*)p + (size_t)sent;
+        remaining -= (size_t)bytesJustSent;
+        p = p + (size_t)bytesJustSent;
     }
-    return SUCCESS;
+
+    if (sent)
+        *sent = p - (const u8*)data;
+
+    return succeeded;
 }
 
 TcpSocket::SocketResult TcpSocket::Recv(void* buf, size_t bufLen, size_t* received)

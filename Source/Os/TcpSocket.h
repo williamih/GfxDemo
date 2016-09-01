@@ -36,7 +36,7 @@ public:
     bool IsConnectionInProgress() const;
     bool IsConnected() const;
 
-    SocketResult Send(const void* data, size_t bytes);
+    bool Send(const void* data, size_t bytes, size_t* sent);
     SocketResult Recv(void* buf, size_t bufLen, size_t* received);
 private:
     TcpSocket(const TcpSocket&);
