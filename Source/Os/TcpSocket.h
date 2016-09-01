@@ -17,12 +17,6 @@ public:
         WOULDBLOCK,
     };
 
-    enum PollConnectionResult {
-        CONNECTION_SUCCEEDED,
-        CONNECTION_IN_PROGRESS,
-        CONNECTION_ERROR,
-    };
-
     typedef int OsHandle;
 
     TcpSocket();
@@ -33,11 +27,9 @@ public:
     BlockingMode GetBlockingMode() const;
     void SetBlockingMode(BlockingMode blockingMode);
 
+    void CheckErrorStatus(bool* result);
     SocketResult Connect(u32 address, u16 port);
     void Disconnect();
-    PollConnectionResult PollNonblockingConnect();
-    bool IsConnectionInProgress() const;
-    bool IsConnected() const;
 
     bool Send(const void* data, size_t bytes, size_t* sent);
     SocketResult Recv(void* buf, size_t bufLen, size_t* received);

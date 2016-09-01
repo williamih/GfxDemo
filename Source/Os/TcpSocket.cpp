@@ -11,8 +11,6 @@
 #include "Core/Macros.h"
 
 const u32 FLAG_NONBLOCKING = 1;
-const u32 FLAG_CONNECTED = 2;
-const u32 FLAG_CONNECTION_IN_PROGRESS = 4;
 
 static void ProcessSocketError(int error)
 {
@@ -119,9 +117,26 @@ void TcpSocket::SetBlockingMode(BlockingMode blockingMode)
         FATAL("fcntl");
 }
 
+void TcpSocket::CheckErrorStatus(bool* result)
+{
+    ASSERT(m_handle != -1);
+
+    int error = 0;
+    socklen_t len = sizeof error;
+    int retval = getsockopt(m_handle, SOL_SOCKET, SO_ERROR, &error, &len);
+    if (retval != 0)
+        FATAL("getsockopt: %s", strerror(retval));
+
+    if (error == 0) {
+        if (result) *result = true;
+    } else {
+        if (result) *result = false;
+        ProcessSocketError(error);
+    }
+}
+
 TcpSocket::SocketResult TcpSocket::Connect(u32 address, u16 port)
 {
-    ASSERT(!IsConnected());
     Create();
 
     sockaddr_in addr;
@@ -135,7 +150,6 @@ TcpSocket::SocketResult TcpSocket::Connect(u32 address, u16 port)
                 continue;
             // TODO: Do we need to check for EWOULDBLOCK as well?
             if (errno == EINPROGRESS || errno == EWOULDBLOCK) {
-                m_flags |= FLAG_CONNECTION_IN_PROGRESS;
                 return WOULDBLOCK;
             }
             ProcessSocketError(errno);
@@ -145,7 +159,6 @@ TcpSocket::SocketResult TcpSocket::Connect(u32 address, u16 port)
         break;
     }
 
-    m_flags |= FLAG_CONNECTED;
     return SUCCESS;
 }
 
@@ -156,58 +169,11 @@ void TcpSocket::Disconnect()
             FATAL("close");
         m_handle = -1;
     }
-    m_flags &= ~(FLAG_CONNECTED);
-}
-
-TcpSocket::PollConnectionResult TcpSocket::PollNonblockingConnect()
-{
-    ASSERT(m_flags & FLAG_CONNECTION_IN_PROGRESS);
-
-    fd_set writefds;
-    FD_ZERO(&writefds);
-    FD_SET(m_handle, &writefds);
-
-    timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
-
-    int ret = select(1, NULL, &writefds, NULL, &tv);
-    if (ret == 0)
-        return CONNECTION_IN_PROGRESS;
-
-    if (ret == -1)
-        FATAL("select: %s\n", strerror(errno));
-
-    m_flags &= ~(FLAG_CONNECTION_IN_PROGRESS);
-
-    int error = 0;
-    socklen_t len = sizeof error;
-    int retval = getsockopt(m_handle, SOL_SOCKET, SO_ERROR, &error, &len);
-    if (retval != 0)
-        FATAL("getsockopt: %s", strerror(retval));
-
-    if (error == 0) {
-        m_flags |= FLAG_CONNECTED;
-        return CONNECTION_SUCCEEDED;
-    } else {
-        ProcessSocketError(error);
-        return CONNECTION_ERROR;
-    }
-}
-
-bool TcpSocket::IsConnectionInProgress() const
-{
-    return (m_flags & FLAG_CONNECTION_IN_PROGRESS) != 0;
-}
-
-bool TcpSocket::IsConnected() const
-{
-    return (m_flags & FLAG_CONNECTED) != 0;
 }
 
 bool TcpSocket::Send(const void* data, size_t bytes, size_t* sent)
 {
-    ASSERT(IsConnected());
+    ASSERT(m_handle != -1);
 
     bool succeeded = true;
     size_t remaining = bytes;
@@ -237,7 +203,8 @@ bool TcpSocket::Send(const void* data, size_t bytes, size_t* sent)
 
 TcpSocket::SocketResult TcpSocket::Recv(void* buf, size_t bufLen, size_t* received)
 {
-    ASSERT(IsConnected());
+    ASSERT(m_handle != -1);
+
     SocketResult result = SUCCESS;
     ssize_t ret;
     for (;;) {
@@ -292,6 +259,8 @@ bool TcpSocket::Bind(u32 address, u16 port)
 
 bool TcpSocket::Listen(int backlog)
 {
+    ASSERT(m_handle != -1);
+
     if (listen(m_handle, backlog) == -1) {
         ProcessSocketError(errno);
         Disconnect();
