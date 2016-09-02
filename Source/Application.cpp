@@ -12,6 +12,8 @@
 
 #include "Texture/TextureAsset.h"
 
+#include "Asset/AssetPipelineConnection.h"
+
 #include "OsWindow.h"
 
 const char* const ASSET_BASE_PATH = "Assets";
@@ -61,6 +63,8 @@ Application::Application()
     , m_teapot(NULL)
     , m_floor(NULL)
     , m_angle(0.0f)
+
+    , m_netClient()
 {
     m_teapot = m_scene.AddModelInstance("Models\\Teapot.mdl");
     m_floor = m_scene.AddModelInstance("Models\\Floor.mdl");
@@ -85,6 +89,10 @@ Application::Application()
     m_window->RegisterEvent(OSEVENT_KEY_DOWN, &Application::OnKeyDown, (void*)this);
     m_window->RegisterEvent(OSEVENT_KEY_UP, &Application::OnKeyUp, (void*)this);
     m_window->RegisterEvent(OSEVENT_MOUSE_DRAG, &Application::OnMouseDragged, (void*)this);
+
+    AssetPipelineConnection* conn = new AssetPipelineConnection;
+    conn->Connect();
+    m_netClient.AddConnection(conn);
 }
 
 Application::~Application()
@@ -92,6 +100,8 @@ Application::~Application()
 
 void Application::Frame()
 {
+    m_netClient.Update();
+
     m_camera.Update(1.0f / 60.0f);
 
     m_samplerCache.CallCallbacks();

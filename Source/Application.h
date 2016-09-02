@@ -19,6 +19,8 @@
 #include "Scene/Camera.h"
 #include "Scene/Scene.h"
 
+#include "Network/NetClient.h"
+
 class OsWindow;
 class OsEvent;
 
@@ -54,6 +56,8 @@ private:
     ModelInstance* m_teapot;
     ModelInstance* m_floor;
     float m_angle;
+
+    NetClient m_netClient;
 };
 
 #endif // APPLICATION_H
