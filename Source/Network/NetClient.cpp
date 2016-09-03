@@ -184,55 +184,51 @@ NetClient::~NetClient()
 
 void NetClient::Update()
 {
+    fd_set readSet, writeSet;
+    FD_ZERO(&readSet);
+    FD_ZERO(&writeSet);
+
+    int nfds = 0;
+
     for (Connection* conn = m_connections.Head(); conn;
          conn = conn->m_link.Next()) {
-        conn->DoWrites();
+        int socket = conn->GetSocket();
+        if (socket > FD_SETSIZE)
+            FATAL("Socket exceeds FD_SETSIZE");
+        if (!conn->IsConnected() && !conn->IsConnecting())
+            continue;
+        if (conn->IsConnected())
+            FD_SET(socket, &readSet);
+        FD_SET(socket, &writeSet);
+        if (socket > nfds)
+            nfds = socket;
     }
+    if (nfds == 0)
+        return;
+    ++nfds;
 
-    for (;;) {
-        fd_set readSet, writeSet;
-        FD_ZERO(&readSet);
-        FD_ZERO(&writeSet);
+    timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    int ret = select(nfds, &readSet, &writeSet, NULL, &tv);
 
-        int nfds = 0;
+    if (ret == -1)
+        FATAL("select");
 
-        for (Connection* conn = m_connections.Head(); conn;
-             conn = conn->m_link.Next()) {
-            int socket = conn->GetSocket();
-            if (socket > FD_SETSIZE)
-                FATAL("Socket exceeds FD_SETSIZE");
-            if (!conn->IsConnected() && !conn->IsConnecting())
-                continue;
+    if (ret == 0)
+        return; // nothing happened
+
+    for (Connection* conn = m_connections.Head(); conn;
+         conn = conn->m_link.Next()) {
+        int socket = conn->GetSocket();
+        if (FD_ISSET(socket, &readSet)) {
+            conn->DoReads();
+        } else if (FD_ISSET(socket, &writeSet)) {
             if (conn->IsConnected()) {
-                FD_SET(socket, &readSet);
+                conn->DoWrites();
             } else {
-                FD_SET(socket, &writeSet);
-            }
-            if (socket > nfds)
-                nfds = socket;
-        }
-        if (nfds == 0)
-            break;
-        ++nfds;
-
-        timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 0;
-        int ret = select(nfds, &readSet, &writeSet, NULL, &tv);
-
-        if (ret == -1)
-            FATAL("select");
-
-        if (ret == 0)
-            break; // nothing happened
-
-        for (Connection* conn = m_connections.Head(); conn;
-             conn = conn->m_link.Next()) {
-            int socket = conn->GetSocket();
-            if (FD_ISSET(socket, &readSet))
-                conn->DoReads();
-            else if (FD_ISSET(socket, &writeSet))
                 conn->CheckConnect();
+            }
         }
     }
 }
