@@ -34,6 +34,8 @@ private:
     struct Message {
         u8* data;
         u32 size;
+        u32 sizeBytesSent;
+        u32 dataBytesSent;
     };
 
     void Disconnect();

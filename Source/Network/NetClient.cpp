@@ -13,7 +13,9 @@ Connection::Connection()
     , m_link()
     , m_messageQueue()
     , m_flags(0)
-{}
+{
+    m_socket.SetBlockingMode(TcpSocket::NONBLOCKING);
+}
 
 Connection::~Connection()
 {
@@ -23,14 +25,58 @@ Connection::~Connection()
     }
 }
 
+static bool TrySend(
+    TcpSocket& socket,
+    const u8* data,
+    u32 size,
+    u32* sizeBytesSent,
+    u32* dataBytesSent)
+{
+    ASSERT(sizeBytesSent);
+    ASSERT(dataBytesSent);
+
+    size_t sent;
+
+    if (*sizeBytesSent < 4) {
+        u32 swappedSize = EndianSwapLE32(size);
+        const u8* ptr = (u8*)&swappedSize + *sizeBytesSent;
+        if (!socket.Send(ptr, 4 - *sizeBytesSent, &sent))
+            return false;
+        *sizeBytesSent += (u32)sent;
+    }
+
+    ASSERT(*sizeBytesSent <= 4);
+
+    if (*sizeBytesSent == 4) {
+        const u8* ptr = data + *dataBytesSent;
+        if (!socket.Send(ptr, size - *dataBytesSent, &sent))
+            return false;
+        *dataBytesSent += (u32)sent;
+    }
+
+    return true;
+}
+
 void Connection::SendRaw(const u8* data, u32 size)
 {
-    Message message;
-    message.data = (u8*)malloc(size);
-    memcpy(message.data, data, size);
-    message.size = size;
+    u32 sizeBytesSent = 0;
+    u32 dataBytesSent = 0;
 
-    m_messageQueue.push(message);
+    if (!TrySend(m_socket, data, size, &sizeBytesSent, &dataBytesSent)) {
+        Disconnect();
+        return;
+    }
+
+    if (dataBytesSent < size) {
+        Message message;
+        message.data = (u8*)malloc(size);
+        memcpy(message.data, data, size);
+        message.size = size;
+        message.sizeBytesSent = sizeBytesSent;
+        message.dataBytesSent = dataBytesSent;
+
+        m_messageQueue.push(message);
+    }
 }
 
 static inline u32 ParseLE32(const u8* ptr)
@@ -51,22 +97,17 @@ bool Connection::IsConnecting()
 
 bool Connection::Connect(u32 address, u16 port)
 {
-    m_socket.SetBlockingMode(TcpSocket::NONBLOCKING);
     TcpSocket::SocketResult result = m_socket.Connect(address, port);
     switch (result) {
         case TcpSocket::SUCCESS:
             m_flags |= FLAG_CONNECTED;
-            m_socket.SetBlockingMode(TcpSocket::BLOCKING);
             HandleConnectSuccess();
             return true;
         case TcpSocket::FAILURE:
-            m_socket.SetBlockingMode(TcpSocket::BLOCKING);
             HandleConnectFailure();
             return false;
         case TcpSocket::WOULDBLOCK:
             m_flags |= FLAG_CONNECTING;
-            // We leave the socket in nonblocking mode until the connection
-            // is established.
             return true;
     }
 }
@@ -81,7 +122,6 @@ void Connection::CheckConnect()
     if (result) {
         // Connected successfully
         m_flags |= FLAG_CONNECTED;
-        m_socket.SetBlockingMode(TcpSocket::BLOCKING);
         HandleConnectSuccess();
     } else {
         // Failed to connect
@@ -93,41 +133,46 @@ void Connection::DoReads()
 {
     u8 buf[1024];
     size_t received;
-    if (m_socket.Recv(buf, sizeof buf, &received) == TcpSocket::FAILURE) {
-        Disconnect();
-        return;
-    }
-    // TODO: Redesign TcpSocket::Recv() so that we don't have to do this
-    // additional check.
-    if (received == 0) {
-        Disconnect();
-        return;
-    }
-
-    const u8* ptr = buf;
-    const u8* const end = buf + received;
-
-    while (ptr != end) {
-        const size_t bytesRemaining = end - ptr;
-
-        u32 toCopy;
-        if (m_readBuffer.size() < 4) {
-            toCopy = (u32)std::min(bytesRemaining, 4 - m_readBuffer.size());
-        } else {
-            u32 messageSize = ParseLE32(&m_readBuffer[0]);
-            toCopy = std::min((u32)bytesRemaining, messageSize);
+    for (;;) {
+        TcpSocket::SocketResult res = m_socket.Recv(buf, sizeof buf, &received);
+        if (res == TcpSocket::WOULDBLOCK)
+            break;
+        if (res == TcpSocket::FAILURE) {
+            Disconnect();
+            break;
+        }
+        // TODO: Redesign TcpSocket::Recv() so that we don't have to do this
+        // additional check.
+        if (received == 0) {
+            Disconnect();
+            break;
         }
 
-        const size_t bufferSize = m_readBuffer.size();
-        m_readBuffer.resize(bufferSize + toCopy);
-        memcpy(&m_readBuffer[bufferSize], ptr, toCopy);
-        ptr += toCopy;
+        const u8* ptr = buf;
+        const u8* const end = buf + received;
 
-        if (m_readBuffer.size() >= 4) {
-            u32 messageSize = ParseLE32(&m_readBuffer[0]);
-            if (m_readBuffer.size() == 4 + messageSize) {
-                HandleMessage(&m_readBuffer[4], messageSize);
-                m_readBuffer.clear();
+        while (ptr != end) {
+            const size_t bytesRemaining = end - ptr;
+
+            u32 toCopy;
+            if (m_readBuffer.size() < 4) {
+                toCopy = (u32)std::min(bytesRemaining, 4 - m_readBuffer.size());
+            } else {
+                u32 messageSize = ParseLE32(&m_readBuffer[0]);
+                toCopy = std::min((u32)bytesRemaining, messageSize);
+            }
+
+            const size_t bufferSize = m_readBuffer.size();
+            m_readBuffer.resize(bufferSize + toCopy);
+            memcpy(&m_readBuffer[bufferSize], ptr, toCopy);
+            ptr += toCopy;
+
+            if (m_readBuffer.size() >= 4) {
+                u32 messageSize = ParseLE32(&m_readBuffer[0]);
+                if (m_readBuffer.size() == 4 + messageSize) {
+                    HandleMessage(&m_readBuffer[4], messageSize);
+                    m_readBuffer.clear();
+                }
             }
         }
     }
@@ -135,23 +180,14 @@ void Connection::DoReads()
 
 void Connection::DoWrites()
 {
-    if (!IsConnected())
-        return;
+    ASSERT(IsConnected());
     while (!m_messageQueue.empty()) {
         Message message = m_messageQueue.front();
         m_messageQueue.pop();
 
-        u32 size = EndianSwapLE32(message.size);
-        for (;;) {
-            if (!m_socket.Send(&size, 4, NULL)) {
-                Disconnect();
-                break;
-            }
-            if (!m_socket.Send(message.data, message.size, NULL)) {
-                Disconnect();
-                break;
-            }
-            break;
+        if (!TrySend(m_socket, message.data, message.size,
+                     &message.sizeBytesSent, &message.dataBytesSent)) {
+            Disconnect();
         }
         free(message.data);
 
