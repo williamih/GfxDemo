@@ -1,6 +1,9 @@
 #include "Asset/AssetPipelineConnection.h"
 #include <stdio.h>
 #include "Core/Endian.h"
+#include "Core/Str.h"
+#include "Core/Path.h"
+#include "Shader/ShaderAsset.h"
 
 const u32 MSG_ASSET_COMPILED = 1;
 
@@ -19,7 +22,8 @@ static u32 Address(u32 a, u32 b, u32 c, u32 d)
 const u16 PORT = 6789;
 const u32 LOCALHOST = Address(127, 0, 0, 1);
 
-AssetPipelineConnection::AssetPipelineConnection()
+AssetPipelineConnection::AssetPipelineConnection(ShaderCache& shaderCache)
+    : m_shaderCache(shaderCache)
 {}
 
 void AssetPipelineConnection::Connect()
@@ -66,5 +70,10 @@ void AssetPipelineConnection::HandleDisconnect()
 
 void AssetPipelineConnection::HandleAssetCompiled(AssetPipelineMsgCompiled& msg)
 {
+    const char* extension = PathFindExtension(msg.path);
+    if (!extension)
+        return;
+    if (StrCmp(extension, ".shd") == 0)
+        m_shaderCache.RefreshWithPath(msg.path);
     printf("Recompiled file %s\n", msg.path);
 }

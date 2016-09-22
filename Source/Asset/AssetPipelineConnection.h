@@ -4,11 +4,12 @@
 #include <vector>
 #include "Network/NetClient.h"
 
+class ShaderCache;
 struct AssetPipelineMsgCompiled;
 
 class AssetPipelineConnection : public Connection {
 public:
-    AssetPipelineConnection();
+    explicit AssetPipelineConnection(ShaderCache& shaderCache);
 
     void Connect();
 
@@ -19,6 +20,8 @@ private:
     virtual void HandleDisconnect();
 
     void HandleAssetCompiled(AssetPipelineMsgCompiled& msg);
+
+    ShaderCache& m_shaderCache;
 };
 
 #endif // ASSETPIPELINECONNECTION_H

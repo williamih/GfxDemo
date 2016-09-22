@@ -53,6 +53,7 @@ public:
     void RemoveUnusedShaders();
 
     void Refresh(const char* name);
+    void RefreshWithPath(const char* path);
     void UpdateRefreshSystem();
 
 private:

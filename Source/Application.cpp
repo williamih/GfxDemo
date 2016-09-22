@@ -90,7 +90,7 @@ Application::Application()
     m_window->RegisterEvent(OSEVENT_KEY_UP, &Application::OnKeyUp, (void*)this);
     m_window->RegisterEvent(OSEVENT_MOUSE_DRAG, &Application::OnMouseDragged, (void*)this);
 
-    AssetPipelineConnection* conn = new AssetPipelineConnection;
+    AssetPipelineConnection* conn = new AssetPipelineConnection(m_shaderCache);
     conn->Connect();
     m_netClient.AddConnection(conn);
 }
