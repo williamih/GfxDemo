@@ -1,6 +1,11 @@
 .DS_Store
 Assets/Models/*
 Assets/Shaders/*
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.VC.*
+.vs/*
 *.xcodeproj
 *.xcworkspace
 bin/*
