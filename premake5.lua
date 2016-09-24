@@ -1,6 +1,12 @@
+local osID = os.get()
+
 workspace "GfxDemo"
     configurations { "Debug", "Release" }
-    platforms { "OSX" }
+    if osID == "windows" then
+        platforms { "Windows" }
+    elseif osID == "macosx" then
+        platforms { "OSX " }
+    end
 
 function CreateProject(apiName, apiDefine, frameworks)
     project("GfxDemo-"..apiName)
@@ -52,5 +58,7 @@ function CreateProject(apiName, apiDefine, frameworks)
 
 end
 
-CreateProject("Metal", "GPUDEVICE_API_METAL", "Metal.framework")
+if osID == "macosx" then
+    CreateProject("Metal", "GPUDEVICE_API_METAL", "Metal.framework")
+end
 CreateProject("Null", "GPUDEVICE_API_NULL")
