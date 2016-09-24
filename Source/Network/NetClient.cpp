@@ -125,6 +125,7 @@ void Connection::CheckConnect()
         HandleConnectSuccess();
     } else {
         // Failed to connect
+        m_socket.Disconnect();
         HandleConnectFailure();
     }
 }
