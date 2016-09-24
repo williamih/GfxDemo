@@ -43,7 +43,7 @@ GpuDevice* Application::CreateGpuDevice(OsWindow& window)
     deviceFormat.resolutionX = 2560;
     deviceFormat.resolutionY = 1440;
     deviceFormat.flags = GpuDeviceFormat::FLAG_SCALE_RES_WITH_WINDOW_SIZE;
-    return GpuDevice::Create(deviceFormat, window.GetNSView());
+    return GpuDevice::Create(deviceFormat, (void*)window.GetOsHandle());
 }
 
 Application::Application()

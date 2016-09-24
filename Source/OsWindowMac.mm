@@ -29,7 +29,7 @@ public:
                          void (*callback)(const OsEvent&, void*),
                          void* userdata);
 
-    void* GetNSView() const;
+    OsWindow::OsHandle* GetOsHandle() const;
 
     // Implementation-detail methods that don't correspond to OsWindow methods
     void DispatchEvents();
@@ -421,10 +421,10 @@ void OsWindowMacImpl::UnregisterEvent(OsEventType type,
     }
 }
 
-void* OsWindowMacImpl::GetNSView() const
+OsWindow::OsHandle* OsWindowMacImpl::GetOsHandle() const
 {
     NSView* view = m_view;
-    return (void*)view;
+    return (OsWindow::OsHandle*)view;
 }
 
 void OsWindowMacImpl::DispatchEvents()
@@ -457,6 +457,8 @@ void OsWindowMacImpl::EnqueueEvent(const OsEvent& event)
     m_eventQueue.push(event);
 }
 
+OsWindow::OsHandle* OsWindow::GetOsHandle() const { return Cast(this)->GetOsHandle(); }
+
 void OsWindow::RunEventLoop()
 {
     ASSERT(NSApp != nil);
@@ -482,7 +484,5 @@ void OsWindow::UnregisterEvent(OsEventType type,
                                void (*callback)(const OsEvent&, void*),
                                void* userdata)
 { Cast(this)->RegisterEvent(type, callback, userdata); }
-
-void* OsWindow::GetNSView() const { return Cast(this)->GetNSView(); }
 
 #endif // __APPLE__

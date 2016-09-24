@@ -10,6 +10,8 @@ struct OsWindowPixelFormat {
 
 class OsWindow {
 public:
+    struct OsHandle;
+
     static OsWindow* Create(int width, int height, const OsWindowPixelFormat& pf);
     static void Destroy(OsWindow* window);
 
@@ -20,12 +22,11 @@ public:
                          void (*callback)(const OsEvent&, void*),
                          void* userdata);
 
+    // Returns an NSView* for Mac, or an HWND for Windows.
+    OsHandle* GetOsHandle() const;
+
     static void RunEventLoop();
     static void QuitEventLoop();
-
-#ifdef __APPLE__
-    void* GetNSView() const;
-#endif
 
 private:
     OsWindow();
