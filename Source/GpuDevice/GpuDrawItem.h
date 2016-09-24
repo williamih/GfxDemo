@@ -17,7 +17,8 @@
 #include "Core/Types.h"
 #include "GpuDevice/GpuDevice.h"
 
-struct GpuDrawItem {
+class GpuDrawItem {
+public:
     static const u32 NUM_PRIMITIVE_TYPE_BITS = 3;
 
     GpuPrimitiveType GetPrimitiveType() const
