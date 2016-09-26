@@ -4,6 +4,7 @@ Assets/Shaders/*
 *.sln
 *.vcxproj
 *.vcxproj.filters
+*.vcxproj.user
 *.VC.*
 .vs/*
 *.xcodeproj
