@@ -8,7 +8,7 @@ workspace "GfxDemo"
         platforms { "OSX " }
     end
 
-function CreateProject(apiName, apiDefine, frameworks)
+function CreateProject(apiName, apiDefine, listOfLinks)
     project("GfxDemo-"..apiName)
 
         kind "WindowedApp"
@@ -21,6 +21,10 @@ function CreateProject(apiName, apiDefine, frameworks)
 
         includedirs "Source"
 
+        if listOfLinks ~= nil then
+            links(listOfLinks)
+        end
+
         filter "configurations:Debug"
             defines {
                 "DEBUG",
@@ -32,6 +36,13 @@ function CreateProject(apiName, apiDefine, frameworks)
             defines { "NDEBUG" }
             optimize "On"
 
+        filter "platforms:Windows"
+            architecture "x64"
+            postbuildcommands {
+                'if exist "%{cfg.buildtarget.directory}Assets" del /q "%{cfg.buildtarget.directory}Assets";',
+                'mklink "%{cfg.buildtarget.directory}Assets" "$(SolutionDir)Assets";',
+            }
+
         filter "platforms:OSX"
             files { "Source/**.m", "Source/**.mm", "Mac/**.xib", "Mac/**.strings", "Mac/Info.plist" }
             architecture "x64"
@@ -40,9 +51,6 @@ function CreateProject(apiName, apiDefine, frameworks)
                 "Carbon.framework",
                 "QuartzCore.framework",
             }
-            if frameworks ~= nil then
-                links(frameworks)
-            end
             buildoptions { "-std=c++14" }
             postbuildcommands {
                 'rm -f %{cfg.buildtarget.directory}/Assets',
