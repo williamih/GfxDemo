@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "Core/Path.h"
+
 #include "Math/Vector3.h"
 
 #include "GpuDevice/GpuDrawItemWriter.h"
@@ -24,6 +26,14 @@ static void OnWindowResize(const OsEvent& event, void* userdata)
 static void OnPaint(const OsEvent& event, void* userdata)
 {
     ((Application*)userdata)->Frame();
+}
+
+FileLoader* Application::CreateFileLoader()
+{
+    char path[1024];
+    PathGetProgramDirectory(path, sizeof path);
+    PathAppendPath(path, sizeof path, ASSET_BASE_PATH, PATH_USE_OS_SEPARATOR);
+    return new FileLoader(path);
 }
 
 OsWindow* Application::CreateWindow()
@@ -51,12 +61,12 @@ Application::Application()
     , m_gpuDevice(CreateGpuDevice(*m_window), &GpuDevice::Destroy)
     , m_samplerCache(*m_gpuDevice)
 
-    , m_fileLoader(ASSET_BASE_PATH)
+    , m_fileLoader(CreateFileLoader())
 
-    , m_shaderCache(*m_gpuDevice, m_fileLoader)
-    , m_textureCache(*m_gpuDevice, m_fileLoader)
+    , m_shaderCache(*m_gpuDevice, *m_fileLoader)
+    , m_textureCache(*m_gpuDevice, *m_fileLoader)
 
-    , m_scene(*m_gpuDevice, m_fileLoader, m_samplerCache, m_shaderCache, m_textureCache)
+    , m_scene(*m_gpuDevice, *m_fileLoader, m_samplerCache, m_shaderCache, m_textureCache)
     , m_camera()
     , m_teapot(NULL)
     , m_floor(NULL)
