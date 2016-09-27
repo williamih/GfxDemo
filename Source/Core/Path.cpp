@@ -1,6 +1,10 @@
 #include "Core/Path.h"
 
-#ifdef __APPLE__
+#if defined(_WIN32)
+#  include <Windows.h>
+#  include "Shlwapi.h"
+#  pragma comment(lib, "Shlwapi.lib")
+#elif defined(__APPLE__)
 #  include <CoreFoundation/CoreFoundation.h>
 #else
 #  error Path module not implemented for this OS
@@ -11,7 +15,15 @@
 
 void PathGetProgramDirectory(char* dst, unsigned dstChars)
 {
-#ifdef __APPLE__
+#if defined(_WIN32)
+    // TODO: Use the wchar versions of these functions.
+    unsigned result = GetModuleFileNameA(NULL, dst, dstChars);
+    if (result >= dstChars)
+        dst[0] = 0;
+    char* filename = PathFindFileNameA(dst);
+    if (filename != dst)
+        filename[0] = 0;
+#elif defined(__APPLE__)
     CFURLRef url1 = CFBundleCopyBundleURL(CFBundleGetMainBundle());
     CFURLRef url2 = CFURLCreateCopyDeletingLastPathComponent(NULL, url1);
     CFRelease(url1);
