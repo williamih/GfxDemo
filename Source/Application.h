@@ -31,6 +31,7 @@ private:
     Application(const Application&);
     Application& operator=(const Application&);
 
+    static FileLoader* CreateFileLoader();
     static OsWindow* CreateWindow();
     static GpuDevice* CreateGpuDevice(OsWindow& window);
 
@@ -44,7 +45,7 @@ private:
     std::unique_ptr<GpuDevice, void (*)(GpuDevice*)> m_gpuDevice;
     GpuSamplerCache m_samplerCache;
 
-    FileLoader m_fileLoader;
+    std::unique_ptr<FileLoader> m_fileLoader;
 
     ShaderCache m_shaderCache;
     TextureCache m_textureCache;
