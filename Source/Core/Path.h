@@ -12,6 +12,10 @@ void PathGetProgramDirectory(char* dst, unsigned dstChars);
 // operating systems.
 bool PathAppendPath(char* dst, unsigned dstChars, const char* src, char sep);
 
+// Returns the file extension of the path (including the dot), or NULL if no
+// file extension was present.
+const char* PathFindExtension(const char* path);
+
 void PathReplaceExtension(char* path, unsigned chars, const char* src,
                           const char* newExtension);
 

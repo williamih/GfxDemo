@@ -4,6 +4,7 @@
 
 #include "Core/Macros.h"
 #include "Core/Str.h"
+#include "Core/Path.h"
 #include "Core/FileLoader.h"
 
 namespace {
@@ -192,6 +193,29 @@ void ShaderCache::Refresh(const char* name)
 
     shader->AddRef();
     m_refreshQueue.QueueRefresh(shader);
+}
+
+void ShaderCache::RefreshWithPath(const char* path)
+{
+    const char* ext = PathFindExtension(path);
+    if (!ext || StrCmp(ext, ".shd") != 0)
+        FATAL("Invalid file extension: expected '.shd', was '%s'", ext);
+
+    const char* p = ext;
+    for (; p != path && *p != '_'; --p)
+        ;
+    if (p == path)
+        FATAL("Invalid shader path: %s", path);
+
+    size_t length = (size_t)(p - path);
+    if (length >= SHADER_MAX_PATH_LENGTH)
+        FATAL("Shader path too long");
+
+    char shaderName[SHADER_MAX_PATH_LENGTH];
+    memcpy(shaderName, path, length);
+    shaderName[length] = 0;
+
+    Refresh(shaderName);
 }
 
 void ShaderCache::UpdateRefreshSystem()

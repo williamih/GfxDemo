@@ -1,0 +1,3 @@
+Assets/Shaders/Model_MTL.shd
+Assets/Shaders/Skybox_MTL.shd
+Assets/Shaders/BlitRT_MTL.shd
